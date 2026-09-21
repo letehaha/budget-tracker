@@ -1,0 +1,35 @@
+{
+  "pages": {
+    "sharedWithMe": {
+      "title": "Condivisi con me",
+      "loadError": "Impossibile caricare le risorse condivise.",
+      "empty": {
+        "title": "Non c'è niente di condiviso con te al momento",
+        "description": "Quando qualcuno condivide un account con te, apparirà qui."
+      },
+      "sections": {
+        "account": "Conti",
+        "household": "Famiglie",
+        "budget": "Budget condivisi con te"
+      },
+      "sharedBy": "Condiviso da {handle}",
+      "viaHousehold": "Tramite la famiglia {handle}",
+      "unnamedResource": "Senza titolo",
+      "permissions": {
+        "read": "Leggi",
+        "write": "Scrivi",
+        "manage": "Gestisci"
+      },
+      "leave": "Abbandona",
+      "leaveTitle": "Abbandona condivisione?",
+      "leaveDescription": "Perderai l'accesso a {resource} di {owner}. Il proprietario non sarà avvisato.",
+      "leaveConfirm": "Abbandona",
+      "leaveSuccess": "Hai abbandonato la condivisione.",
+      "leaveError": "Impossibile abbandonare la condivisione.",
+      "pending": {
+        "heading": "Richieste in attesa",
+        "review": "Revisiona"
+      }
+    }
+  }
+}

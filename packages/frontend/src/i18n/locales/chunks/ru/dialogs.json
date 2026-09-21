@@ -200,6 +200,42 @@
           "locationPair": "Введите и широту, и долготу",
           "maxLength": "Не более {max} символов",
           "httpUrl": "Введите корректный URL с http(s)"
+        },
+        "attachments": {
+          "label": "Attachments",
+          "loading": "Loading attachments…",
+          "listLoadFailed": "Couldn't load attachments. Close and reopen this dialog to try again.",
+          "hint": "Up to {max} files, {size} each. JPEG, PNG, WebP or PDF.",
+          "trigger": {
+            "empty": "Add attachments",
+            "count": "{count} attachment | {count} attachments",
+            "uploading": "Uploading…"
+          },
+          "dropzone": {
+            "idle": "Drop files here or click to browse",
+            "drag": "Drop to attach"
+          },
+          "errors": {
+            "unsupportedType": "Some files were skipped: only JPEG, PNG, WebP and PDF files can be attached.",
+            "tooMany": "A transaction can have at most {max} attachments.",
+            "tooLarge": "\"{filename}\" is larger than {max} and was not uploaded.",
+            "upload": "Failed to upload the attachment.",
+            "delete": "Failed to delete the attachment."
+          },
+          "deleteConfirm": {
+            "title": "Delete attachment?",
+            "description": "\"{filename}\" will be permanently deleted. This action cannot be undone."
+          },
+          "deleteAll": "Delete all",
+          "deleteAllConfirm": {
+            "title": "Delete all attachments?",
+            "description": "All {count} files will be permanently deleted. This action cannot be undone."
+          },
+          "viewer": {
+            "loadFailed": "Could not load this file.",
+            "openInNewTab": "Open in new tab",
+            "download": "Скачать"
+          }
         }
       },
       "refundRecordsList": {
@@ -406,7 +442,9 @@
           "save": "Сохранить шаблон",
           "deleteConfirmTitle": "Удалить «{name}»?",
           "deleteConfirmDescription": "Шаблон будет удалён. Уже созданные по нему транзакции не изменятся.",
-          "duplicateName": "Шаблон с названием «{name}» уже существует."
+          "duplicateName": "Шаблон с названием «{name}» уже существует.",
+          "originalCurrencyLabel": "Original amount currency",
+          "originalCurrencyPlaceholder": "Выберите валюту"
         },
         "errors": {
           "create": "Не удалось сохранить шаблон. Попробуйте снова.",

@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "aiIntegrations": {
+      "title": "Tích hợp AI",
+      "description": "Kết nối các trợ lý AI như Claude hay ChatGPT để phân tích dữ liệu tài chính của bạn ngay trong khung chat.",
+      "mcpServer": {
+        "title": "Máy chủ MCP",
+        "description": "Dùng URL này để kết nối trợ lý AI với tài khoản MoneyMatter của bạn. Dữ liệu của bạn được chia sẻ ở chế độ chỉ đọc.",
+        "copyTooltip": "Sao chép URL",
+        "copiedNotification": "Đã sao chép URL máy chủ MCP"
+      },
+      "quickConnect": {
+        "title": "Kết nối nhanh",
+        "description": "Chọn một trợ lý AI bên dưới. Nhấn nút để mở phần cài đặt của trợ lý đó, rồi làm theo hướng dẫn.",
+        "openSettings": "Mở cài đặt",
+        "claude": {
+          "steps": {
+            "createConnector": "Nhấn biểu tượng {icon} bên cạnh \"Connectors\" để tạo trình kết nối mới",
+            "selectCustom": "Chọn {action}",
+            "enterName": "Ở ô \"Name\", nhập {value}",
+            "pasteUrl": "Ở ô \"Remote MCP server URL\", dán {value}",
+            "finish": "Để trống mục \"Advanced settings\" và nhấn {action}",
+            "authorize": "Bạn sẽ được chuyển đến MoneyMatter để cấp quyền truy cập"
+          }
+        },
+        "chatgpt": {
+          "steps": {
+            "addConnector": "Nhấn {action}",
+            "pasteUrl": "Ở ô \"URL\", dán {value}",
+            "clickAdd": "Nhấn {action}",
+            "authorize": "Bạn sẽ được chuyển đến MoneyMatter để cấp quyền truy cập"
+          }
+        }
+      },
+      "actions": {
+        "addCustomConnector": "Thêm trình kết nối tùy chỉnh",
+        "addConnector": "Thêm trình kết nối",
+        "add": "Thêm"
+      },
+      "connectedApps": {
+        "title": "Ứng dụng đã kết nối",
+        "description": "Các ứng dụng có quyền truy cập dữ liệu tài chính của bạn. Bạn có thể thu hồi quyền truy cập bất cứ lúc nào.",
+        "emptyTitle": "Chưa có ứng dụng nào được kết nối.",
+        "emptyDescription": "Dùng các nút bên trên để kết nối một trợ lý AI.",
+        "connectedAt": "Đã kết nối: {date}",
+        "lastUsed": "Dùng lần cuối: {time}",
+        "scope": "Phạm vi: {scopes}",
+        "revoke": "Thu hồi"
+      },
+      "revokeDialog": {
+        "title": "Thu hồi quyền truy cập?",
+        "description": "Thao tác này sẽ ngắt kết nối ứng dụng ngay lập tức và vô hiệu hóa toàn bộ token của ứng dụng. Bạn có thể kết nối lại sau.",
+        "confirm": "Thu hồi quyền truy cập",
+        "successNotification": "Đã thu hồi quyền truy cập của ứng dụng",
+        "errorNotification": "Không thu hồi được quyền truy cập của ứng dụng"
+      },
+      "scopes": {
+        "financeRead": "Đọc dữ liệu tài chính",
+        "profileRead": "Đọc hồ sơ",
+        "offlineAccess": "Truy cập ngoại tuyến"
+      }
+    }
+  }
+}

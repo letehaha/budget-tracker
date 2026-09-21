@@ -35,7 +35,7 @@
       "actions": {
         "addCustomConnector": "Add custom connector",
         "addConnector": "Add connector",
-        "add": "Add"
+        "add": "添加"
       },
       "connectedApps": {
         "title": "Connected Apps",

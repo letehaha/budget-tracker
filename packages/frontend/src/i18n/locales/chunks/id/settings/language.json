@@ -3,6 +3,10 @@
     "language": {
       "title": "Bahasa",
       "description": "Bahasa tampilan untuk antarmuka aplikasi.",
+      "community": {
+        "title": "Community translations",
+        "hint": "Translated by volunteers on Crowdin. Anything not translated yet is shown in English."
+      },
       "contribute": {
         "title": "Terjemahan hilang atau salah?",
         "description": "Setiap bahasa selain bahasa Inggris diterjemahkan oleh komunitas di Crowdin. Anda dapat meminta bahasa baru, menyarankan koreksi, atau menerjemahkan string sendiri – tidak perlu keahlian coding.",

@@ -11,14 +11,16 @@
       "category": "Категория",
       "categoryHint": "Фактическая категория для этого получателя. Если задана категория по умолчанию — показывается она, иначе наиболее часто использовавшаяся в прошлых транзакциях. Автоматически подставляется при создании новой транзакции.",
       "topCategory": "Основная категория",
-      "defaultCategory": "Категория по умолчанию"
+      "defaultCategory": "Категория по умолчанию",
+      "defaultTags": "Default tags"
     },
     "sort": {
       "label": "Сортировать по",
       "transactionCount": "Количеству транзакций",
       "netFlow": "Чистому потоку",
       "name": "Названию",
-      "lastSeen": "Последней активности"
+      "lastSeen": "Последней активности",
+      "defaultTags": "Default tags"
     },
     "actions": {
       "menu": "Действия",
@@ -75,6 +77,11 @@
       "defaultTagsLabel": "Автоматически добавлять теги",
       "defaultTagsPlaceholder": "Выберите теги для автоматического добавления",
       "defaultTagsHint": "Эти теги автоматически добавляются к новым транзакциям, связанным с получателем (банковская синхронизация и импорт).",
+      "defaultLocationLabel": "Default location",
+      "defaultLocationEmpty": "No location set",
+      "defaultLocationHint": "Transactions linked to this payee that have no location of their own get this one, both at creation and during bank sync.",
+      "clearDefaultLocationTitle": "Remove default location?",
+      "clearDefaultLocationDescription": "New transactions linked to this payee will no longer get this location. Existing transactions keep theirs.",
       "applyTagsToExisting": "Применить к существующим транзакциям"
     },
     "logo": {

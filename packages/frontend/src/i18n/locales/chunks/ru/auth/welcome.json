@@ -4,6 +4,7 @@
       "title": "Выберите базовую валюту",
       "description": "В качестве базовой валюты лучше выбрать ту, которой вы пользуетесь чаще всего. Все транзакции в других валютах будут рассчитываться относительно неё.",
       "submitButton": "Подтвердить валюту",
+      "trialStarted": "Your free trial has started, everything is unlocked for {count} day. {link} | Your free trial has started, everything is unlocked for {count} days. {link}",
       "logout": "Выйти",
       "labels": {
         "baseCurrency": "Базовая валюта"

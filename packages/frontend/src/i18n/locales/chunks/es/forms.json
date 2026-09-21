@@ -320,6 +320,10 @@
       "selectOption": "Seleccione una opción",
       "searchPlaceholder": "Buscar..."
     },
+    "currencySelect": {
+      "yourCurrencies": "Sus monedas",
+      "otherCurrencies": "Otras monedas"
+    },
     "comboboxAccounts": {
       "allAccounts": "Todas las cuentas",
       "account": "cuenta",
@@ -333,7 +337,9 @@
       "searchPlaceholder": "Buscar categorías...",
       "unselectedPlaceholder": "Todas las categorías",
       "selectedOne": "1 categoría seleccionada",
-      "selectedMany": "{n} categorías seleccionadas"
+      "selectedMany": "{n} categorías seleccionadas",
+      "excludingOne": "Excluyendo 1 categoría",
+      "excludingMany": "Excluyendo {n} categorías "
     },
     "accountMultiSelect": {
       "ungrouped": "Sin agrupar"
@@ -353,7 +359,8 @@
       "selectedMany": "{n} beneficiarios seleccionados",
       "noResults": "No se encontraron beneficiarios",
       "unknownPayee": "Beneficiario desconocido",
-      "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo."
+      "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo.",
+      "blankOption": "Sin beneficiario"
     },
     "budgetMultiSelect": {
       "label": "Todos los presupuestos",

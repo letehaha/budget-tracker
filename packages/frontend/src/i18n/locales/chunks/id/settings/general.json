@@ -15,6 +15,12 @@
         "successNotification": "Pengaturan pencocokan transfer diperbarui",
         "errorNotification": "Gagal memperbarui pengaturan pencocokan transfer"
       },
+      "pendingBankTransactions": {
+        "label": "Import pending bank transactions",
+        "description": "Store Enable Banking transactions before the bank books them. They're marked as pending, never change the account balance, and often lack merchant details until booked. Other providers aren't affected: SimpleFIN and LunchFlow always import booked transactions only, and Monobank imports every transaction as a regular one.",
+        "successNotification": "Pending transactions setting updated",
+        "errorNotification": "Failed to update pending transactions setting"
+      },
       "savingsCategories": {
         "label": "Hitung kategori sebagai tabungan",
         "description": "Pengeluaran pada kategori ini (dan subkategorinya) dikecualikan dari pengeluaran dalam analitik arus kas, sehingga dihitung sebagai tabungan bulanan dan tingkat tabungan.",
@@ -33,6 +39,40 @@
         },
         "successNotification": "Pengaturan dropdown akun diperbarui",
         "errorNotification": "Gagal memperbarui pengaturan dropdown akun"
+      },
+      "showUpcomingTransactions": {
+        "label": "Show upcoming transactions",
+        "description": "Pin a section with overdue scheduled payments and ones due within the next 3 days at the top of the transactions list.",
+        "successNotification": "Upcoming transactions setting updated",
+        "errorNotification": "Failed to update upcoming transactions setting"
+      },
+      "transactionFields": {
+        "label": "Optional transaction fields",
+        "description": "Extra fields shown in the transaction form. A field that already has a value is always shown.",
+        "successNotification": "Transaction fields updated",
+        "errorNotification": "Unexpected error happened. Setting not saved",
+        "fields": {
+          "externalUrl": {
+            "label": "External URL",
+            "description": "Link the transaction to an order page, booking confirmation or receipt."
+          },
+          "externalReference": {
+            "label": "External reference",
+            "description": "Keep an order number, invoice number or booking reference with the transaction."
+          },
+          "originalAmount": {
+            "label": "Jumlah asli",
+            "description": "The amount actually charged in another currency, when it differs from the account's currency."
+          },
+          "location": {
+            "label": "Location",
+            "description": "GPS coordinates of where the purchase happened. Fill from your device's location or type them in"
+          }
+        },
+        "mapPicker": {
+          "label": "Map picker",
+          "description": "Pick transaction locations on a map and search addresses. Map tiles and search come from OpenStreetMap, which receives your IP address when the map opens."
+        }
       }
     }
   }

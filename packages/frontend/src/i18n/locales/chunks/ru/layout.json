@@ -13,6 +13,7 @@
     "automations": "Автоматизации",
     "accountDetails": "Сведения о счёте",
     "logout": "Выйти",
+    "appVersion": "App version {version}",
     "settings": "Настройки",
     "planned": {
       "planned": "Запланированные",
@@ -22,6 +23,8 @@
     "venture": "Венчурные инвестиции"
   },
   "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "settings": {
       "title": "Настройки",
       "sections": {
@@ -65,7 +68,8 @@
       "syncedTime": "Синхронизировано {time}",
       "connectBank": "Подключить банк",
       "syncingAccounts": "Синхронизация счетов: {count}",
-      "stuck": "Синхронизация зависла"
+      "stuck": "Синхронизация зависла",
+      "failed": "Sync failed, some accounts need attention"
     },
     "categorization": {
       "title": "AI-категоризация",

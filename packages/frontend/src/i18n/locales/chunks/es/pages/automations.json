@@ -212,6 +212,37 @@
         "income": "ingreso",
         "expense": "gasto"
       }
+    },
+    "applyToHistory": {
+      "trigger": "Aplicar a transacciones anteriores",
+      "saveFirst": "Guarda tus cambios primero",
+      "pickTitle": "Aplicar una regla a transacciones anteriores",
+      "pickHint": "Escoge una regla. Revisarás las transacciones coincidentes antes de que algo cambie.",
+      "title": "Aplicar \"{name}\" a transacciones anteriores",
+      "noRules": "Aún no tienes ninguna automatización.",
+      "summary": "{count} transacción anterior coincide con esta regla | {count} transacciones anteriores coinciden con esta regla",
+      "moreMatches": "Solo las partidas más recientes de {shown} aparecen en la lista. Aplíquelas y vuelve a ejecutarlo.",
+      "scanCapped": "Solo tus transacciones más recientes de {limit} fueron comprobadas.",
+      "emptyState": {
+        "settledTitle": "Todo está completado",
+        "settledDescription": "Esta regla no tiene nada que cambiar en la única transacción anterior coincidente. | Esta regla no tiene nada que cambiar en las {count} transacciones pasadas.",
+        "noneTitle": "Sin coincidencias",
+        "noneDescription": "Ninguna transacción pasada en tus cuentas sincronizadas o importadas coinciden con estas condiciones."
+      },
+      "selectAll": "Seleccionar todo",
+      "selectedCount": "{count} seleccionadas",
+      "irreversible": "Esto no se puede deshacer. Revise la lista con cuidado.",
+      "applyAction": "Importar {count} transacciones",
+      "confirm": {
+        "title": "¿Aplicar esta regla?",
+        "action": "Aplicar",
+        "description": "Las {count} transacciones se actualizarán inmediatamente.",
+        "payeeNote": "El beneficiario de esas transacciones será tratado como lo establece usted, por lo que la detección automática del beneficiario no lo cambiará más tarde."
+      },
+      "success": "Importar {applied} transacciones",
+      "successWithSkipped": "Aplicado a {applied} transacciones, se han omitido {skipped}",
+      "nothingApplied": "No se ha aplicado nada. Se omitieron {skipped} transacciones.",
+      "applyError": "No se pudo aplicar la regla a las transacciones pasadas."
     }
   }
 }

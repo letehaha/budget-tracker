@@ -1,0 +1,104 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Selezione Diretta – Scegli transazioni da scollegare",
+        "selectAll": "Seleziona tutto",
+        "selected": "{count} selezionato",
+        "unlink": "Scollega",
+        "cancel": "Cancella",
+        "unlinkSelected": "Scollega selezione",
+        "noMatchingTransactions": "Nessuna transazione corrispondente",
+        "noTransactionsLinked": "Nessuna transazione collegata",
+        "filterAdjustmentHint": "Prova a modificare i filtri per vedere più transazioni.",
+        "addTransactionsHint": "Aggiungi transazioni a questo budget per iniziare a tracciare la tua spesa.",
+        "resetFilters": "Reimposta filtri",
+        "addTransactions": "Aggiungere transazioni",
+        "add": "Aggiungere",
+        "loadingMore": "Caricamento di altri risultati..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Non impostato",
+      "saving": "Salvataggio in corso...",
+      "saveChanges": "Salva modifiche",
+      "loading": "Caricamento in corso...",
+      "uncategorized": "Senza categoria",
+      "stats": {
+        "income": "Entrate",
+        "expenses": "Uscite",
+        "netBalance": "Saldo Netto"
+      },
+      "utilization": {
+        "title": "Utilizzo Budget",
+        "summary": "Speso {spent} su {limit}",
+        "na": "N/D"
+      },
+      "noTransactionsYet": "Non ci sono ancora transazioni",
+      "transactions": "Transazioni",
+      "transactionsLinked": "{count} Transazione collegata a questo budget | {count} transazioni collegate a questo budget",
+      "tabs": {
+        "statistics": "Statistiche",
+        "transactions": "Transazioni",
+        "sharing": "Condivisione"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Categorie",
+          "timeline": "Cronologia"
+        },
+        "errorTitle": "Impossibile caricare le statistiche",
+        "errorDescription": "Qualcosa è andato storto durante il caricamento dei dati. Riprova.",
+        "noDataTitle": "Nessun dato di spesa",
+        "noDataDescription": "Non ci sono movimenti in questo budget.",
+        "noCategoryData": "Non ci sono categorie per i movimenti.",
+        "noTimelineData": "Nessun dato nella cronologia.",
+        "total": "Totale",
+        "income": "Entrata",
+        "expenses": "Uscite",
+        "incomeLabel": "Entrata:",
+        "expensesLabel": "Uscite:"
+      },
+      "sharing": {
+        "title": "Condivisione",
+        "description": "Gestici chi può vedere e contribuire a questo budget.",
+        "inviteAnother": "Invita qualcuno",
+        "membersHeading": "Membri",
+        "pendingHeading": "Richieste in attesa",
+        "loadError": "Impossibile caricare i membri.",
+        "permissions": {
+          "read": "Sola lettura",
+          "write": "Allega le proprie transazioni",
+          "manage": "Gestisci"
+        },
+        "member": {
+          "you": "tu",
+          "roleOwner": "Proprietario",
+          "roleRecipient": "Membro",
+          "ownerHint": "Controllo completo di questo bilancio",
+          "updateSuccess": "Autorizzazioni aggiornate.",
+          "updateError": "Impossibile aggiornare i permessi.",
+          "revoke": "Revoca accesso",
+          "revokeConfirm": "Revoca",
+          "revokeTitle": "Revoca accesso?",
+          "revokeDescription": "{user} perderà l'accesso a {budget}.",
+          "revokeSuccess": "Accesso revocato.",
+          "revokeError": "Impossibile revocare l'accesso."
+        },
+        "pending": {
+          "empty": "Nessun invito in sospeso.",
+          "resend": "Invia di nuovo",
+          "resendSuccess": "Invito reinviato.",
+          "resendError": "Impossibile inviare nuovamente l'invito.",
+          "resendDeliveryFailed": "Inviato nuovamente, ma non è stato possibile recapitarla.",
+          "cancel": "Annulla",
+          "cancelConfirm": "Cancella invito",
+          "cancelTitle": "Cancellare l'invito?",
+          "cancelDescription": "L'invito a {email} sarà annullato.",
+          "cancelSuccess": "Invito cancellato.",
+          "cancelError": "Impossibile annullare l'invito."
+        }
+      }
+    }
+  }
+}

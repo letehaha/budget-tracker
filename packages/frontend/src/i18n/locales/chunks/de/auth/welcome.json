@@ -1,0 +1,48 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "Basiswährung auswählen",
+      "description": "Deine Basiswährung sollte idealerweise diejenige sein, die du am häufigsten verwendest. Alle Transaktionen in anderen Währungen werden auf der Grundlage dieser Währung berechnet.",
+      "submitButton": "Währung bestätigen",
+      "trialStarted": "Deine kostenlose Testversion hat begonnen, alles ist für {count} Tag freigeschaltet. {link} | Deine kostenlose Testversion hat begonnen, alles ist für {count} Tage freigeschaltet. {link}",
+      "logout": "Abmelden",
+      "labels": {
+        "baseCurrency": "Basiswährung"
+      },
+      "placeholders": {
+        "loading": "Wird geladen..."
+      },
+      "errors": {
+        "unableToLoadCurrencies": "Liste der Währungen kann nicht geladen werden. Versuche es später erneut.",
+        "unableToSetCurrency": "Unerwarteter Fehler. Basiswährung kann nicht gesetzt werden. Bitte versuche es später erneut oder kontaktiere den Support."
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "Anmeldung wird abgeschlossen...",
+      "errors": {
+        "accessDenied": {
+          "signIn": "Anmeldung wurde abgebrochen oder der Zugriff wurde verweigert",
+          "signUp": "Registrierung wurde abgebrochen oder der Zugriff wurde verweigert",
+          "link": "Verknüpfung wurde abgebrochen oder der Zugriff wurde verweigert"
+        },
+        "userAlreadyExists": {
+          "signIn": "Ein Konto mit dieser E-Mail-Adresse existiert bereits",
+          "signUp": "Ein Konto mit dieser E-Mail-Adresse existiert bereits",
+          "link": "Dieses Konto ist bereits mit einem anderen Benutzer verknüpft"
+        },
+        "accountNotLinked": {
+          "signIn": "Kein Konto mit dieser E-Mail-Adresse gefunden. Bitte registriere dich zuerst.",
+          "signUp": "Konto konnte nicht erstellt werden. Bitte versuche es erneut.",
+          "link": "Konto konnte nicht verknüpft werden. Bitte versuche es erneut."
+        },
+        "genericError": {
+          "signIn": "Anmeldung fehlgeschlagen. Bitte versuche es erneut.",
+          "signUp": "Registrierung fehlgeschlagen. Bitte versuche erneut.",
+          "link": "Konto konnte nicht verknüpft werden. Bitte versuche es erneut."
+        },
+        "unauthorizedClient": "Diese Anwendung ist nicht berechtigt, diese Authentifizierungsmethode zu verwenden",
+        "temporarilyUnavailable": "Der Authentifizierungsdienst ist vorübergehend nicht verfügbar. Bitte versuche später erneut."
+      }
+    }
+  }
+}

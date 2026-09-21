@@ -1,0 +1,41 @@
+{
+  "investments": {
+    "title": "Đầu tư",
+    "createButton": "Tạo danh mục đầu tư",
+    "loadError": "Không tải được danh mục đầu tư",
+    "tryAgain": "Thử lại",
+    "menu": {
+      "view": "Xem",
+      "delete": "Xóa"
+    },
+    "card": {
+      "hidden": "Đã ẩn",
+      "portfolioType": "Danh mục đầu tư {type}",
+      "costBasis": "Giá vốn"
+    },
+    "empty": {
+      "title": "Chưa có danh mục đầu tư nào",
+      "description": "Tạo danh mục đầu tư đầu tiên của bạn để bắt đầu theo dõi tài sản, giao dịch và hiệu suất.",
+      "createFirstButton": "Tạo danh mục đầu tư đầu tiên"
+    },
+    "trash": {
+      "title": "Thùng rác",
+      "retentionHint": "Các mục ở đây sẽ bị xóa vĩnh viễn sau {days} ngày",
+      "loadError": "Không tải được danh mục đầu tư trong thùng rác.",
+      "deletedAgo": "Đã xóa {time}",
+      "restoreButton": "Khôi phục",
+      "restoringButton": "Đang khôi phục…",
+      "purgeButton": "Xóa ngay",
+      "purgingButton": "Đang xóa…",
+      "confirmPurgeTitle": "Xóa vĩnh viễn danh mục đầu tư?",
+      "confirmPurge": "Xóa vĩnh viễn \"{name}\"? Không thể hoàn tác thao tác này.",
+      "tryAgain": "Thử lại",
+      "notifications": {
+        "restored": "Đã khôi phục danh mục đầu tư",
+        "restoreError": "Không khôi phục được danh mục đầu tư",
+        "purged": "Đã xóa vĩnh viễn danh mục đầu tư",
+        "purgeError": "Không xóa được danh mục đầu tư"
+      }
+    }
+  }
+}

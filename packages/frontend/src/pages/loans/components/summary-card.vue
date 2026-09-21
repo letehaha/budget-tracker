@@ -2,6 +2,7 @@
   <Card class="@container/loan-summary">
     <CardHeader class="pb-3">
       <div class="flex items-start justify-between gap-3">
+        <AccountLogoPicker :account-id="loan.id" class="size-10" />
         <div class="min-w-0 flex-1">
           <div class="truncate text-xl font-semibold">{{ loan.name }}</div>
           <div v-if="loan.loanDetails.lenderName" class="text-muted-foreground mt-1 truncate text-sm">
@@ -104,6 +105,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { cn } from '@/lib/utils';
+import AccountLogoPicker from '@/pages/account/components/account-logo-picker.vue';
 import { InfoIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
 import { computed } from 'vue';

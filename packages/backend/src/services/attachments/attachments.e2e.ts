@@ -135,6 +135,90 @@ describe('Transaction attachments', () => {
     });
   });
 
+  describe('upload token auth', () => {
+    it('uploads several files with one token and no session', async () => {
+      const tx = await createTransaction();
+      const { token } = await helpers.createAttachmentUploadToken({ transactionId: tx.id, raw: true });
+
+      const first = await helpers.withoutSession(() =>
+        helpers.uploadAttachment({ transactionId: tx.id, file: PNG_BYTES, uploadToken: token }),
+      );
+      const second = await helpers.withoutSession(() =>
+        helpers.uploadAttachment({ transactionId: tx.id, file: PDF_BYTES, uploadToken: token }),
+      );
+
+      expect(first.statusCode).toBe(201);
+      expect(second.statusCode).toBe(201);
+      expect(await helpers.listAttachments({ transactionId: tx.id, raw: true })).toHaveLength(2);
+    });
+
+    it('rejects a token minted for another transaction', async () => {
+      const tx = await createTransaction();
+      const other = await createTransaction();
+      const { token } = await helpers.createAttachmentUploadToken({ transactionId: tx.id, raw: true });
+
+      const result = await helpers.withoutSession(() =>
+        helpers.uploadAttachment({ transactionId: other.id, file: PNG_BYTES, uploadToken: token }),
+      );
+
+      expect(result.statusCode).toBe(401);
+      expect(await helpers.listAttachments({ transactionId: other.id, raw: true })).toHaveLength(0);
+    });
+
+    it('rejects an unknown token', async () => {
+      const tx = await createTransaction();
+
+      const result = await helpers.withoutSession(() =>
+        helpers.uploadAttachment({ transactionId: tx.id, file: PNG_BYTES, uploadToken: 'nope' }),
+      );
+
+      expect(result.statusCode).toBe(401);
+    });
+
+    it('does not fall back to the session cookie when the token does not match the transaction', async () => {
+      const tx = await createTransaction();
+      const other = await createTransaction();
+      const { token } = await helpers.createAttachmentUploadToken({ transactionId: tx.id, raw: true });
+
+      const result = await helpers.uploadAttachment({ transactionId: other.id, file: PNG_BYTES, uploadToken: token });
+
+      expect(result.statusCode).toBe(401);
+      expect(await helpers.listAttachments({ transactionId: other.id, raw: true })).toHaveLength(0);
+    });
+
+    it('rejects an upload from a read-only user holding a valid token with 402', async () => {
+      const tx = await createTransaction();
+      const { token } = await helpers.createAttachmentUploadToken({ transactionId: tx.id, raw: true });
+      await helpers.setUserBilling({ trialEndsAt: new Date(Date.now() - DAY) });
+
+      const result = await helpers.withoutSession(() =>
+        helpers.uploadAttachment({ transactionId: tx.id, file: PNG_BYTES, uploadToken: token }),
+      );
+
+      expect(result.statusCode).toBe(402);
+    });
+
+    it('does not mint a token for a transaction that does not exist', async () => {
+      const result = await helpers.createAttachmentUploadToken({
+        transactionId: '00000000-0000-7000-8000-000000000000',
+      });
+
+      expect(result.statusCode).toBe(404);
+    });
+
+    it('does not mint a token for another user transaction', async () => {
+      const tx = await createTransaction();
+      const second = await helpers.signUpSecondUser();
+
+      await helpers.asUser({
+        cookies: second.cookies,
+        fn: async () => {
+          expect((await helpers.createAttachmentUploadToken({ transactionId: tx.id })).statusCode).toBe(404);
+        },
+      });
+    });
+  });
+
   describe('GET /transactions/:transactionId/attachments', () => {
     it('returns an empty list when nothing is attached', async () => {
       const tx = await createTransaction();
@@ -242,6 +326,7 @@ describe('Transaction attachments', () => {
 
           expect((await helpers.uploadAttachment({ transactionId: tx!.id, file: PNG_BYTES })).statusCode).toBe(404);
           expect((await helpers.deleteAttachment({ id: uploaded.response!.id })).statusCode).toBe(404);
+          expect((await helpers.createAttachmentUploadToken({ transactionId: tx!.id })).statusCode).toBe(404);
         },
       });
     });

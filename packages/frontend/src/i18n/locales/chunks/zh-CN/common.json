@@ -1,19 +1,19 @@
 {
   "common": {
-    "loading": "Loading...",
+    "loading": "加载中……",
     "new": "New",
     "actions": {
-      "loading": "Loading...",
+      "loading": "加载中……",
       "signUp": "Sign up",
       "save": "Save",
-      "cancel": "Cancel",
+      "cancel": "取消",
       "back": "Back",
-      "accept": "Accept",
+      "accept": "接受",
       "delete": "Delete",
-      "edit": "Edit",
+      "edit": "编辑",
       "addSubcategory": "Add subcategory",
-      "settings": "Settings",
-      "confirm": "Confirm",
+      "settings": "设置",
+      "confirm": "确认",
       "viewTransactions": "View transactions",
       "viewAnalytics": "View analytics",
       "saving": "Saving...",
@@ -24,7 +24,7 @@
       "scan": "Scan",
       "link": "Link",
       "clear": "Clear",
-      "apply": "Apply",
+      "apply": "应用",
       "retry": "Try again",
       "copyInviteLink": "Copy invite link",
       "moveTo": "Move to…"
@@ -64,7 +64,7 @@
       "emailNotSent": "Email sending not configured — share the invite link manually"
     },
     "labels": {
-      "email": "Email",
+      "email": "电邮",
       "password": "Password",
       "system": "system",
       "unknown": "Unknown",
@@ -75,7 +75,7 @@
       "password": "Your password"
     },
     "dialogs": {
-      "createAccount": "Create account",
+      "createAccount": "创建账户",
       "createVehicle": "Add vehicle",
       "editVehicle": "Edit vehicle"
     },
@@ -87,8 +87,8 @@
       "saving": "Saving account",
       "bonus": "Bonus",
       "insurance": "Insurance",
-      "investment": "Investment",
-      "loan": "Loan",
+      "investment": "投资",
+      "loan": "贷款",
       "mortgage": "Mortgage",
       "overdraft": "Overdraft",
       "crypto": "Crypto",
@@ -146,7 +146,15 @@
       },
       "record": {
         "addedByTooltip": "This transaction was attached to the budget by {handle}",
-        "hiddenAccount": "Hidden account"
+        "externalLinkTooltip": "Open external link",
+        "locationTooltip": "Open location on the map",
+        "attachmentsTooltip": "Has attachments",
+        "hiddenAccount": "Hidden account",
+        "selectRow": "选择交易",
+        "unselectableReasons": {
+          "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
+          "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
+        }
       }
     },
     "outOfWallet": "Out of Wallet",
@@ -154,7 +162,7 @@
       "dialogTitle": "Date range",
       "dueDate": "Due date",
       "quickSelect": "Quick select",
-      "apply": "Apply",
+      "apply": "应用",
       "periodTypes": {
         "day": "Day",
         "month": "Month",
@@ -198,8 +206,8 @@
       },
       "duration": {
         "seconds": "{count} second | {count} seconds",
-        "minutes": "{count} minute | {count} minutes",
-        "hours": "{count} hour | {count} hours"
+        "minutes": "{count} 分钟 | {count} 分钟",
+        "hours": "{count} 小时 | {count} 小时"
       }
     },
     "logo": {
@@ -215,17 +223,30 @@
       "autoLabel": "Automatic (from name)",
       "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) – that always matches the right logo.",
       "searchError": "Couldn't load logos – try again",
+      "brandNotConfigured": "Brand logos are not configured on this instance. Ask the admin to set VITE_LOGO_DEV_TOKEN, or use letters instead.",
       "editAriaLabel": "Edit logo",
       "dialogTitle": "Change logo",
       "resetToAuto": "Reset to automatic",
       "remove": "Remove logo",
       "lettersLabel": "Letters (1–2)",
       "lettersPlaceholder": "AB",
-      "colorLabel": "Color",
+      "colorLabel": "颜色",
       "colorSwatchAriaLabel": "Use color {color}",
       "customColorAriaLabel": "Pick a custom color",
-      "applyLetters": "Apply",
+      "applyLetters": "应用",
       "lettersSelectedLabel": "Letters “{letters}”"
+    },
+    "importBatchDeleteOverlay": {
+      "title": "Deleting imported transactions",
+      "description": "A large import batch is being removed. Balances are recalculated when it finishes, so the app is locked until then.",
+      "deleting": "Deleting transactions",
+      "preparing": "Getting ready",
+      "finishing": "Finishing up",
+      "takingLong": "This is taking longer than usual — large batches can take several minutes. Keep this page open.",
+      "unreachableTitle": "Can't reach the server",
+      "unreachableDescription": "The delete may still be running. Dismiss to keep using the app, and reload later to see the result.",
+      "failedTitle": "Delete failed",
+      "dismiss": "Dismiss"
     }
   },
   "accountGroups": {
@@ -361,6 +382,21 @@
     },
     "sessionExpiredNotice": "Your demo session has ended. Create a free account to continue, or sign in below if you already have one."
   },
+  "billing": {
+    "seePlans": "See plans",
+    "updatePaymentMethod": "Update your payment method",
+    "planRequired": {
+      "essential": "Included in the Essential plan",
+      "plus": "Included in the Plus plan",
+      "hint": "Your current plan doesn't include this feature. Upgrade to unlock it."
+    },
+    "banner": {
+      "trial": "{count} day left in your trial · {link} | {count} days left in your trial · {link}",
+      "readOnly": "Your trial has ended. You can view and export your data; subscribe to keep editing. {link}",
+      "subscriptionEnded": "Your subscription has ended. {link} to keep editing your data.",
+      "pastDue": "Your last payment failed. {link} to keep your plan."
+    }
+  },
   "settings": {
     "currencies": {
       "setBase": {
@@ -374,7 +410,6 @@
           "dismiss": "Dismiss",
           "preparing": "Getting things ready…",
           "finishing": "Finishing up…",
-          "stepCounter": "Step {current} of {total}",
           "steps": {
             "transactions": "Updating transactions",
             "accounts": "Updating accounts",
@@ -401,10 +436,10 @@
       "nameLabel": "Name",
       "noteLabel": "Note (optional)",
       "notePlaceholder": "Optional note...",
-      "loadingText": "Loading...",
+      "loadingText": "加载中……",
       "savingAction": "Save",
-      "cancelButton": "Cancel",
-      "editAction": "Edit",
+      "cancelButton": "取消",
+      "editAction": "编辑",
       "deleteAction": "Delete Group",
       "transactionsLabel": "Transactions",
       "deleteGroupTitle": "Delete group",
@@ -412,7 +447,7 @@
       "removeTransactionTitle": "Remove transaction from group",
       "removeTransactionDescription": "This will leave fewer than 2 transactions in the group, so the group will be deleted. Continue?",
       "removeTransactionDescriptionNormal": "Are you sure you want to remove this transaction from the group?",
-      "removeButtonText": "Remove",
+      "removeButtonText": "删除",
       "removeAndDeleteButtonText": "Remove & Delete Group",
       "summary": {
         "transactions": "Transactions",

@@ -1,18 +1,18 @@
 {
   "errors": {
     "api": {
-      "failedToFetch": "Failed to fetch data from the server.",
-      "failedToFetchSelfHost": "Cannot reach the server. The backend may still be starting (~30s after startup), or your ALLOWED_ORIGINS env var does not include this URL.",
-      "unexpectedError": "Unexpected error.",
-      "sessionExpired": "Your session has expired. Please sign in again",
-      "payloadTooLarge": "The request is too large. Please try importing fewer items at a time"
+      "failedToFetch": "无法从服务器获取数据。",
+      "failedToFetchSelfHost": "无法访问服务器。后端可能仍在启动 (~30秒后)，或者您的 ALLOWED_ORIGINS 环境变量不包含此 URL。",
+      "unexpectedError": "未知错误。",
+      "sessionExpired": "您的会话已过期。请重新登录",
+      "payloadTooLarge": "请求过大。请尝试导入更少的项目"
     },
     "notFound": {
-      "title": "This page is off the books",
-      "description": "We couldn't find what you were looking for. The link may be broken, or the page may have moved.",
-      "attemptedLabel": "You tried to visit: ",
-      "goBack": "Go back",
-      "goHome": "Take me home"
+      "title": "这个页面不存在",
+      "description": "我们找不到您正在寻找的东西。链接可能已损坏，或者页面可能已移动。",
+      "attemptedLabel": "您试图访问： ",
+      "goBack": "后退",
+      "goHome": "返回首页"
     }
   }
 }

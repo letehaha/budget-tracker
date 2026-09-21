@@ -15,7 +15,11 @@
         "investments": "Inversiones"
       }
     },
+    "controls": {
+      "options": "Opciones"
+    },
     "cashFlow": {
+      "subtitle": "Ingresos contra gastos a lo largo del tiempo, y a dónde se destinó el dinero.",
       "income": "Ingresos",
       "expenses": "Gastos",
       "netSavings": "Ahorro neto",
@@ -45,9 +49,39 @@
         "thisYear": "Este año",
         "previousYear": "Año anterior",
         "allTime": "Todo el tiempo"
+      },
+      "composition": {
+        "detail": "Detalle",
+        "levelsSummary": "Fuentes L{sources} · Gastos L{expenses}",
+        "levelsHint": "Nivel de anidación de categorías por lado: los niveles más altos dividen los flujos en subcategorías.",
+        "sources": "Fuentes",
+        "level": "Nivel {level}",
+        "topN": "Primeros {count}",
+        "totalIncome": "Ingreso total",
+        "incomePlusDeficit": "Ingreso + déficit",
+        "savings": "Ahorro",
+        "deficit": "Déficit",
+        "other": "Otro",
+        "noData": "No se registraron transacciones para este período",
+        "noDataHint": "Elige otro período o haz clic en una barra en el gráfico de arriba",
+        "loadError": "Error al cargar las transacciones",
+        "amount": "Importe",
+        "shareOfIncome": "Porcentaje del ingreso",
+        "shareOfExpenses": "Compartir gastos",
+        "saved": "Ahorrado",
+        "pctOfIncome": "{pct} de ingreso",
+        "pctSavingsRate": "Tasa de ahorro {pct}",
+        "keptAsCash": "Mantener como efectivo",
+        "shareOfSavings": "Parte del ahorro",
+        "deficitOverspend": "Los gastos superaron los ingresos de {amount}. La brecha se cubrió con los saldos de cuentas existentes.",
+        "deficitInvested": "Las contribuciones a la cartera ({invested}) superaron el ahorro neto de este período ({saved}). La diferencia se produjo con los saldos de cuentas existentes.",
+        "deficitBoth": "Los gastos superaron los ingresos de {overspend} y {invested} se trasladó a portafolios. Ambos se cubrieron de los saldos de cuentas existentes.",
+        "andMore": "+{count} más",
+        "settings": "Ajustes del gráfico"
       }
     },
     "trends": {
+      "subtitle": "Compara el gasto, los ingresos y los ahorros con el período anterior.",
       "metrics": {
         "expenses": "Gastos",
         "income": "Ingresos",
@@ -75,12 +109,28 @@
       "cumulativeProgress": {
         "title": "Progreso acumulado"
       },
+      "filters": {
+        "button": "Filtros",
+        "title": "Filtros",
+        "categories": "Categorías",
+        "include": "Incluir",
+        "exclude": "Excluir",
+        "accounts": "Cuentas",
+        "payees": "Beneficiarios",
+        "tags": "Etiquetas",
+        "reset": "Restablecer"
+      },
+      "legend": {
+        "hide": "Ocultar del gráfico",
+        "show": "Mostrar en gráfico"
+      },
       "vsPreviousPeriod": "vs período anterior",
       "loadError": "Error al cargar los datos",
       "noData": "Sin datos disponibles",
       "noDataHint": "No se registraron transacciones para este período"
     },
     "investmentCalculator": {
+      "subtitle": "Proyecte cómo puede crecer su portafolio con contribuciones periódicas.",
       "initialBalance": "Saldo inicial",
       "useCurrentBalance": "Usar saldo actual",
       "monthlyContribution": "Aportación mensual",
@@ -119,7 +169,6 @@
     }
   },
   "pivotReport": {
-    "title": "Informe de tabla dinámica",
     "subtitle": "Desglose de gastos por cualquier dimensión, distribúyalo en el tiempo y compare.",
     "controls": {
       "rows": "Filas",
@@ -153,6 +202,9 @@
     "filters": {
       "period": "Período",
       "allCategories": "Todo",
+      "button": "Filtros",
+      "categories": "Categorías",
+      "payees": "Beneficiarios",
       "accounts": "Cuentas",
       "reset": "Restablecer",
       "resetTooltip": "Restablecer a valores predeterminados"
@@ -194,7 +246,6 @@
     }
   },
   "netWorthDrivers": {
-    "title": "Impulsores del patrimonio neto",
     "subtitle": "Cuánto de su crecimiento ahorró y cuánto rindió el mercado. Las transferencias entre sus propias cuentas no cuentan como ninguno de los dos.",
     "portfolioFilter": {
       "scopeHint": "Filtra solo las posiciones de inversión y su crecimiento. Los importes ahorrados y el efectivo de las cuentas no se ven afectados."
@@ -273,7 +324,6 @@
     }
   },
   "investmentContributions": {
-    "title": "Aportaciones de inversión",
     "subtitle": "Cuánto efectivo ha movido hacia sus carteras a lo largo del tiempo, y adónde fue.",
     "average": "Media",
     "portfolioFilter": {
@@ -302,7 +352,6 @@
     }
   },
   "netWorthHistory": {
-    "title": "Historial de patrimonio neto",
     "subtitle": "Cómo cambiaron sus activos, pasivos y patrimonio neto a lo largo del tiempo",
     "granularity": {
       "weekly": "Semanal",

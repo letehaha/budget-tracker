@@ -18,7 +18,8 @@
       "language": "Idioma",
       "general": "Estadísticas",
       "payees": "Beneficiarios",
-      "subscriptions": "Pagos programados"
+      "subscriptions": "Pagos programados",
+      "planBilling": "Planes y facturación"
     },
     "backToSettings": "Volver a ajustes"
   }

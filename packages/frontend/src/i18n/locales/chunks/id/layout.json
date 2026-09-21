@@ -13,6 +13,7 @@
     "automations": "Otomatisasi",
     "accountDetails": "Detail akun",
     "logout": "Keluar",
+    "appVersion": "App version {version}",
     "settings": "Pengaturan",
     "planned": {
       "planned": "Terencana",
@@ -22,6 +23,8 @@
     "venture": "Venture"
   },
   "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "settings": {
       "title": "Pengaturan",
       "sections": {
@@ -65,7 +68,8 @@
       "syncedTime": "Disinkronkan {time}",
       "connectBank": "Hubungkan bank",
       "syncingAccounts": "Menyinkronkan {count} akun",
-      "stuck": "Sinkronisasi macet"
+      "stuck": "Sinkronisasi macet",
+      "failed": "Sync failed, some accounts need attention"
     },
     "categorization": {
       "title": "Kategorisasi AI",
