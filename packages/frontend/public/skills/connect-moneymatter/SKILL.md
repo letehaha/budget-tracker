@@ -113,8 +113,8 @@ page.
 | `update_transaction_automation`         | Change a rule name, conditions, actions, or enabled state (`finance:write`)                                      |
 | `delete_transaction_automation`         | Permanently delete an automation rule (`finance:delete`)                                                         |
 | `reorder_transaction_automations`       | Set the top-to-bottom evaluation order of the automation rules (`finance:write`)                                 |
-| `create_transaction`                    | Create an income, expense, or transfer transaction with optional splits/tags (`finance:write`)                   |
-| `update_transaction`                    | Update amount, date, category, tags, note, or splits on a transaction (`finance:write`)                          |
+| `create_transaction`                    | Create an income, expense, or transfer with optional splits/tags/original-currency amount (`finance:write`)      |
+| `update_transaction`                    | Update amount, date, category, tags, note, splits, or original-currency amount (`finance:write`)                 |
 | `delete_transaction`                    | Permanently delete a transaction; transfer pairs are deleted together (`finance:delete`)                         |
 | `create_attachment_upload_url`          | Get a short-lived URL to upload receipt files (JPEG/PNG/WebP/PDF) to a transaction over HTTP (`finance:write`)   |
 | `bulk_update_transactions`              | Update category, note, or tags on multiple transactions at once (`finance:write`)                                |

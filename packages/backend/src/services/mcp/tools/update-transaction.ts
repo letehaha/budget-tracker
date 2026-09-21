@@ -1,5 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -7,7 +7,7 @@ import { serializeTransactionTuple } from '@root/serializers/transactions.serial
 import { updateTransaction } from '@services/transactions/update-transaction';
 import { z } from 'zod';
 
-import { getUserId, jsonContent, requireScope } from './helpers';
+import { assertOriginalCurrencyArgs, getUserId, jsonContent, requireScope } from './helpers';
 
 const inputSchema = {
   id: recordId().describe('ID of the transaction to update'),
@@ -66,6 +66,21 @@ const inputSchema = {
     .nullable()
     .optional()
     .describe('Replace tags. Pass null or empty array to clear all tags'),
+  originalAmount: z
+    .number()
+    .nonnegative()
+    .finite()
+    .nullable()
+    .optional()
+    .describe(
+      'Amount in the currency the purchase was originally priced in (decimal), e.g. 66.42 for a PLN invoice paid from a UAH account. Informational only: never affects balances. Requires originalCurrencyCode. Pass null on both to clear',
+    ),
+  originalCurrencyCode: currencyCode()
+    .nullable()
+    .optional()
+    .describe(
+      'ISO 4217 code of originalAmount (e.g. "PLN"). Requires originalAmount. Cannot be combined with transfer fields',
+    ),
 };
 
 export function registerUpdateTransaction(server: McpServer) {
@@ -73,13 +88,15 @@ export function registerUpdateTransaction(server: McpServer) {
     'update_transaction',
     {
       description:
-        'Update an existing transaction by ID. All fields except id are optional — only provide what you want to change. Pass tagIds: null to clear all tags, or tagIds: [] to do the same. Pass splits: null to clear all splits.',
+        'Update an existing transaction by ID. All fields except id are optional — only provide what you want to change. Pass tagIds: null to clear all tags, or tagIds: [] to do the same. Pass splits: null to clear all splits. Use originalAmount + originalCurrencyCode to record what the purchase cost in its invoice currency when that differs from the account currency.',
       inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
       requireScope({ extra, scope: 'finance:write' });
       trackMcpToolUsed({ userId, tool: 'update_transaction', clientId: extra.authInfo?.clientId });
+
+      assertOriginalCurrencyArgs({ args });
 
       const result = await updateTransaction({
         id: args.id,
@@ -104,6 +121,8 @@ export function registerUpdateTransaction(server: McpServer) {
                 note: s.note,
               })),
         tagIds: args.tagIds,
+        originalAmount: args.originalAmount != null ? Money.fromDecimal(args.originalAmount) : args.originalAmount,
+        originalCurrencyCode: args.originalCurrencyCode,
       });
 
       return jsonContent({ data: serializeTransactionTuple(result) });
