@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// Crowdin exports every chunk for every locale, so a missing translation has to be simulated.
+vi.mock('./locales/chunks/id/pages/import-ofx.json', () => ({ default: {} }));
 
 import { i18n, loadChunks } from './index';
 
@@ -20,7 +23,7 @@ describe('English chunk pairing', () => {
     expect(messages('en').navigation).toBeDefined();
   });
 
-  it('loads the English copy even when the locale has no file for the chunk', async () => {
+  it('loads the English copy even when the translation for the chunk is missing', async () => {
     await loadChunks({ locale: 'id', chunks: ['pages/import-ofx'] });
 
     expect(messages('id').pages?.importExport?.ofxImport).toBeUndefined();
