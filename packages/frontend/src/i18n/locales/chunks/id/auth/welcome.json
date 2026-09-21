@@ -4,6 +4,7 @@
       "title": "Pilih Mata Uang Dasar",
       "description": "Mata uang dasar Anda idealnya adalah mata uang yang paling sering Anda gunakan. Semua transaksi dalam mata uang lain akan dihitung berdasarkan mata uang ini.",
       "submitButton": "Konfirmasi Mata Uang",
+      "trialStarted": "Your free trial has started, everything is unlocked for {count} day. {link} | Your free trial has started, everything is unlocked for {count} days. {link}",
       "logout": "Keluar",
       "labels": {
         "baseCurrency": "Mata Uang Dasar"

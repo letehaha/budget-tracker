@@ -15,6 +15,12 @@
         "successNotification": "Настройка сопоставления переводов обновлена",
         "errorNotification": "Не удалось обновить настройку сопоставления переводов"
       },
+      "pendingBankTransactions": {
+        "label": "Import pending bank transactions",
+        "description": "Store Enable Banking transactions before the bank books them. They're marked as pending, never change the account balance, and often lack merchant details until booked. Other providers aren't affected: SimpleFIN and LunchFlow always import booked transactions only, and Monobank imports every transaction as a regular one.",
+        "successNotification": "Pending transactions setting updated",
+        "errorNotification": "Failed to update pending transactions setting"
+      },
       "savingsCategories": {
         "label": "Считать категории сбережениями",
         "description": "Расходы в этих категориях и их подкатегориях исключаются из расходов в аналитике денежных потоков, поэтому учитываются как ежемесячные сбережения и влияют на норму сбережений.",

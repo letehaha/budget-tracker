@@ -146,7 +146,15 @@
       },
       "record": {
         "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
-        "hiddenAccount": "Akun tersembunyi"
+        "externalLinkTooltip": "Open external link",
+        "locationTooltip": "Open location on the map",
+        "attachmentsTooltip": "Has attachments",
+        "hiddenAccount": "Akun tersembunyi",
+        "selectRow": "Pilih transaksi",
+        "unselectableReasons": {
+          "split": "Tidak dapat dipilih: transaksi split tidak mendukung pengeditan massal. Edit secara individual.",
+          "sharedAccount": "Tidak dapat dipilih: transaksi ini berada di akun yang dibagikan dengan Anda, dan hanya pemiliknya yang dapat mengeditnya."
+        }
       }
     },
     "outOfWallet": "Di Luar Dompet",
@@ -215,6 +223,7 @@
       "autoLabel": "Otomatis (dari nama)",
       "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang benar.",
       "searchError": "Tidak dapat memuat logo — coba lagi",
+      "brandNotConfigured": "Brand logos are not configured on this instance. Ask the admin to set VITE_LOGO_DEV_TOKEN, or use letters instead.",
       "editAriaLabel": "Sunting logo",
       "dialogTitle": "Ganti logo",
       "resetToAuto": "Kembalikan ke otomatis",
@@ -226,6 +235,18 @@
       "customColorAriaLabel": "Pilih warna khusus",
       "applyLetters": "Terapkan",
       "lettersSelectedLabel": "Huruf “{letters}”"
+    },
+    "importBatchDeleteOverlay": {
+      "title": "Deleting imported transactions",
+      "description": "A large import batch is being removed. Balances are recalculated when it finishes, so the app is locked until then.",
+      "deleting": "Deleting transactions",
+      "preparing": "Getting ready",
+      "finishing": "Menyelesaikan",
+      "takingLong": "This is taking longer than usual — large batches can take several minutes. Keep this page open.",
+      "unreachableTitle": "Tidak dapat menjangkau server",
+      "unreachableDescription": "The delete may still be running. Dismiss to keep using the app, and reload later to see the result.",
+      "failedTitle": "Delete failed",
+      "dismiss": "Abaikan"
     }
   },
   "accountGroups": {
@@ -361,6 +382,21 @@
     },
     "sessionExpiredNotice": "Sesi demo Anda telah berakhir. Buat akun gratis untuk melanjutkan, atau masuk di bawah jika Anda sudah memiliki akun."
   },
+  "billing": {
+    "seePlans": "See plans",
+    "updatePaymentMethod": "Update your payment method",
+    "planRequired": {
+      "essential": "Included in the Essential plan",
+      "plus": "Included in the Plus plan",
+      "hint": "Your current plan doesn't include this feature. Upgrade to unlock it."
+    },
+    "banner": {
+      "trial": "{count} day left in your trial · {link} | {count} days left in your trial · {link}",
+      "readOnly": "Your trial has ended. You can view and export your data; subscribe to keep editing. {link}",
+      "subscriptionEnded": "Your subscription has ended. {link} to keep editing your data.",
+      "pastDue": "Your last payment failed. {link} to keep your plan."
+    }
+  },
   "settings": {
     "currencies": {
       "setBase": {
@@ -374,7 +410,6 @@
           "dismiss": "Tutup",
           "preparing": "Menyiapkan…",
           "finishing": "Menyelesaikan…",
-          "stepCounter": "Langkah {current} dari {total}",
           "steps": {
             "transactions": "Memperbarui transaksi",
             "accounts": "Memperbarui akun",

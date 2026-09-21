@@ -25,9 +25,9 @@
         "renameAccount": "Rename account",
         "adjustBalance": "Adjust balance",
         "adjustBalanceTooltip": "Only available for manually-managed accounts",
-        "share": "Share account",
+        "share": "分享账户",
         "shareBadge": {
-          "read": "View only",
+          "read": "仅浏览",
           "writeOwn": "Can edit own transactions",
           "writeAll": "Can edit transactions",
           "manage": "Manager"
@@ -51,8 +51,8 @@
         "transactionNote": "Transaction Note",
         "optionalNote": "Optional note",
         "effectiveDate": "Effective date",
-        "cancel": "Cancel",
-        "confirm": "Confirm",
+        "cancel": "取消",
+        "confirm": "确认",
         "saving": "Saving...",
         "successNotification": "Balance adjusted successfully",
         "errorNotification": "Failed to adjust balance"
@@ -119,7 +119,7 @@
       "link": {
         "selectConnection": "Select a bank connection",
         "selectExternalAccount": "Select an external account",
-        "loading": "Loading...",
+        "loading": "加载中……",
         "title": "Link account to bank connection",
         "description": "Connect this system account to a bank connection for automatic transaction syncing.",
         "whatWillHappen": "What will happen:",
@@ -146,12 +146,13 @@
       },
       "tabs": {
         "details": "Details",
-        "settings": "Settings",
+        "settings": "设置",
         "integrations": "Data Connection",
         "sharing": "Sharing"
       },
       "details": {
         "creditLimit": "Credit Limit:",
+        "creditLimitHint": "Set this only if the bank balance already includes the credit line.",
         "editCreditLimit": "Edit credit limit",
         "creditLimitUpdateSuccess": "Credit limit updated",
         "creditLimitUpdateError": "Failed to update credit limit",
@@ -163,7 +164,7 @@
         "accountCategoryUpdateSuccess": "Account category updated",
         "accountCategoryUpdateError": "Failed to update account category",
         "currency": "Currency:",
-        "main": "(main)",
+        "main": "（主分类）",
         "exchangeRate": "Exchange Rate:",
         "exchangeRateLiveUpdate": "Exchange Rate Live Update:",
         "enabled": "Enabled",
@@ -176,7 +177,7 @@
       },
       "visibility": {
         "updateSuccess": "Updated successfully",
-        "unexpectedError": "Unexpected error"
+        "unexpectedError": "未知错误"
       },
       "excludeFromStats": {
         "label": "Exclude from statistics",
@@ -187,7 +188,7 @@
         "title": "Load transactions for selected period",
         "notLinked": "This account is not linked to a bank connection",
         "dateRangeExceeds": "Date range cannot exceed 1 year",
-        "loading": "Loading...",
+        "loading": "加载中……",
         "selectPeriod": "Select period",
         "loadButton": "Load transactions",
         "failed": "Failed to load transactions",
@@ -209,7 +210,7 @@
         "connectionValidity": "Connection Validity",
         "in": "in",
         "connectionSettings": "Connection Settings",
-        "settings": "Settings",
+        "settings": "设置",
         "ifPersists": ". If the issue persists, use",
         "unlink": "Unlink",
         "belowThenLink": "below, then link it again."
@@ -239,7 +240,7 @@
           "manage": "Manage"
         },
         "writeScope": {
-          "all": "All transactions",
+          "all": "所有交易",
           "own": "Own transactions only"
         },
         "member": {
@@ -250,7 +251,7 @@
           "revoke": "Remove access",
           "revokeTitle": "Remove access?",
           "revokeDescription": "{user} will lose access to {account}. They won't be notified.",
-          "revokeConfirm": "Remove",
+          "revokeConfirm": "删除",
           "updateSuccess": "Member updated.",
           "updateError": "Could not update member.",
           "revokeSuccess": "Access removed.",
@@ -274,7 +275,7 @@
     "vehicleDetails": {
       "notFound": "Vehicle not found",
       "backToAccounts": "Back to accounts",
-      "editButton": "Edit",
+      "editButton": "编辑",
       "overrideValueButton": "Override value",
       "currentValue": "Current value",
       "purchasePrice": "Purchase price",
@@ -317,7 +318,7 @@
         "errorNotification": "Failed to update vehicle value",
         "confirm": "Save value",
         "saving": "Saving...",
-        "cancel": "Cancel"
+        "cancel": "取消"
       },
       "overrideHistory": {
         "title": "Override history",

@@ -1,0 +1,36 @@
+{
+  "auth": {
+    "login": {
+      "title": "Đăng nhập vào tài khoản",
+      "divider": "Hoặc tiếp tục với email",
+      "submitButton": "Đăng nhập",
+      "noAccount": "Chưa có tài khoản?",
+      "signupsDisabledTooltip": "Quản trị viên của máy chủ này đã tắt chức năng đăng ký",
+      "errors": {
+        "incorrectEmailOrPassword": "Email hoặc mật khẩu không đúng.",
+        "incorrectPassword": "Mật khẩu không đúng.",
+        "userNotFound": "Không tìm thấy người dùng.",
+        "emailNotVerified": "Vui lòng xác minh email trước khi đăng nhập.",
+        "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        "noPasswordSet": "Tài khoản này chưa đặt mật khẩu. Hãy thử đăng nhập bằng Google.",
+        "passwordInvalid": "Mật khẩu không hợp lệ.",
+        "genericError": "Đã xảy ra lỗi.",
+        "genericErrorRetry": "Đã xảy ra lỗi. Vui lòng thử lại.",
+        "oauthFailed": "Không đăng nhập được bằng {provider}. Vui lòng thử lại.",
+        "oauthNotConfigured": "Máy chủ này chưa cấu hình đăng nhập bằng {provider}.",
+        "passkeyFailed": "Không đăng nhập được bằng passkey. Vui lòng thử lại."
+      }
+    },
+    "shared": {
+      "divider": "Hoặc tiếp tục với",
+      "passkeyButton": {
+        "signIn": "Đăng nhập bằng Passkey",
+        "register": "Thêm Passkey"
+      },
+      "oauthButton": {
+        "signIn": "Đăng nhập bằng {provider}",
+        "signUp": "Đăng ký bằng {provider}"
+      }
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "settings": {
+    "planBilling": {
+      "title": "Planes y facturación",
+      "description": "Elige un plan y gestiona tu facturación.",
+      "checkoutSuccess": "Tu plan está activo.",
+      "checkoutFailed": "No se pudo abrir el pago. Por favor, inténtelo de nuevo.",
+      "currentPlanEyebrow": "Plan actual",
+      "updatePaymentMethod": "Actualizar método de pago",
+      "manageBilling": "Administrar la facturación",
+      "currentPlan": "Plan actual",
+      "recommended": "Recomendado",
+      "previousPlan": "Plan anterior",
+      "yourPlan": "Tu plan",
+      "planned": "Planificado",
+      "voteOnRoadmap": "Votar en el mapa de ruta",
+      "roadmapNote": "Sin cargo. Al votarlo y te avisaremos cuando esté listo.",
+      "saveUpTo": "Ahorra hasta {percent}%",
+      "portalFailed": "No se pudo abrir el portal de facturación. Por favor, inténtelo de nuevo.",
+      "pastDueNote": "Tu último pago ha fallado. Stripe reintentará con tu tarjeta automáticamente en los próximos días. Actualice su método de pago mediante Administrar facturación para mantener el acceso después de {date}.",
+      "priceNote": "Los precios están en USD, excluyendo impuestos. Tú moneda local y cualquier impuesto aplicable se muestran al momento de hacer el pago.",
+      "cycleHint": {
+        "year": "La opción anual equivale a 6 meses de la opción mensual. Se factura una vez al año.",
+        "month": "Cancela en cualquier momento. La opción anual cuesta la mitad."
+      },
+      "price": {
+        "yearFootnote": "{amount} / mes · {struck} · {save}",
+        "monthFootnote": "o {amount} / año · {save}",
+        "save": "Ahorre {amount}"
+      },
+      "current": {
+        "lifetime": "{plan} de por vida",
+        "lifetimeMeta": "Todo incluido en Plus. Sin renovación, sin tarjeta ingresada.",
+        "earlyAdopterNote": "Gracias por estar aquí desde el inicio. Todo en Plus tal y como existe hoy es tuyo para toda la vida. Las características que añadamos a partir de aquí, y cualquier cosa que nos cueste por usuario para funcionar, sera parte de los planes de pago. ¿Quieres aumentar el plan? 50% de descuento en cualquier plan, para siempre, aplicado automáticamente al momento de la compra.",
+        "seats": "Un integrante del hogar | {count} integrantes del hogar",
+        "subscription": "{tier} · {cycle}",
+        "trial": "Queda {count} día de prueba | Quedan {count} días de prueba",
+        "trialProgress": "Día {used} de {total}",
+        "trialEnded": "Prueba finalizada",
+        "trialEndedMeta": "Tu prueba de {days} ha terminado. Elige un plan para continuar.",
+        "trialEndsOn": "Finalización {date}",
+        "trialExcluded": "Restaurar copia de seguridad no está disponible durante la prueba",
+        "subscriptionEnded": "Suscripción finalizada",
+        "endedMeta": "Tus datos son seguros. Elige un plan para continuar.",
+        "renewsOn": "Se renueva el {date}",
+        "activating": "Activando tu plan",
+        "activatingNote": "Pago recibido. Stripe generalmente confirma en unos segundos.",
+        "activationTimedOut": "Tu pago se ha realizado pero el plan todavía está siendo configurado. Actualiza en un minuto; si nada cambia, contacta con soporte técnico.",
+        "activationUnreachable": "No pudimos acceder al servidor para confirmar tu pago. Recarga la página; si el plan aún no está disponible, ponte en contacto con soporte técnico.",
+        "accessContinuesUntil": "El acceso continuará hasta {date}",
+        "accessUntil": "Acceso hasta {date}, luego será solo de lectura",
+        "resumesOn": "Reanuda automáticamente en {date}",
+        "pausedNote": "Mientras la cuenta está en pausa es de solo lectura.",
+        "noFurtherCharges": "No hay cargos adicionales",
+        "cancelNote": "¿Has cambiado de opinión? Renueva desde el portal de facturación y tu fecha de renovación seguira siendo la misma.",
+        "monthlyHint": "Cambia a anual y ahorra {amount} al año.",
+        "noCard": "No hay tarjeta ingresada"
+      },
+      "status": {
+        "pastDue": "No se pudo efectuar el pago",
+        "active": "Activa",
+        "paused": "En pausa",
+        "readOnly": "Solo lectura",
+        "trial": "Características Plus",
+        "processing": "Procesando",
+        "earlyAdopter": "Early Adpoter",
+        "endsOn": "Termina {date}"
+      },
+      "cta": {
+        "activating": "Activando…",
+        "switchTo": "Cambiar a {tier}",
+        "switchToCycle": "Cambiar a facturación de {cycle}",
+        "subscribeAgain": "Suscríbete de nuevo",
+        "getTier": "Obtener {tier}"
+      },
+      "ctaNote": {
+        "keepIt": "Actualiza tu método de pago para mantenerlo.",
+        "viaPortal": "Modificado en el portal de facturación.",
+        "billedToday": "Facturado hoy. Cancela en cualquier momento.",
+        "earlyAdopter": "50% de descuento para la vida, aplicado al momento de la compra"
+      },
+      "plans": {
+        "essential": "Esencial",
+        "plus": "Plus",
+        "premium": "Premium",
+        "early_adopter": "Early Adopter"
+      },
+      "cycle": {
+        "month": "Mensual",
+        "year": "Anual"
+      },
+      "perCycle": {
+        "month": "/mes",
+        "year": "/año"
+      },
+      "tiers": {
+        "essential": {
+          "name": "Esencial",
+          "tagline": "Entrada manual y todo lo que es ingreso local.",
+          "features": {
+            "imports": "Importaciones desde CSV, OFX, YNAB, Wallet, MS Money",
+            "investments": "Inversiones, préstamos, vehículos",
+            "ownAiKey": "Características de IA con tu propia clave API",
+            "backup": "Copia de seguridad para exportar y restaurar",
+            "mcp": "Acceso al servidor MCP",
+            "seats": "2 integrantes"
+          }
+        },
+        "plus": {
+          "name": "Plus",
+          "tagline": "Todo lo relacionado con las conexiones bancarias.",
+          "features": {
+            "everythingInEssential": "Todo lo de Esencial",
+            "bankProviders": "Conexiones bancarias (Monobank, Enable Banking, SimpleFIN, LunchFlow, Walutomat)",
+            "ourAiKey": "Características de IA con nuestra clave, limitado",
+            "seats": "5 integrantes"
+          }
+        },
+        "premium": {
+          "name": "Premium",
+          "tagline": "Sincronización bancaria que corremos por ti. Planeado: ayúdanos a priorizarlo.",
+          "priceTba": "Precio por anunciar",
+          "priceNote": "Precios una vez que conozcamos los costos de sincronización bancaria.",
+          "features": {
+            "everythingInPlus": "Todo lo de Plus.",
+            "builtInBankSync": "Sincronización bancaria incorporada en la aplicación – sin ninguna cuenta de terceros para configurar",
+            "realtimePrices": "Precios de seguridad a tiempo real",
+            "higherAiCap": "Características de IA con nuestra clave, limite superior",
+            "seats": "10 integrantes"
+          }
+        }
+      }
+    }
+  }
+}

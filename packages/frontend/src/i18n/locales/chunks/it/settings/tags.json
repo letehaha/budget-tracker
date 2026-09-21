@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Etichette",
+      "addButton": "Aggiungi etichetta",
+      "empty": "Ancora nessuna etichetta. Crea la tua prima etichetta per organizzare le tue transazioni.",
+      "tabs": {
+        "details": "Dettagli",
+        "reminders": "Promemoria"
+      },
+      "form": {
+        "createTitle": "Crea etichetta",
+        "editTitle": "Modifica etichetta",
+        "name": "Nome",
+        "namePlaceholder": "Nome etichetta",
+        "color": "Colore",
+        "icon": "Icona",
+        "iconPlaceholder": "Seleziona icona",
+        "iconSearchPlaceholder": "Cerca icona...",
+        "clearIcon": "Cancella icona",
+        "description": "Descrizione",
+        "descriptionPlaceholder": "Descrizione facoltativa",
+        "saveButton": "Salva",
+        "previewPlaceholder": "Nome etichetta"
+      },
+      "delete": {
+        "title": "Vuoi eliminare l'etichetta?",
+        "description": "Questo eliminerà definitivamente l'etichetta \"{name}\" e la rimuoverà da tutte le transazioni. Questa azione non può essere annullata.",
+        "deleteButton": "Elimina",
+        "cancelButton": "Cancella"
+      },
+      "notifications": {
+        "createSuccess": "Etichetta creata",
+        "createFailed": "Impossibile creare l'etichetta",
+        "updateSuccess": "Etichetta aggiornata",
+        "updateFailed": "Impossibile aggiornare l'etichetta",
+        "deleteSuccess": "Etichetta eliminata",
+        "deleteFailed": "Impossibile eliminare l'etichetta"
+      },
+      "reminders": {
+        "addButton": "Aggiungi promemoria",
+        "empty": "Ancora nessun promemoria. Crea un promemoria per ricevere una notifica sull'attività di questa etichetta.",
+        "enabled": "Abilitato",
+        "disabled": "Disabilitato",
+        "form": {
+          "createTitle": "Crea Promemoria",
+          "editTitle": "Modifica Promemoria",
+          "type": "Tipo di promemoria",
+          "typePlaceholder": "Seleziona tipo",
+          "amountThreshold": "Soglia di spesa",
+          "amountThresholdPlaceholder": "Inserisci la soglia",
+          "amountThresholdHint": "Notifica quando la spesa per questo tag supera l'importo indicato",
+          "frequency": "Frequenza",
+          "frequencyPlaceholder": "Seleziona la frequenza",
+          "dayOfMonth": "Giorno del mese",
+          "dayOfMonthPlaceholder": "Seleziona giorno",
+          "dayOfMonthHint": "Per mesi sotto i trenta giorni, verrà utilizzato l'ultimo giorno del mese",
+          "isEnabled": "Abilitato",
+          "saveButton": "Salva"
+        },
+        "types": {
+          "amountThreshold": "Soglia di spesa",
+          "amountThresholdDescription": "Notifica quando la spesa supera un determinato importo",
+          "existenceCheck": "Attività di spesa",
+          "existenceCheckDescription": "Notifica quando ci sono transazioni con questo tag"
+        },
+        "frequencies": {
+          "immediate": "Immediato",
+          "immediateDescription": "Abilita quando le transazioni sono contrassegnate (Cooldown di 24h)",
+          "daily": "Giornaliero",
+          "dailyDescription": "Controllo ogni giorno",
+          "weekly": "Settimanale",
+          "weeklyDescription": "Controllo ogni lunedì",
+          "monthly": "Mensile",
+          "monthlyDescription": "Controlla in un giorno specifico del mese",
+          "quarterly": "Trimestrale",
+          "quarterlyDescription": "Controlla ogni 3 mesi (Gen, Apr, Lug, Ott.)",
+          "yearly": "Annualmente",
+          "yearlyDescription": "Controlla una volta all'anno a gennaio"
+        },
+        "delete": {
+          "title": "Eliminare promemoria?",
+          "description": "Elimina definitivamente questo promemoria. L'azione non può essere annullata.",
+          "deleteButton": "Elimina",
+          "cancelButton": "Cancella"
+        },
+        "notifications": {
+          "createSuccess": "Promemoria creato",
+          "createFailed": "Impossibile creare promemoria",
+          "updateSuccess": "Promemoria aggiornato",
+          "updateFailed": "Impossibile aggiornare il promemoria",
+          "deleteSuccess": "Promemoria eliminato",
+          "deleteFailed": "Impossibile eliminare il promemoria"
+        }
+      }
+    }
+  }
+}

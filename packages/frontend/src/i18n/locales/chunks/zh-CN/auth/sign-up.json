@@ -1,40 +1,40 @@
 {
   "auth": {
     "signup": {
-      "title": "Create an account",
-      "divider": "Or continue with email",
-      "submitButton": "Sign up",
-      "alreadyHaveAccount": "Already have an account?",
-      "signInLink": "Sign in",
+      "title": "注册帐号",
+      "divider": "或使用邮箱继续",
+      "submitButton": "注册",
+      "alreadyHaveAccount": "已经有帐号了？",
+      "signInLink": "登录",
       "labels": {
-        "displayName": "Display Name",
-        "verifyPassword": "Verify Password"
+        "displayName": "显示名",
+        "verifyPassword": "确认密码"
       },
       "placeholders": {
-        "displayName": "ie. John Snow",
-        "verifyPassword": "Verify password"
+        "displayName": "例：李大刚",
+        "verifyPassword": "确认密码"
       },
       "errors": {
-        "invalidEmail": "Please enter a valid email address.",
-        "passwordTooShort": "Password is too short.",
-        "passwordTooLong": "Password is too long.",
-        "invalidPassword": "Invalid password.",
-        "userExists": "User with that email already exists.",
-        "signupsDisabled": "Sign-ups are disabled by the administrator of this instance.",
-        "genericErrorRetry": "An error occurred. Please try again.",
-        "oauthFailed": "Failed to sign up with {provider}. Please try again.",
-        "oauthNotConfigured": "{provider} sign-in is not configured on this server."
+        "invalidEmail": "请输入有效的电邮地址。",
+        "passwordTooShort": "密码太短了。",
+        "passwordTooLong": "密码太长了。",
+        "invalidPassword": "密码无效。",
+        "userExists": "使用此电邮的用户已存在。",
+        "signupsDisabled": "此实例的管理员禁止新用户注册。",
+        "genericErrorRetry": "发生错误。请重试。",
+        "oauthFailed": "无法使用 {provider} 登录。请重试。",
+        "oauthNotConfigured": "本实例没有设置 {provider} 登录。"
       }
     },
     "shared": {
-      "divider": "Or continue with",
+      "divider": "或使用",
       "passkeyButton": {
-        "signIn": "Sign in with Passkey",
-        "register": "Add Passkey"
+        "signIn": "使用通行密钥登录",
+        "register": "添加通行密钥"
       },
       "oauthButton": {
-        "signIn": "Sign in with {provider}",
-        "signUp": "Sign up with {provider}"
+        "signIn": "使用 {provider} 登录",
+        "signUp": "使用 {provider} 注册"
       }
     }
   }

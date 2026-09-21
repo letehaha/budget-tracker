@@ -15,7 +15,11 @@
         "investments": "Investasi"
       }
     },
+    "controls": {
+      "options": "Options"
+    },
     "cashFlow": {
+      "subtitle": "Income against expenses over time, and where the money went.",
       "income": "Pemasukan",
       "expenses": "Pengeluaran",
       "netSavings": "Tabungan Bersih",
@@ -45,9 +49,39 @@
         "thisYear": "Tahun ini",
         "previousYear": "Tahun sebelumnya",
         "allTime": "Sepanjang waktu"
+      },
+      "composition": {
+        "detail": "Detail",
+        "levelsSummary": "Sources L{sources} · Expenses L{expenses}",
+        "levelsHint": "Category nesting level per side: higher levels break flows into subcategories.",
+        "sources": "Sources",
+        "level": "Level {level}",
+        "topN": "Top {count}",
+        "totalIncome": "Total income",
+        "incomePlusDeficit": "Income + deficit",
+        "savings": "Tabungan",
+        "deficit": "Deficit",
+        "other": "Lainnya",
+        "noData": "No transactions in this period",
+        "noDataHint": "Pick another period or click a bar in the chart above",
+        "loadError": "Failed to load composition",
+        "amount": "Jumlah",
+        "shareOfIncome": "Share of income",
+        "shareOfExpenses": "Share of expenses",
+        "saved": "Ditabung",
+        "pctOfIncome": "{pct} of income",
+        "pctSavingsRate": "{pct} savings rate",
+        "keptAsCash": "Kept as cash",
+        "shareOfSavings": "Porsi dari tabungan",
+        "deficitOverspend": "Expenses exceeded income by {amount}. The gap was covered from existing account balances.",
+        "deficitInvested": "Portfolio contributions ({invested}) exceeded this period's net savings ({saved}). The difference came from existing account balances.",
+        "deficitBoth": "Expenses exceeded income by {overspend}, and {invested} was still moved into portfolios. Both were covered from existing account balances.",
+        "andMore": "+{count} lagi",
+        "settings": "Pengaturan grafik"
       }
     },
     "trends": {
+      "subtitle": "Compare spending, income and savings with the previous period.",
       "metrics": {
         "expenses": "Pengeluaran",
         "income": "Pemasukan",
@@ -75,12 +109,28 @@
       "cumulativeProgress": {
         "title": "Progres Kumulatif"
       },
+      "filters": {
+        "button": "Filter",
+        "title": "Filter",
+        "categories": "Kategori",
+        "include": "Include",
+        "exclude": "Kecualikan",
+        "accounts": "Akun",
+        "payees": "Penerima",
+        "tags": "Tag",
+        "reset": "Setel ulang"
+      },
+      "legend": {
+        "hide": "Hide from chart",
+        "show": "Show in chart"
+      },
       "vsPreviousPeriod": "vs periode sebelumnya",
       "loadError": "Gagal memuat data",
       "noData": "Tidak ada data tersedia",
       "noDataHint": "Tidak ada transaksi yang dicatat untuk periode ini"
     },
     "investmentCalculator": {
+      "subtitle": "Project how your portfolio could grow with regular contributions.",
       "initialBalance": "Saldo awal",
       "useCurrentBalance": "Gunakan saldo saat ini",
       "monthlyContribution": "Kontribusi bulanan",
@@ -119,7 +169,6 @@
     }
   },
   "pivotReport": {
-    "title": "Laporan Pivot",
     "subtitle": "Uraikan pengeluaran berdasarkan dimensi apa pun, bentangkan sepanjang waktu, dan bandingkan.",
     "controls": {
       "rows": "Baris",
@@ -153,6 +202,9 @@
     "filters": {
       "period": "Periode",
       "allCategories": "Semua",
+      "button": "Filter",
+      "categories": "Kategori",
+      "payees": "Penerima",
       "accounts": "Akun",
       "reset": "Atur Ulang",
       "resetTooltip": "Kembalikan ke bawaan"
@@ -194,7 +246,6 @@
     }
   },
   "netWorthDrivers": {
-    "title": "Pendorong Kekayaan Bersih",
     "subtitle": "Seberapa besar pertumbuhan Anda berasal dari uang yang Anda tabung, dan seberapa besar dari hasil pasar. Transfer antar akun Anda sendiri tidak dihitung sebagai keduanya.",
     "portfolioFilter": {
       "scopeHint": "Hanya memfilter kepemilikan investasi dan pertumbuhannya. Jumlah yang ditabung dan saldo kas akun tidak terpengaruh."
@@ -273,7 +324,6 @@
     }
   },
   "investmentContributions": {
-    "title": "Kontribusi Investasi",
     "subtitle": "Berapa banyak uang tunai yang telah Anda pindahkan ke portofolio Anda dari waktu ke waktu, dan ke mana perginya.",
     "average": "Rata-rata",
     "portfolioFilter": {
@@ -302,7 +352,6 @@
     }
   },
   "netWorthHistory": {
-    "title": "Riwayat Kekayaan Bersih",
     "subtitle": "Bagaimana aset, kewajiban, dan kekayaan bersih Anda berubah dari waktu ke waktu",
     "granularity": {
       "weekly": "Mingguan",

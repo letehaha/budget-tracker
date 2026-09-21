@@ -37,6 +37,9 @@
       "plannedFilter": {
         "label": "Запланированные"
       },
+      "attachments": {
+        "label": "Attachments"
+      },
       "filterOperation": {
         "all": "Все",
         "exclude": "Исключить",
@@ -114,7 +117,13 @@
       "tagModeLabel": "Действие с тегами",
       "tagModeAdd": "Добавить к существующим тегам",
       "tagModeReplace": "Заменить все теги",
-      "tagModeRemove": "Удалить эти теги"
+      "tagModeRemove": "Удалить эти теги",
+      "totals": {
+        "income": "Доход",
+        "expense": "Расход",
+        "net": "Итог",
+        "transfers": "Переводы"
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -165,6 +174,10 @@
       "plannedTooltip": "Запланированная транзакция",
       "expiredTooltip": "Ожидалась {days} дней назад, соответствующая банковская транзакция не найдена",
       "mergedTooltip": "Подтверждено из запланированной записи от {date}"
+    },
+    "pending": {
+      "label": "Ожидает",
+      "tooltip": "The bank hasn't booked this transaction yet. It doesn't affect the account balance."
     },
     "table": {
       "columns": {

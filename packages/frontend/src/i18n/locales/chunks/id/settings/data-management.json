@@ -19,6 +19,10 @@
         "cta": "Impor file CSV",
         "listDescription": "Petakan kolom dan tangani duplikat"
       },
+      "ofx": {
+        "title": "OFX or QFX statement",
+        "listDescription": "Import bank and credit card transactions"
+      },
       "ynab": {
         "title": "Impor dari YNAB",
         "listDescription": "Akun, transaksi, kategori, dan penerima"
@@ -86,6 +90,11 @@
           "helper": "Hanya tabel peristiwa (transaksi, riwayat saldo, aktivitas investasi) yang difilter. Akun, kategori, dan tabel referensi lainnya tetap lengkap.",
           "placeholder": "Sepanjang waktu",
           "clear": "Hapus rentang tanggal"
+        },
+        "accounts": {
+          "label": "Akun",
+          "helper": "Export only the selected accounts with their transactions and balance history. Leave empty to export all accounts.",
+          "placeholder": "Semua akun"
         },
         "listDescription": "Unduh zip untuk spreadsheet, pajak, atau migrasi"
       }

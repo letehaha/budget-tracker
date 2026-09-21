@@ -91,6 +91,11 @@
           "placeholder": "За всё время",
           "clear": "Очистить диапазон дат"
         },
+        "accounts": {
+          "label": "Счета",
+          "helper": "Export only the selected accounts with their transactions and balance history. Leave empty to export all accounts.",
+          "placeholder": "Все счета"
+        },
         "listDescription": "Скачайте ZIP для таблиц, налогов или переноса данных"
       }
     }

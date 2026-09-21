@@ -1,6 +1,6 @@
 {
   "venture": {
-    "title": "Venture",
+    "title": "风险投资",
     "subtitle": "Track private venture investments — SPVs, syndicates, fund deals.",
     "managePlatforms": "Manage platforms",
     "platforms": {
@@ -9,7 +9,7 @@
       "createButton": "Add platform",
       "emptyTitle": "No platforms yet",
       "emptyDescription": "Add the syndicates or GPs you invest through (e.g., Acme Ventures, AngelList). Configure default fees once — applied to all deals on that platform.",
-      "editTooltip": "Edit",
+      "editTooltip": "编辑",
       "deleteTooltip": "Delete",
       "entryFee": "Entry fee",
       "mgmtFee": "Mgmt fee",
@@ -41,7 +41,7 @@
         "carryLabel": "Default carry %",
         "hurdleLabel": "Default hurdle %",
         "percentInvalid": "Must be between 0 and 100",
-        "cancel": "Cancel",
+        "cancel": "取消",
         "save": "Save",
         "create": "Create",
         "saving": "Saving…"
@@ -107,7 +107,7 @@
         "pickAnotherTransaction": "Add another transaction",
         "removeLinkedTransaction": "Remove linked transaction",
         "linkedSummary": "Linked {total} across {count} transaction(s)",
-        "cancel": "Cancel",
+        "cancel": "取消",
         "create": "Create",
         "saving": "Saving…"
       },
@@ -126,7 +126,7 @@
       "editDialogTitle": "Edit deal",
       "editDialogDescription": "Updates apply going forward; historical event values are not retroactively recalculated.",
       "backToDeals": "Back to deals",
-      "edit": "Edit",
+      "edit": "编辑",
       "delete": "Delete",
       "deleteTitle": "Delete deal?",
       "deleteDescription": "{name} will be removed along with all its events. This can be undone via the trash.",
@@ -187,7 +187,7 @@
         "percentInvalid": "Must be between 0 and 100",
         "notesLabel": "Notes",
         "notesPlaceholder": "Optional notes about this deal",
-        "cancel": "Cancel",
+        "cancel": "取消",
         "save": "Save",
         "create": "Create",
         "saving": "Saving…"

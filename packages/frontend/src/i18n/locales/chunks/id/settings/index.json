@@ -18,7 +18,8 @@
       "language": "Bahasa",
       "general": "Statistik",
       "payees": "Penerima",
-      "subscriptions": "Pembayaran terjadwal"
+      "subscriptions": "Pembayaran terjadwal",
+      "planBilling": "Plan & billing"
     },
     "backToSettings": "Kembali ke Pengaturan"
   }

@@ -1,14 +1,18 @@
 {
   "settings": {
     "language": {
-      "title": "Language",
-      "description": "Display language for the app interface.",
+      "title": "语言",
+      "description": "应用界面显示的语言。",
+      "community": {
+        "title": "社区翻译",
+        "hint": "由 Crowdin 上的志愿者翻译。尚未翻译的内容将以英文显示。"
+      },
       "contribute": {
-        "title": "Missing or wrong translations?",
-        "description": "Every language other than English is translated by the community on Crowdin. You can request a new language, suggest corrections, or translate strings yourself – no coding required.",
-        "requestNote": "Prefer not to use Crowdin? Request a language on our {boardLink}.",
-        "requestNoteLink": "feature board",
-        "action": "Contribute on Crowdin"
+        "title": "缺少翻译或翻译错误？",
+        "description": "社区语言在 Crowdin 平台上翻译。您可以请求新的语言、建议修改或自行翻译——无需编程。",
+        "requestNote": "不想使用 Crowdin？请在{boardLink}请求语言。",
+        "requestNoteLink": "功能板",
+        "action": "在 Crowdin 上贡献翻译"
       }
     }
   }

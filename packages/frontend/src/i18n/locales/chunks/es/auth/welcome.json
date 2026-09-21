@@ -4,6 +4,7 @@
       "title": "Seleccionar moneda base",
       "description": "Su moneda base debería ser idealmente la que utiliza con más frecuencia. Todas las transacciones en otras divisas se calcularán en función de esta.",
       "submitButton": "Confirmar moneda",
+      "trialStarted": "Tu prueba gratuita ha comenzado, todo está disponible durante {count} día. {link} | Tu prueba gratuita ha comenzado, todo está disponible durante {count} días. {link}",
       "logout": "Cerrar sesión",
       "labels": {
         "baseCurrency": "Moneda base"

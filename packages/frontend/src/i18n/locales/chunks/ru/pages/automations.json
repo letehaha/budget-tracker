@@ -214,35 +214,35 @@
       }
     },
     "applyToHistory": {
-      "trigger": "Apply to past transactions",
-      "saveFirst": "Save your changes first",
-      "pickTitle": "Apply a rule to past transactions",
-      "pickHint": "Pick a rule. You'll review the matching transactions before anything changes.",
-      "title": "Apply \"{name}\" to past transactions",
-      "noRules": "You don't have any automations yet.",
-      "summary": "{count} past transaction matches this rule | {count} past transactions match this rule",
-      "moreMatches": "Only the {shown} most recent matches are listed. Apply these, then run it again.",
-      "scanCapped": "Only your {limit} most recent transactions were checked.",
+      "trigger": "Применить к прошлым транзакциям",
+      "saveFirst": "Сначала сохраните изменения",
+      "pickTitle": "Применить правило к прошлым транзакциям",
+      "pickHint": "Выберите правило. Перед изменением данных вы сможете проверить подходящие транзакции.",
+      "title": "Применить «{name}» к прошлым транзакциям",
+      "noRules": "У вас пока нет автоматизаций.",
+      "summary": "{count} прошлая транзакция соответствует этому правилу | {count} прошлых транзакций соответствуют этому правилу",
+      "moreMatches": "Показаны только {shown} последних совпадений. Примените правило к ним, затем запустите его ещё раз.",
+      "scanCapped": "Проверены только {limit} последних транзакций.",
       "emptyState": {
-        "settledTitle": "All caught up",
-        "settledDescription": "This rule has nothing left to change on the only matching past transaction. | This rule has nothing left to change on the {count} matching past transactions.",
-        "noneTitle": "No matches yet",
-        "noneDescription": "No past transaction on your synced or imported accounts matches these conditions."
+        "settledTitle": "Всё обработано",
+        "settledDescription": "Этому правилу больше нечего изменить в единственной подходящей прошлой транзакции. | Этому правилу больше нечего изменить в {count} подходящих прошлых транзакциях.",
+        "noneTitle": "Совпадений пока нет",
+        "noneDescription": "Ни одна прошлая транзакция на синхронизируемых или импортированных счетах не соответствует этим условиям."
       },
       "selectAll": "Выбрать все",
       "selectedCount": "Выбрано: {count}",
-      "irreversible": "This can't be undone. Review the list carefully.",
-      "applyAction": "Apply to {count} transactions",
+      "irreversible": "Это действие нельзя отменить. Внимательно проверьте список.",
+      "applyAction": "Применить к {count} транзакциям",
       "confirm": {
-        "title": "Apply this rule?",
+        "title": "Применить это правило?",
         "action": "Применить",
-        "description": "{count} transactions will be updated right away.",
-        "payeeNote": "The payee on those transactions will be treated as set by you, so automatic payee detection won't change it later."
+        "description": "{count} транзакций будут обновлены сразу.",
+        "payeeNote": "Получатель в этих транзакциях будет считаться заданным вами, поэтому автоматическое определение получателя больше не изменит его."
       },
-      "success": "Applied to {applied} transactions",
-      "successWithSkipped": "Applied to {applied} transactions, {skipped} skipped",
-      "nothingApplied": "Nothing was applied. {skipped} transactions were skipped.",
-      "applyError": "Couldn't apply the rule to past transactions."
+      "success": "Правило применено к {applied} транзакциям",
+      "successWithSkipped": "Правило применено к {applied} транзакциям, пропущено {skipped}",
+      "nothingApplied": "Правило не применено. Пропущено транзакций: {skipped}.",
+      "applyError": "Не удалось применить правило к прошлым транзакциям."
     }
   }
 }

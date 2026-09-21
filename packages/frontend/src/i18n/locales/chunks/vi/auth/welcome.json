@@ -1,0 +1,48 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "Chọn tiền tệ cơ sở",
+      "description": "Lý tưởng nhất là tiền tệ cơ sở nên là loại bạn dùng thường xuyên nhất. Mọi giao dịch ở các loại tiền tệ khác sẽ được quy đổi dựa trên tiền tệ này.",
+      "submitButton": "Xác nhận đơn vị",
+      "trialStarted": "Lần dùng thử miễn phí của bạn đã bắt đầu, mọi thứ được mở khóa trong {count} ngày. {link} | Lần dùng thử miễn phí của bạn đã bắt đầu, mọi thứ được mở khóa trong {count} ngày. {link}",
+      "logout": "Đăng xuất",
+      "labels": {
+        "baseCurrency": "Tiền tệ cơ sở"
+      },
+      "placeholders": {
+        "loading": "Đang tải..."
+      },
+      "errors": {
+        "unableToLoadCurrencies": "Không tải được danh sách tiền tệ. Vui lòng thử lại sau",
+        "unableToSetCurrency": "Lỗi không mong muốn. Không đặt được tiền tệ cơ sở. Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "Đang hoàn tất đăng nhập...",
+      "errors": {
+        "accessDenied": {
+          "signIn": "Đăng nhập đã bị hủy hoặc quyền truy cập bị từ chối",
+          "signUp": "Đăng ký đã bị hủy hoặc quyền truy cập bị từ chối",
+          "link": "Liên kết đã bị hủy hoặc quyền truy cập bị từ chối"
+        },
+        "userAlreadyExists": {
+          "signIn": "Đã tồn tại tài khoản với email này",
+          "signUp": "Đã tồn tại tài khoản với email này",
+          "link": "Tài khoản này đã được liên kết với người dùng khác"
+        },
+        "accountNotLinked": {
+          "signIn": "Không tìm thấy tài khoản với email này. Vui lòng đăng ký trước.",
+          "signUp": "Không tạo được tài khoản. Vui lòng thử lại.",
+          "link": "Không liên kết được tài khoản. Vui lòng thử lại."
+        },
+        "genericError": {
+          "signIn": "Không đăng nhập được. Vui lòng thử lại.",
+          "signUp": "Không đăng ký được. Vui lòng thử lại.",
+          "link": "Không liên kết được tài khoản. Vui lòng thử lại."
+        },
+        "unauthorizedClient": "Ứng dụng này không được cấp quyền dùng phương thức xác thực này",
+        "temporarilyUnavailable": "Dịch vụ xác thực tạm thời không khả dụng. Vui lòng thử lại sau."
+      }
+    }
+  }
+}

@@ -95,6 +95,7 @@
         "addFirstButton": "Tambah Transaksi Pertama"
       },
       "closedPositions": "Posisi ditutup ({count})",
+      "stalePrice": "Last available price. Market value and gains may be outdated.",
       "deleteHolding": {
         "ariaLabel": "Hapus kepemilikan",
         "title": "Hapus kepemilikan",

@@ -1,42 +1,42 @@
 {
   "oauth": {
     "authorize": {
-      "title": "{name} wants access to your MoneyMatter data",
-      "description": "This app is requesting these permissions:",
-      "approve": "Approve",
-      "deny": "Deny",
-      "footer": "You can revoke access at any time from Settings > AI Integrations.",
-      "error": "Failed to process request. Please try again.",
-      "unexpected_response": "Unexpected response from server. Please try again.",
-      "always_granted": "Always granted",
-      "optional": "Optional",
-      "delete_warning": "Grant only to apps you fully trust",
-      "unknown_app": "An application"
+      "title": "{name} 想要访问您的 MoneyMatter 数据",
+      "description": "此应用正在请求这些权限：",
+      "approve": "同意",
+      "deny": "拒绝",
+      "footer": "您随时可从设置 > AI 集成中撤销访问权限。",
+      "error": "无法处理请求。请重试。",
+      "unexpected_response": "服务器返回了意外响应。请重试。",
+      "always_granted": "始终授权",
+      "optional": "可选",
+      "delete_warning": "仅授权您完全信任的应用",
+      "unknown_app": "某个应用"
     },
     "scopes": {
       "finance_read": {
-        "label": "View your financial data",
-        "desc": "Read accounts, transactions, budgets, categories, tags, portfolios, and spending stats."
+        "label": "查看您的财务数据",
+        "desc": "阅读账户、交易、预算、分类、标签、投资组合和支出统计信息。"
       },
       "finance_write": {
-        "label": "Create and edit your financial data",
-        "desc": "Add and update transactions, budgets, subscriptions, investment positions, and more."
+        "label": "创建和编辑您的财务数据",
+        "desc": "增加和更新交易、预算、订阅、投资组合等等。"
       },
       "finance_delete": {
-        "label": "Delete your financial data",
-        "desc": "Permanently remove transactions, accounts, budgets, and other records."
+        "label": "删除您的财务数据",
+        "desc": "永久删除交易、账户、预算和其他记录。"
       },
       "profile_read": {
-        "label": "View your profile",
-        "desc": "See your name, email, and default currency."
+        "label": "查看您的个人资料",
+        "desc": "查看您的姓名、电子邮件和默认货币。"
       },
       "offline_access": {
-        "label": "Stay connected in the background",
-        "desc": "Keep access active without asking you again each session."
+        "label": "在后台保持连接",
+        "desc": "保持访问功能，无需每次询问您。"
       },
       "unknown": {
-        "label": "Additional permission",
-        "desc": "The app requested a permission that is not recognized by MoneyMatter."
+        "label": "其他权限",
+        "desc": "此应用请求的权限不被 MoneyMatter承认。"
       }
     }
   }

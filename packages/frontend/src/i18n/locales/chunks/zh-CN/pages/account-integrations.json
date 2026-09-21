@@ -48,7 +48,7 @@
         "selectAccountsHint": "Select the accounts you want to sync with MoneyMatter",
         "syncingButton": "Syncing...",
         "syncButton": "Sync {count} account(s)",
-        "syncSuccess": "Successfully synced {count} account(s)",
+        "syncSuccess": "Connected {count} account(s). Transactions are syncing in the background.",
         "errors": {
           "connectFailed": "Failed to connect provider",
           "syncFailed": "Failed to sync accounts"
@@ -82,7 +82,7 @@
         },
         "buttons": {
           "back": "Back",
-          "loading": "Loading...",
+          "loading": "加载中……",
           "next": "Next",
           "syncing": "Syncing...",
           "sync": "Sync {count} account | Sync {count} accounts"
@@ -92,7 +92,7 @@
           "loadAccountsFailed": "Failed to load accounts",
           "syncFailed": "Failed to sync accounts"
         },
-        "syncSuccess": "Successfully synced {count} account(s)"
+        "syncSuccess": "Connected {count} account(s). Transactions are syncing in the background."
       },
       "instructionsDialog": {
         "title": "How to Obtain Enable Banking Credentials",
@@ -181,7 +181,7 @@
         }
       },
       "lunchflow": {
-        "apiKeyLabel": "API Key",
+        "apiKeyLabel": "API 密钥",
         "apiKeyPlaceholder": "Enter your LunchFlow API key",
         "help": {
           "trigger": "Where do I find my API key?",
@@ -197,7 +197,7 @@
         "accountsPreviewHint": "Found {count} account(s). All accounts will be imported.",
         "importingButton": "Importing...",
         "importButton": "Import {count} account(s)",
-        "importSuccess": "Successfully imported {count} account(s)",
+        "importSuccess": "Connected {count} account(s). Transactions are syncing in the background.",
         "skipButton": "Skip",
         "skipTooltip": "Skip importing to connect only specific accounts later, or to relink existing accounts from their settings.",
         "errors": {
@@ -209,7 +209,7 @@
         "selectAll": "Select all",
         "availableLabel": "Available",
         "clearAll": "Clear all",
-        "noCurrencyBadge": "No currency",
+        "noCurrencyBadge": "无货币",
         "currencyPicker": {
           "placeholder": "Choose currency",
           "missingCount": "{count} selected account still needs a currency — it can't be changed after import. | {count} selected accounts still need a currency — it can't be changed after import."
@@ -244,7 +244,7 @@
         "help": {
           "trigger": "How do I set up Walutomat API access?"
         },
-        "apiKeyLabel": "API Key",
+        "apiKeyLabel": "API 密钥",
         "apiKeyPlaceholder": "Enter your Walutomat API key",
         "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
         "privateKeyLabel": "Private Key (PEM)",
@@ -258,7 +258,7 @@
         "selectAll": "Select all",
         "importButton": "Import {count} wallet(s)",
         "importingButton": "Importing...",
-        "importSuccess": "Successfully imported {count} Walutomat wallet(s)",
+        "importSuccess": "Connected {count} account(s). Transactions are syncing in the background.",
         "errors": {
           "connectFailed": "Failed to connect to Walutomat. Check your credentials.",
           "importFailed": "Failed to import wallets."
@@ -287,7 +287,7 @@
       "notifications": {
         "disconnectSuccess": "Integration disconnected successfully",
         "disconnectFailed": "Failed to disconnect integration",
-        "connectAccountsSuccess": "Accounts connected successfully",
+        "connectAccountsSuccess": "Accounts connected. Transactions are syncing in the background.",
         "connectAccountsFailed": "Failed to connect accounts",
         "updateNameSuccess": "Connection name updated successfully",
         "updateNameFailed": "Failed to update connection name",
@@ -406,7 +406,7 @@
       },
       "updateCredentials": {
         "title": "Update Credentials",
-        "apiKeyLabel": "API Key",
+        "apiKeyLabel": "API 密钥",
         "apiKeyPlaceholder": "Enter your API key",
         "updatingButton": "Updating...",
         "updateButton": "Update",

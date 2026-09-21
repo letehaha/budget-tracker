@@ -11,14 +11,16 @@
       "category": "Kategori",
       "categoryHint": "Kategori efektif untuk penerima ini. Menampilkan bawaan jika Anda telah menetapkannya — jika tidak, kategori yang paling sering digunakan dalam transaksi sebelumnya. Diisi otomatis saat membuat transaksi baru.",
       "topCategory": "Kategori teratas",
-      "defaultCategory": "Kategori bawaan"
+      "defaultCategory": "Kategori bawaan",
+      "defaultTags": "Default tags"
     },
     "sort": {
       "label": "Urutkan berdasarkan",
       "transactionCount": "Jumlah tx",
       "netFlow": "Arus bersih",
       "name": "Nama",
-      "lastSeen": "Aktivitas terbaru"
+      "lastSeen": "Aktivitas terbaru",
+      "defaultTags": "Default tags"
     },
     "actions": {
       "menu": "Tindakan",
@@ -75,6 +77,11 @@
       "defaultTagsLabel": "Terapkan tag otomatis",
       "defaultTagsPlaceholder": "Pilih tag untuk diterapkan otomatis",
       "defaultTagsHint": "Tag ini secara otomatis ditambahkan ke transaksi baru yang terhubung ke penerima ini (sinkronisasi bank dan impor).",
+      "defaultLocationLabel": "Default location",
+      "defaultLocationEmpty": "No location set",
+      "defaultLocationHint": "Transactions linked to this payee that have no location of their own get this one, both at creation and during bank sync.",
+      "clearDefaultLocationTitle": "Remove default location?",
+      "clearDefaultLocationDescription": "New transactions linked to this payee will no longer get this location. Existing transactions keep theirs.",
       "applyTagsToExisting": "Terapkan ke transaksi yang ada"
     },
     "logo": {
@@ -122,6 +129,12 @@
         "description": "Ketika bank Anda tidak menyediakan bidang pedagang khusus, gunakan deskripsi transaksi (catatan) untuk mendeteksi Penerima secara otomatis. Berguna untuk koneksi bank yang memiliki bidang pedagang kosong atau tidak ada. Mungkin menghasilkan nama Penerima yang lebih berisik (mis. prefiks pembayaran cicilan) yang dapat Anda ubah nama atau gabungkan setelahnya.",
         "successNotification": "Preferensi diperbarui",
         "errorNotification": "Gagal memperbarui preferensi"
+      },
+      "promotionThreshold": {
+        "label": "Create a payee after N occurrences",
+        "description": "How many transactions must share the same merchant name before a payee is created automatically. Set to 1 to create payees from the first transaction.",
+        "successNotification": "Payee creation threshold updated",
+        "errorNotification": "Failed to update payee creation threshold"
       },
       "bulkCategorizationMode": {
         "label": "Terapkan mode kategorisasi ke semua penerima",

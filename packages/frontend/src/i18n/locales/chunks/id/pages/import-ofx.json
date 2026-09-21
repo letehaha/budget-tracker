@@ -1,0 +1,120 @@
+{
+  "pages": {
+    "importExport": {
+      "ofxImport": {
+        "pageTitle": "Import an OFX or QFX file",
+        "pageDescription": "Import bank and credit card transactions from an OFX or QFX file.",
+        "stepper": {
+          "steps": {
+            "upload": "Unggah",
+            "resolve": "Map accounts",
+            "review": "Tinjau",
+            "results": "Selesai"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Upload your OFX or QFX file",
+          "description": "Select a statement file that you downloaded from your bank or credit card provider.",
+          "maxSize": ".ofx or .qfx file, up to 10 MB",
+          "parsing": "Membaca file…",
+          "continue": "Lanjutkan",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" is not an OFX or QFX file."
+          }
+        },
+        "errors": {
+          "uploadUnavailable": "The uploaded file is no longer available. Upload your OFX or QFX file again."
+        },
+        "resolve": {
+          "accounts": {
+            "sectionTitle": "Akun",
+            "nameLabel": "Nama akun",
+            "namePlaceholder": "Enter an account name",
+            "currentBalanceLabel": "Saldo saat ini",
+            "currentBalancePlaceholder": "Leave blank to use the sum of imported transactions",
+            "ledgerBalanceHint": "Statement balance: {balance} on {date}",
+            "transactionCount": "{count} transaksi | {count} transaksi",
+            "skippedNote": "{count} account(s) will be skipped. Its transactions will not be imported. | {count} accounts will be skipped. Their transactions will not be imported.",
+            "statementType": {
+              "bank": "Bank account",
+              "credit-card": "Kartu kredit"
+            }
+          },
+          "quickActions": {
+            "mapExactMatches": "Petakan kecocokan persis",
+            "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
+            "reset": "Setel ulang",
+            "tooltips": {
+              "mapExactMatches": "Link each account to an existing account that has the same name and currency.",
+              "createNewForUnmatched": "Set each account that is not linked to an existing account to create a new account.",
+              "reset": "Hapus semua pilihan dan cocokkan lagi."
+            }
+          },
+          "footer": {
+            "back": "Kembali",
+            "continue": "Lanjutkan"
+          }
+        },
+        "review": {
+          "transactions": "Transaksi",
+          "accountsSkipped": "Akun dilewati",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "willImport": "Akan diimpor",
+          "dateRange": "Rentang tanggal: {from} — {to}",
+          "warningsTitle": "Check these file details",
+          "warningsHint": "The import can continue, but some transactions need special handling.",
+          "warnings": {
+            "dateUserFallback": "{count} transaction used the file's fallback time zone | {count} transactions used the file's fallback time zone",
+            "fitidMissing": "{count} transaction had no bank transaction ID | {count} transactions had no bank transaction ID",
+            "fitidDuplicate": "{count} duplicate bank transaction ID was found in the file | {count} duplicate bank transaction IDs were found in the file"
+          },
+          "duplicatesTitle": "{count} possible duplicate | {count} possible duplicates",
+          "duplicatesHint": "These transactions look like transactions that you already have. Check a row to import it anyway; unchecked duplicates are skipped.",
+          "back": "Kembali",
+          "importing": "Memulai impor...",
+          "importButton": "Import {count} transaction | Import {count} transactions"
+        },
+        "execute": {
+          "starting": "Memulai impor...",
+          "progressCount": "{processed} dari {total}",
+          "failed": "Impor gagal.",
+          "partialImportNote": "Some transactions might already be imported.",
+          "statusQueued": "Antrean",
+          "statusRunning": "Mengimpor",
+          "statusCompleted": "Selesai",
+          "statusFailed": "Gagal"
+        },
+        "done": {
+          "successTitle": "Impor selesai",
+          "successDescription": "Your OFX or QFX transactions are now in your account.",
+          "partialTitle": "Imported with {count} issue | Imported with {count} issues",
+          "partialDescription": "Most transactions were imported. The list below shows what was not imported.",
+          "emptyTitle": "Tidak ada yang baru untuk diimpor",
+          "emptyDescription": "Each transaction was skipped or was already in your ledger.",
+          "failedTitle": "Tidak ada yang diimpor",
+          "failedDescription": "No transactions could be created. Review the errors below.",
+          "accountsCreated": "Akun dibuat",
+          "accountsLinked": "Akun ditautkan",
+          "accountsSkipped": "Akun dilewati",
+          "payeesCreated": "Penerima dibuat",
+          "transactionsImported": "Transaksi diimpor",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "mergedIntoPlanned": "Digabungkan ke transaksi terencana",
+          "balanceWarningTitle": "Some balances might be incorrect",
+          "balanceWarningBody": "The final balance could not be set on each account. Review these accounts and adjust their balances if necessary.",
+          "errorsTitle": "{count} transaction could not be imported | {count} transactions could not be imported",
+          "errorsOverflow": "…dan {count} lainnya",
+          "rowPrefix": "Baris {rowIndex}:",
+          "viewTransactions": "Lihat transaksi",
+          "importAnother": "Impor file lain"
+        },
+        "leaseExpired": {
+          "title": "File yang Anda unggah tidak lagi tersedia",
+          "description": "The parsed copy of your OFX or QFX file was released after a period of inactivity. Your mapping choices could not be kept. Start the import again.",
+          "action": "Mulai ulang"
+        },
+        "leaseResourceLabel": "File yang Anda unggah"
+      }
+    }
+  }
+}

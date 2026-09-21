@@ -320,6 +320,10 @@
       "selectOption": "Pilih opsi",
       "searchPlaceholder": "Cari..."
     },
+    "currencySelect": {
+      "yourCurrencies": "Mata uang Anda",
+      "otherCurrencies": "Other currencies"
+    },
     "comboboxAccounts": {
       "allAccounts": "Semua akun",
       "account": "akun",
@@ -333,7 +337,9 @@
       "searchPlaceholder": "Cari kategori...",
       "unselectedPlaceholder": "Semua kategori",
       "selectedOne": "1 kategori dipilih",
-      "selectedMany": "{n} kategori dipilih"
+      "selectedMany": "{n} kategori dipilih",
+      "excludingOne": "Excluding 1 category",
+      "excludingMany": "Excluding {n} categories"
     },
     "accountMultiSelect": {
       "ungrouped": "Tidak dikelompokkan"
@@ -353,7 +359,8 @@
       "selectedMany": "{n} penerima dipilih",
       "noResults": "Tidak ada penerima ditemukan",
       "unknownPayee": "Penerima tidak diketahui",
-      "loadError": "Tidak dapat memuat penerima. Silakan coba lagi."
+      "loadError": "Tidak dapat memuat penerima. Silakan coba lagi.",
+      "blankOption": "No payee"
     },
     "budgetMultiSelect": {
       "label": "Semua anggaran",

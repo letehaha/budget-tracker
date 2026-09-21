@@ -1,6 +1,6 @@
 {
   "loans": {
-    "title": "Loans",
+    "title": "贷款",
     "loadError": "Failed to load loans.",
     "tryAgain": "Try again",
     "addButton": {
@@ -34,10 +34,10 @@
       "editDescription": "Update the loan's terms. Changes to the rate, term, or planned payment are recorded in the events timeline."
     },
     "settings": {
-      "title": "Settings",
+      "title": "设置",
       "editTitle": "Edit loan details",
       "editDescription": "Update the name, balance, rate, term, payment fields, or lender info.",
-      "editButton": "Edit",
+      "editButton": "编辑",
       "excludeFromStatsTitle": "Exclude from statistics",
       "excludeFromStatsDescription": "Hide this loan from net worth, charts, and reports without archiving it.",
       "archiveTitle": "Archive loan",
@@ -90,7 +90,7 @@
     },
     "list": {
       "columns": {
-        "loan": "Loan",
+        "loan": "贷款",
         "progress": "Progress",
         "balance": "Balance",
         "apr": "APR",

@@ -13,6 +13,7 @@
     "automations": "Automatizaciones",
     "accountDetails": "Detalles de la cuenta",
     "logout": "Cerrar sesión",
+    "appVersion": "App version {version}",
     "settings": "Ajustes",
     "planned": {
       "planned": "Planificado",
@@ -22,6 +23,8 @@
     "venture": "Venture"
   },
   "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "settings": {
       "title": "Ajustes",
       "sections": {
@@ -65,7 +68,8 @@
       "syncedTime": "Sincronizado {time}",
       "connectBank": "Conectar banco",
       "syncingAccounts": "Sincronizando {count} cuentas",
-      "stuck": "Sincronización bloqueada"
+      "stuck": "Sincronización bloqueada",
+      "failed": "Sincronización fallida, algunas cuentas necesitan atención"
     },
     "categorization": {
       "title": "Categorización IA",

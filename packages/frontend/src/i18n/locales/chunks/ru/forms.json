@@ -320,6 +320,10 @@
       "selectOption": "Выберите вариант",
       "searchPlaceholder": "Поиск..."
     },
+    "currencySelect": {
+      "yourCurrencies": "Ваши валюты",
+      "otherCurrencies": "Other currencies"
+    },
     "comboboxAccounts": {
       "allAccounts": "Все счета",
       "account": "счёт",
@@ -333,7 +337,9 @@
       "searchPlaceholder": "Поиск категорий...",
       "unselectedPlaceholder": "Все категории",
       "selectedOne": "Выбрана 1 категория",
-      "selectedMany": "Выбрано {n} категорий"
+      "selectedMany": "Выбрано {n} категорий",
+      "excludingOne": "Excluding 1 category",
+      "excludingMany": "Excluding {n} categories"
     },
     "accountMultiSelect": {
       "ungrouped": "Без группы"

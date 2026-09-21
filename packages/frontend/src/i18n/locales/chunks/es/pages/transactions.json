@@ -37,6 +37,9 @@
       "plannedFilter": {
         "label": "Planificadas"
       },
+      "attachments": {
+        "label": "Attachments"
+      },
       "filterOperation": {
         "all": "Todos",
         "exclude": "Excluir",
@@ -52,7 +55,8 @@
         "tagSingular": "etiqueta",
         "tagPlural": "etiquetas",
         "selected": "seleccionadas",
-        "searchPlaceholder": "Buscar etiquetas…"
+        "searchPlaceholder": "Buscar etiquetas…",
+        "blankOption": "Sin etiquetas"
       },
       "payees": {
         "label": "Beneficiarios",
@@ -114,9 +118,11 @@
       "tagModeAdd": "Añadir a etiquetas existentes",
       "tagModeReplace": "Reemplazar todas las etiquetas",
       "tagModeRemove": "Eliminar estas etiquetas",
-      "unselectableReasons": {
-        "split": "No se puede seleccionar: las transacciones divididas no admiten edición masiva. Edítela individualmente.",
-        "sharedAccount": "No se puede seleccionar: esta transacción pertenece a una cuenta compartida contigo, y solo su propietario puede editarla."
+      "totals": {
+        "income": "Ingreso",
+        "expense": "Gasto",
+        "net": "Neto",
+        "transfers": "Transferencias"
       }
     },
     "transactionGroups": {
@@ -168,6 +174,10 @@
       "plannedTooltip": "Transacción planificada",
       "expiredTooltip": "Se esperaba hace {days} días, sin transacción bancaria coincidente",
       "mergedTooltip": "Confirmada a partir de un movimiento planificado del {date}"
+    },
+    "pending": {
+      "label": "Pendiente",
+      "tooltip": "The bank hasn't booked this transaction yet. It doesn't affect the account balance."
     },
     "table": {
       "columns": {

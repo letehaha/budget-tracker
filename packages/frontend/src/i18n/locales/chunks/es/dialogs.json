@@ -106,6 +106,36 @@
         "paymentTypeLabel": "Tipo de pago",
         "noteLabel": "Nota (opcional)",
         "notePlaceholder": "Nota",
+        "externalUrlLabel": "URL externa",
+        "externalUrlPlaceholder": "Enlace a la página de pedido, reserva o recibo",
+        "externalReferenceLabel": "Referencia externa",
+        "externalReferencePlaceholder": "Número de pedido, número de factura, referencia de reserva",
+        "location": {
+          "label": "Ubicación",
+          "useCurrent": "Usar mi ubicación",
+          "clear": "Eliminar ubicación",
+          "latitudePlaceholder": "Latitud, ej. 50.4501",
+          "longitudePlaceholder": "Latitud, ej. 30.5234",
+          "unsupported": "Tu navegador no es compatible con la geolocalización",
+          "denied": "Acceso a la ubicación denegado. Permitir en la configuración del navegador o introducir las coordenadas manualmente",
+          "unavailable": "No se ha podido determinar tu ubicación. Inténtalo de nuevo o introduce las coordenadas manualmente",
+          "pickOnMap": "Escoge en el mapa",
+          "picker": {
+            "title": "Escoge una ubicación",
+            "searchPlaceholder": "Buscar dirección o lugar",
+            "noResults": "No se han encontrado lugares",
+            "searchFailed": "La búsqueda no está disponible ahora. Inténtalo de nuevo en un momento",
+            "confirm": "Usar esta ubicación",
+            "loadFailed": "No se pudo cargar el mapa. Compruebe su conexión y vuelva a intentarlo",
+            "retry": "Intentar de nuevo",
+            "consent": {
+              "title": "Los cuadros de mapa vienen de OpenStreetMap",
+              "description": "Abrir el mapa y buscar direcciones envía peticiones a openstreetmap.org, que ve tu dirección IP. Puedes desactivarlo más tarde en Configuración.",
+              "enable": "Habilitar mapas",
+              "failed": "No se pudo guardar la configuración. Inténtalo de nuevo"
+            }
+          }
+        },
         "tagsLabel": "Etiquetas (opcional)",
         "originalAmountLabel": "Importe original",
         "originalAmountPlaceholder": "Importe en moneda extranjera",
@@ -164,7 +194,48 @@
         "validation": {
           "required": "Este campo es obligatorio",
           "minValue": "El importe debe ser mayor que cero",
-          "futureDate": "La fecha debe ser hoy o anterior."
+          "futureDate": "La fecha debe ser hoy o anterior.",
+          "latitudeRange": "La latitud debe estar entre -90 y 90",
+          "longitudeRange": "La longitud debe estar entre -180 y 180",
+          "locationPair": "Introduzca tanto latitud como longitud",
+          "maxLength": "No debe exceder los {max} caracteres",
+          "httpUrl": "Introduzca una URL válida"
+        },
+        "attachments": {
+          "label": "Attachments",
+          "loading": "Loading attachments…",
+          "listLoadFailed": "Couldn't load attachments. Close and reopen this dialog to try again.",
+          "hint": "Up to {max} files, {size} each. JPEG, PNG, WebP or PDF.",
+          "trigger": {
+            "empty": "Add attachments",
+            "count": "{count} attachment | {count} attachments",
+            "uploading": "Uploading…"
+          },
+          "dropzone": {
+            "idle": "Drop files here or click to browse",
+            "drag": "Drop to attach"
+          },
+          "errors": {
+            "unsupportedType": "Some files were skipped: only JPEG, PNG, WebP and PDF files can be attached.",
+            "tooMany": "A transaction can have at most {max} attachments.",
+            "tooLarge": "\"{filename}\" is larger than {max} and was not uploaded.",
+            "upload": "Failed to upload the attachment.",
+            "delete": "Failed to delete the attachment."
+          },
+          "deleteConfirm": {
+            "title": "Delete attachment?",
+            "description": "\"{filename}\" will be permanently deleted. This action cannot be undone."
+          },
+          "deleteAll": "Delete all",
+          "deleteAllConfirm": {
+            "title": "Delete all attachments?",
+            "description": "All {count} files will be permanently deleted. This action cannot be undone."
+          },
+          "viewer": {
+            "loadFailed": "Could not load this file.",
+            "openInNewTab": "Open in new tab",
+            "download": "Descargar"
+          }
         }
       },
       "refundRecordsList": {
@@ -371,7 +442,9 @@
           "save": "Guardar plantilla",
           "deleteConfirmTitle": "¿Eliminar «{name}»?",
           "deleteConfirmDescription": "Esta plantilla se eliminará. Las transacciones que ya creó a partir de ella no se verán afectadas.",
-          "duplicateName": "Ya tiene una plantilla llamada «{name}»."
+          "duplicateName": "Ya tiene una plantilla llamada «{name}».",
+          "originalCurrencyLabel": "Moneda de monto original",
+          "originalCurrencyPlaceholder": "Seleccionar una moneda"
         },
         "errors": {
           "create": "No se pudo guardar la plantilla. Inténtelo de nuevo.",

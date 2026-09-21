@@ -1,17 +1,17 @@
 {
   "auth": {
     "verifyEmail": {
-      "title": "Check your email",
-      "description": "We've sent a verification link to",
-      "descriptionYourEmail": "your email address",
-      "descriptionContinued": ". Please click the link to verify your account.",
-      "didntReceive": "Didn't receive the email? Check your spam folder or",
-      "resend": "click here to resend",
-      "sending": "Sending...",
-      "resendIn": "Resend in {count}s",
-      "backToSignIn": "Back to Sign In",
-      "resendSuccess": "Verification email sent! Please check your inbox.",
-      "resendError": "Failed to resend verification email. Please try again."
+      "title": "检查您的电子邮箱",
+      "description": "我们已将验证链接发送至",
+      "descriptionYourEmail": "您的电子邮件地址",
+      "descriptionContinued": "。请点击链接以验证您的帐户。",
+      "didntReceive": "没有收到电子邮件？请检查您的垃圾邮件文件夹或",
+      "resend": "点击此处重新发送",
+      "sending": "发送中……",
+      "resendIn": "{count}秒后可重新发送",
+      "backToSignIn": "返回登录",
+      "resendSuccess": "验证邮件已发送！请检查收件箱。",
+      "resendError": "无法重新发送验证邮件。请重试。"
     }
   }
 }

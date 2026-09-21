@@ -152,6 +152,7 @@
       },
       "details": {
         "creditLimit": "Batas Kredit:",
+        "creditLimitHint": "Set this only if the bank balance already includes the credit line.",
         "editCreditLimit": "Edit batas kredit",
         "creditLimitUpdateSuccess": "Batas kredit diperbarui",
         "creditLimitUpdateError": "Gagal memperbarui batas kredit",

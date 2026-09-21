@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Ein Konto erstellen",
+      "divider": "Oder weiter mit E-Mail-Adresse",
+      "submitButton": "Registrieren",
+      "alreadyHaveAccount": "Du hast bereits ein Konto?",
+      "signInLink": "Anmelden",
+      "labels": {
+        "displayName": "Anzeigename",
+        "verifyPassword": "Passwort bestätigen"
+      },
+      "placeholders": {
+        "displayName": "z.B. John Doe",
+        "verifyPassword": "Passwort bestätigen"
+      },
+      "errors": {
+        "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein.",
+        "passwordTooShort": "Passwort ist zu kurz.",
+        "passwordTooLong": "Passwort ist zu lang.",
+        "invalidPassword": "Ungültiges Passwort.",
+        "userExists": "Ein Benutzer mit dieser E-Mail-Adresse existiert bereits.",
+        "signupsDisabled": "Registrierungen wurden vom Administrator dieser Instanz deaktiviert.",
+        "genericErrorRetry": "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+        "oauthFailed": "Fehler beim Anmelden mit {provider}. Bitte versuche es erneut.",
+        "oauthNotConfigured": "{provider} Anmeldung ist auf diesem Server nicht konfiguriert."
+      }
+    },
+    "shared": {
+      "divider": "Oder fortfahren mit",
+      "passkeyButton": {
+        "signIn": "Mit Passkey anmelden",
+        "register": "Passkey hinzufügen"
+      },
+      "oauthButton": {
+        "signIn": "Mit {provider} anmelden",
+        "signUp": "Mit {provider} registrieren"
+      }
+    }
+  }
+}
