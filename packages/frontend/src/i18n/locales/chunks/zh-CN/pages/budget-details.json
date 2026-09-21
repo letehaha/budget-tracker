@@ -6,7 +6,7 @@
         "selectAll": "Select all",
         "selected": "{count} selected",
         "unlink": "Unlink",
-        "cancel": "Cancel",
+        "cancel": "取消",
         "unlinkSelected": "Unlink Selected",
         "noMatchingTransactions": "No matching transactions",
         "noTransactionsLinked": "No transactions linked",
@@ -14,7 +14,7 @@
         "addTransactionsHint": "Add transactions to this budget to start tracking your spending.",
         "resetFilters": "Reset Filters",
         "addTransactions": "Add Transactions",
-        "add": "Add",
+        "add": "添加",
         "loadingMore": "Loading more..."
       }
     },
@@ -22,7 +22,7 @@
       "notSet": "Not set",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
-      "loading": "Loading...",
+      "loading": "加载中……",
       "uncategorized": "Uncategorized",
       "stats": {
         "income": "Income",
@@ -67,8 +67,8 @@
         "pendingHeading": "Pending invitations",
         "loadError": "Couldn't load members.",
         "permissions": {
-          "read": "View only",
-          "write": "Attach own transactions",
+          "read": "仅浏览",
+          "write": "附加自己的交易",
           "manage": "Manage"
         },
         "member": {
@@ -91,7 +91,7 @@
           "resendSuccess": "Invitation resent.",
           "resendError": "Couldn't resend invitation.",
           "resendDeliveryFailed": "Resent, but the email couldn't be delivered.",
-          "cancel": "Cancel",
+          "cancel": "取消",
           "cancelConfirm": "Cancel invitation",
           "cancelTitle": "Cancel invitation?",
           "cancelDescription": "The invitation to {email} will be cancelled.",

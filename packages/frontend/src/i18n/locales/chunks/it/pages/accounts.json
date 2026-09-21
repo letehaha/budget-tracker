@@ -1,0 +1,48 @@
+{
+  "accounts": {
+    "title": "Conti",
+    "createAccount": "Crea un account",
+    "createVehicle": "Aggiungi veicolo",
+    "actionsMenu": "Azioni del conto",
+    "sections": {
+      "archived": "Archiviati",
+      "manual": "Conti manuali",
+      "sharedWithMe": "Condivisi con me",
+      "vehicles": "Veicoli",
+      "bankConnections": "Connessioni bancarie"
+    },
+    "empty": {
+      "title": "Nessun conto",
+      "description": "Collega la tua banca o crea un conto manuale per iniziare a tracciare le tue finanze, saldi e transazioni.",
+      "connectBank": "Collega il conto bancario",
+      "createManual": "Crea un conto manuale"
+    },
+    "overview": {
+      "totalBalance": "Saldo totale",
+      "assets": "Beni",
+      "liabilities": "Passività",
+      "vehicles": "Veicoli",
+      "projected": "Pianificato {amount} · {count} previsto il {date} | Pianificato {amount} · {count} previsto il {date}"
+    },
+    "sharedBy": "Condiviso da {handle}",
+    "viaHousehold": "Condiviso tramite la famiglia di {handle}",
+    "connect": "Connetti",
+    "connectBank": "Collega banca",
+    "noBanksConnected": "Nessuna banca collegata - connettine una per sincronizzare i saldi automaticamente.",
+    "reconnect": "Riconnetti",
+    "manageConnection": "Gestisci le connessioni",
+    "accountsCount": "{count} conto | {count} conti",
+    "inGroupSubtitle": "in {name}",
+    "sort": {
+      "auto": "Automatico",
+      "name": "Nome",
+      "balance": "Saldo",
+      "ariaLabel": "Ordina conti"
+    },
+    "status": {
+      "active": "Attivo",
+      "expiringSoon": "In scadenza",
+      "expired": "Scaduti"
+    }
+  }
+}

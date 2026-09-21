@@ -174,6 +174,9 @@
     "portfolioTransferNotFound": "Transferencia de portafolio no encontrada",
     "exchangeCurrenciesMustDiffer": "Las monedas de cambio deben ser diferentes"
   },
+  "landingFaq": {
+    "unavailable": "The assistant is unavailable right now. Please try again later or email support@moneymatter.app."
+  },
   "loans": {
     "loanNotFound": "Préstamo no encontrado.",
     "createAccountFailed": "Error al crear la cuenta del préstamo",
@@ -215,6 +218,7 @@
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
     "failedToFetchCountries": "No se pudieron obtener los países. Por favor, verifique sus credenciales.",
     "accountNotLinkedToConnection": "Cuenta no encontrada o no vinculada a esta conexión",
+    "accountAlreadyConnectedToAnotherConnection": "La cuenta \"{{account}}\" ya está conectada a través de \"{{connection}}\". Desconecte esa primero.",
     "cannotLoadBeforeLinkDate": "No se pueden cargar transacciones anteriores a la fecha de vinculación de la cuenta ({{linkedAt}}). Esta cuenta fue vinculada con la estrategia \"solo hacia adelante\" para evitar la duplicación de datos.",
     "dateRangeExceedsLimit": "El rango de fechas no puede superar 1 año.",
     "fromAfterTo": "La fecha \"from\" debe ser anterior a la fecha \"to\"",
@@ -303,7 +307,8 @@
   "importExport": {
     "batchDeleteBankLinkedAccount": "Esta importación ya no se puede deshacer porque su cuenta ahora está conectada a un banco. Eliminar estas transacciones podría desajustar el saldo sincronizado.",
     "batchDeleteLinkedLoanTransfer": "Esta importación está vinculada a un pago de préstamo y no se puede deshacer por sí sola. Active \"también eliminar las transacciones de transferencia vinculadas\" para eliminarla.",
-    "batchDeleteTooLarge": "Esta importación tiene demasiadas transacciones para deshacerla en una sola solicitud en este momento. Póngase en contacto con soporte si necesita ayuda para eliminarla."
+    "batchDeleteInProgress": "Un lote de importación ya está siendo eliminado. Espere a que termine antes de iniciar otro.",
+    "statementImportInProgress": "Ya se está ejecutando una importación de sentencias. Espere a que termine antes de comenzar otra."
   },
   "statementParser": {
     "invalidFile": "Archivo no válido",
@@ -537,8 +542,18 @@
   },
   "automations": {
     "automationNotFound": "Automatización no encontrada.",
+    "previewRequiresConditions": "Proporcione condiciones o una automatización guardada para previsualizar.",
     "reorderStale": "La lista de automatizaciones ha cambiado. Actualícela e inténtelo de nuevo.",
     "ruleLimitReached": "Ha alcanzado el número máximo de automatizaciones.",
     "staleReference": "Esta automatización hace referencia a un elemento que ya no existe."
+  },
+  "attachments": {
+    "transactionNotFound": "Transaction not found.",
+    "attachmentNotFound": "Attachment not found.",
+    "fileNotFound": "Attachment file not found.",
+    "unsupportedFileType": "Unsupported file type. Upload a JPEG, PNG, WebP or PDF file.",
+    "tooManyAttachments": "A transaction can hold at most {{max}} attachments.",
+    "quotaExceeded": "Attachment storage quota exceeded.",
+    "noFileUploaded": "No file was uploaded."
   }
 }

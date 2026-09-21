@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "Lỗi tải xuống dữ liệu từ máy chủ.",
+      "failedToFetchSelfHost": "Không thể kết nối tới máy chủ. Máy chủ có thể vẫn đang khởi động (khoảng 30s sau khi bắt đầu), hoặc biến môi trường ALLOWED_ORGINS chưa bao gồm URL này.",
+      "unexpectedError": "Lỗi bất thường.",
+      "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại",
+      "payloadTooLarge": "Yêu cầu vượt quá dung lượng cho phép. Vui lòng thử import với số lượng mục ít hơn"
+    },
+    "notFound": {
+      "title": "Trang này không nằm trong sổ sách",
+      "description": "Không tìm thấy nội dung bạn yêu cầu. Liên kết có thể bị hỏng hoặc trang đã được chuyển sang vị trí khác.",
+      "attemptedLabel": "Trang bạn vừa truy cập: ",
+      "goBack": "Quay lại",
+      "goHome": "Về trang chủ"
+    }
+  }
+}

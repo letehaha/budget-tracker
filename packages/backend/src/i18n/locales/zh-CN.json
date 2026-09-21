@@ -174,6 +174,9 @@
     "portfolioTransferNotFound": "Portfolio transfer not found",
     "exchangeCurrenciesMustDiffer": "Exchange currencies must be different"
   },
+  "landingFaq": {
+    "unavailable": "The assistant is unavailable right now. Please try again later or email support@moneymatter.app."
+  },
   "loans": {
     "loanNotFound": "Loan not found.",
     "createAccountFailed": "Failed to create loan account",
@@ -215,6 +218,7 @@
     "failedToFetchBanks": "Failed to fetch banks. Please check your credentials and country code.",
     "failedToFetchCountries": "Failed to fetch countries. Please check your credentials.",
     "accountNotLinkedToConnection": "Account not found or not linked to this connection",
+    "accountAlreadyConnectedToAnotherConnection": "Account \"{{account}}\" is already connected through \"{{connection}}\". Disconnect it there first.",
     "cannotLoadBeforeLinkDate": "Cannot load transactions before account link date ({{linkedAt}}). This account was linked using \"forward-only\" strategy to prevent data duplication.",
     "dateRangeExceedsLimit": "Date range cannot exceed 1 year.",
     "fromAfterTo": "\"from\" date must be before \"to\" date",
@@ -303,7 +307,8 @@
   "importExport": {
     "batchDeleteBankLinkedAccount": "This import can no longer be undone because its account is now connected to a bank. Deleting these transactions could throw off the synced balance.",
     "batchDeleteLinkedLoanTransfer": "This import is linked to a loan payment and can't be undone on its own. Enable \"also delete linked transfer transactions\" to remove it.",
-    "batchDeleteTooLarge": "This import has too many transactions to undo in one request right now. Please contact support if you need help removing it."
+    "batchDeleteInProgress": "An import batch is already being deleted. Wait for it to finish before starting another.",
+    "statementImportInProgress": "A statement import is already running. Wait for it to finish before starting another one."
   },
   "statementParser": {
     "invalidFile": "Invalid file",
@@ -457,7 +462,7 @@
         "realty": "Realty",
         "vehicles-chattels": "Vehicles, chattels",
         "financial-investments": "Financial investments",
-        "savings": "Savings",
+        "savings": "储蓄",
         "collections": "Collections"
       },
       "income": {
@@ -537,8 +542,18 @@
   },
   "automations": {
     "automationNotFound": "Automation not found.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
     "reorderStale": "The automation list has changed. Refresh and try again.",
     "ruleLimitReached": "You have reached the maximum number of automations.",
     "staleReference": "This automation references an item that no longer exists."
+  },
+  "attachments": {
+    "transactionNotFound": "Transaction not found.",
+    "attachmentNotFound": "Attachment not found.",
+    "fileNotFound": "Attachment file not found.",
+    "unsupportedFileType": "Unsupported file type. Upload a JPEG, PNG, WebP or PDF file.",
+    "tooManyAttachments": "A transaction can hold at most {{max}} attachments.",
+    "quotaExceeded": "Attachment storage quota exceeded.",
+    "noFileUploaded": "No file was uploaded."
   }
 }

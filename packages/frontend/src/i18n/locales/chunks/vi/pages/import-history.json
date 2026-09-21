@@ -1,0 +1,26 @@
+{
+  "pages": {
+    "importExport": {
+      "importHistory": {
+        "pageTitle": "Lịch sử nhập",
+        "pageDescription": "Xem lại các lần nhập trước đây và xem chi tiết từng lần đã tạo ra những tài khoản và giao dịch nào.",
+        "loadError": "Không tải được lịch sử nhập của bạn.",
+        "emptyTitle": "Chưa có lần nhập nào",
+        "emptyDescription": "Sau khi bạn nhập giao dịch, chúng sẽ hiển thị ở đây.",
+        "emptyAction": "Nhập dữ liệu",
+        "transactionCount": "{count} giao dịch | {count} giao dịch",
+        "accountCount": "{count} tài khoản | {count} tài khoản",
+        "deleteButton": "Xóa lần nhập",
+        "deleteConfirmTitle": "Xóa lô nhập này?",
+        "deleteConfirmDescription": "Thao tác này sẽ xóa vĩnh viễn {count} giao dịch khỏi lần nhập này. Không thể hoàn tác. | Thao tác này sẽ xóa vĩnh viễn {count} giao dịch khỏi lần nhập này. Không thể hoàn tác.",
+        "deleteSuccessMessage": "Đã xóa {count} giao dịch | Đã xóa {count} giao dịch",
+        "deleteUnexpectedError": "Đã xảy ra lỗi khi xóa lô nhập. Vui lòng thử lại.",
+        "deleteLinkedTransfersWarningTitle": "Lần nhập này được liên kết với một giao dịch khác",
+        "deleteLinkedTransfersCheckbox": "Xóa luôn giao dịch chuyển khoản được liên kết",
+        "deleteLinkedTransfersDescription": "Mặc định, giao dịch được liên kết với lần nhập này dưới dạng chuyển khoản chỉ bị bỏ liên kết chứ không bị xóa. Nếu chọn ô này, giao dịch đó cũng sẽ bị xóa vĩnh viễn — không thể hoàn tác.",
+        "deleteLinkedTransfersConfirmTitle": "Xóa luôn giao dịch được liên kết?",
+        "deleteLinkedTransfersConfirmDescription": "Bạn sắp xóa vĩnh viễn một giao dịch nằm ngoài lô nhập này, không chỉ bỏ liên kết. Không thể hoàn tác thao tác này."
+      }
+    }
+  }
+}

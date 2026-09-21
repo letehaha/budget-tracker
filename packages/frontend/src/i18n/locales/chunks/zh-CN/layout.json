@@ -1,169 +1,173 @@
 {
   "navigation": {
-    "dashboard": "Dashboard",
-    "accounts": "Accounts",
-    "accountsList": "All Accounts",
-    "investments": "Investments",
-    "loans": "Loans",
-    "allTransactions": "All Transactions",
-    "transactions": "Transactions",
-    "transactionGroups": "Groups",
-    "analytics": "Analytics",
-    "optimizations": "Optimizations",
-    "automations": "Automations",
-    "accountDetails": "Account details",
-    "logout": "Logout",
-    "settings": "Settings",
+    "dashboard": "看板",
+    "accounts": "账户",
+    "accountsList": "所有账户",
+    "investments": "投资",
+    "loans": "贷款",
+    "allTransactions": "所有交易记录",
+    "transactions": "交易记录",
+    "transactionGroups": "交易组",
+    "analytics": "统计分析",
+    "optimizations": "优化",
+    "automations": "自动化",
+    "accountDetails": "账户详情",
+    "logout": "登出",
+    "appVersion": "App version {version}",
+    "settings": "设置",
     "planned": {
-      "planned": "Planned",
-      "subscriptions": "Recurring Payments",
-      "budgets": "Budgets"
+      "planned": "已规划",
+      "subscriptions": "定期付款",
+      "budgets": "预算"
     },
-    "venture": "Venture"
+    "venture": "风险投资"
   },
   "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "settings": {
-      "title": "Settings",
+      "title": "设置",
       "sections": {
-        "label": "Sidebar sections",
-        "description": "Pick which sections appear in the sidebar.",
-        "alwaysVisibleTooltip": "This section is always visible."
+        "label": "侧边栏小组",
+        "description": "选择在侧边栏中显示哪些小组。",
+        "alwaysVisibleTooltip": "本组总是可见。"
       },
       "hideZeroBalances": {
-        "label": "Hide zero balances",
-        "description": "Hide accounts and groups with a zero balance"
+        "label": "隐藏零余额",
+        "description": "隐藏零余额的账户和账户组"
       }
     },
     "accountsView": {
-      "title": "Accounts",
-      "bankAccounts": "Bank Accounts",
-      "newAccount": "New account",
-      "newAccountsGroup": "New accounts group",
-      "portfolios": "Portfolios",
-      "newPortfolio": "New portfolio",
-      "noPortfolios": "No portfolios yet",
-      "ventures": "Ventures",
-      "cars": "Cars",
-      "loans": "Loans",
-      "collapseNavigation": "Collapse navigation",
-      "viaHousehold": "Shared via {handle}'s household",
-      "sharedBy": "Shared by {handle}",
-      "needsReauthTooltip": "Connection expired. Reconnect to resume syncing."
+      "title": "账户",
+      "bankAccounts": "银行账户",
+      "newAccount": "新建账户",
+      "newAccountsGroup": "新建账户组",
+      "portfolios": "投资组合",
+      "newPortfolio": "新建投资组合",
+      "noPortfolios": "无投资组合",
+      "ventures": "风险投资",
+      "cars": "车辆",
+      "loans": "贷款",
+      "collapseNavigation": "折叠导航栏",
+      "viaHousehold": "由 {handle} 的家庭账户共享",
+      "sharedBy": "由 {handle} 共享",
+      "needsReauthTooltip": "连接已过期。重新连接以恢复同步。"
     }
   },
   "header": {
-    "add": "Add",
-    "importData": "Import data",
-    "language": "Language",
-    "newTransaction": "Add transaction",
-    "settings": "Settings",
-    "feedback": "Send feedback",
-    "support": "Support",
+    "add": "添加",
+    "importData": "导入数据",
+    "language": "语言",
+    "newTransaction": "添加交易",
+    "settings": "设置",
+    "feedback": "意见反馈",
+    "support": "帮助",
     "sync": {
-      "syncing": "Syncing",
-      "synchronizing": "Synchronizing...",
-      "syncedTime": "Synced {time}",
-      "connectBank": "Connect bank",
-      "syncingAccounts": "Syncing {count} accounts",
-      "stuck": "Sync stuck"
+      "syncing": "正在同步",
+      "synchronizing": "正在同步……",
+      "syncedTime": "{time} 已同步",
+      "connectBank": "连接银行",
+      "syncingAccounts": "同步 {count} 个账户",
+      "stuck": "同步卡住了",
+      "failed": "Sync failed, some accounts need attention"
     },
     "categorization": {
-      "title": "AI Categorization",
-      "categorizing": "Categorizing...",
-      "completed": "AI categorized {count} transaction | AI categorized {count} transactions",
-      "completedShort": "Categorization complete",
-      "completedWithSkipped": "Categorized {count} transaction ({skipped} skipped) | Categorized {count} transactions ({skipped} skipped)",
-      "failed": "Categorization failed",
-      "failedShort": "Failed",
+      "title": "AI 分类",
+      "categorizing": "分类中……",
+      "completed": "AI 已分类 {count} 条交易记录| AI 已分类 {count} 条交易记录",
+      "completedShort": "分类完成",
+      "completedWithSkipped": "已分类 {count} 个交易（跳过 {skipped} 个） | 已分类 {count} 个交易（跳过 {skipped} 个）",
+      "failed": "分类失败",
+      "failedShort": "失败",
       "allSkipped": "AI couldn't confidently categorize the transaction | AI couldn't confidently categorize any of the {count} transactions",
-      "queued": "Waiting to start...",
-      "transactions": "transactions"
+      "queued": "正在等待开始……",
+      "transactions": "交易记录"
     }
   },
   "themeSelector": {
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System"
+    "light": "浅色",
+    "dark": "深色",
+    "system": "系统"
   },
   "feedback": {
     "dialog": {
-      "title": "Leave feedback",
-      "description": "Tell us what is working and what is not.",
+      "title": "提出反馈",
+      "description": "告诉我们什么是可行的，什么是不可行的。",
       "typeLabel": "Type",
       "typePlaceholder": "Choose a type",
       "types": {
-        "bug": "Something is broken",
-        "featureRequest": "I want a feature",
-        "other": "Something else"
+        "bug": "有些功能有问题",
+        "featureRequest": "我想要新功能",
+        "other": "其他"
       },
-      "messageLabel": "Your feedback",
-      "messagePlaceholder": "What happened, or what would you like to see?",
-      "messageRequired": "Please write a message before sending.",
-      "submit": "Send",
-      "thanks": "Thanks, we read every message.",
-      "unavailable": "Sending is unavailable right now. Use the board below instead.",
-      "or": "or",
+      "messageLabel": "您的反馈",
+      "messagePlaceholder": "发生了什么，或者你想看到什么？",
+      "messageRequired": "请在发送前填写消息。",
+      "submit": "发送",
+      "thanks": "谢谢，我们阅读了每一个信息。",
+      "unavailable": "发送现在不可用。请使用下面的反馈板来代替。",
+      "or": "或",
       "board": {
-        "title": "Post it on the public board",
-        "description": "Vote on other people's ideas, see what is already planned, and get a reply on yours."
+        "title": "将其发布在公共反馈板",
+        "description": "为其他人的想法投票，查看未来计划，并获取对您所提想法的回复。"
       }
     }
   },
   "syncStatusTooltip": {
-    "title": "Banks connections sync status",
-    "syncedSuccessfully": "Synced successfully",
-    "syncCompletedWithErrors": "Some accounts failed to sync",
-    "syncStuckTitle": "Sync seems stuck",
-    "syncStuckDescription": "Some bank connections didn't respond in time. Try again, or reconnect them from the integrations page.",
-    "progress": "{current} of {total} synced",
+    "title": "银行连接同步状态",
+    "syncedSuccessfully": "同步成功",
+    "syncCompletedWithErrors": "某些账户同步失败",
+    "syncStuckTitle": "同步似乎卡住了",
+    "syncStuckDescription": "有些银行连接没有及时响应。请重试或从集成页面重新连接。",
+    "progress": "已同步 {current}/{total}",
     "progressPercentage": "{percentage}%",
     "statuses": {
-      "syncing": "Syncing",
-      "queued": "Queued",
-      "synced": "Synced",
-      "failed": "Failed",
-      "idle": "Idle"
+      "syncing": "正在同步",
+      "queued": "队列中",
+      "synced": "已同步",
+      "failed": "失败",
+      "idle": "空闲"
     },
-    "lastSynced": "Last synced:",
-    "neverSynced": "Never synced",
-    "syncNowButton": "Sync Now",
-    "noBankAccounts": "No bank accounts connected",
-    "connectButton": "Connect",
-    "retrySyncButton": "Retry sync",
-    "manageConnectionsButton": "Manage connections",
-    "needsReauthTitle": "Connections need reconnecting",
-    "needsReauthDescription": "These bank sessions expired. Reconnect to resume syncing.",
-    "reconnectButton": "Reconnect",
-    "affectedAccounts": "1 account | {count} accounts",
+    "lastSynced": "上次同步：",
+    "neverSynced": "尚未同步",
+    "syncNowButton": "立即同步",
+    "noBankAccounts": "没有连接到银行账户",
+    "connectButton": "连接",
+    "retrySyncButton": "重试同步",
+    "manageConnectionsButton": "管理连接",
+    "needsReauthTitle": "需要重新连接",
+    "needsReauthDescription": "这些银行会话已过期。重新连接以恢复同步。",
+    "reconnectButton": "重新连接",
+    "affectedAccounts": "1 个账号 | {count} 个账号",
     "timeAgo": {
-      "justNow": "Just now",
-      "secondsAgo": "{count} second ago | {count} seconds ago",
-      "minutesAgo": "{count} minute ago | {count} minutes ago",
-      "hoursAgo": "{count} hour ago | {count} hours ago",
-      "daysAgo": "{count} day ago | {count} days ago",
-      "weeksAgo": "{count} week ago | {count} weeks ago",
-      "monthsAgo": "{count} month ago | {count} months ago",
-      "yearsAgo": "{count} year ago | {count} years ago"
+      "justNow": "刚刚",
+      "secondsAgo": "{count} 秒前 | {count} 秒前",
+      "minutesAgo": "{count} 分钟前 | {count} 分钟前",
+      "hoursAgo": "{count} 小时前 | {count} 小时前",
+      "daysAgo": "{count} 天前 | {count} 天前",
+      "weeksAgo": "{count} 星期前 | {count} 星期前",
+      "monthsAgo": "{count} 个月前 | {count} 个月前",
+      "yearsAgo": "{count} 年前 | {count} 年前"
     }
   },
   "banners": {
     "recoveryMethod": {
-      "title": "Add a backup login method",
-      "description": "Protect your account by adding Google sign-in or a passkey. This ensures you can always access your account.",
-      "actionButton": "Go to Security Settings"
+      "title": "添加备份登录方式",
+      "description": "添加谷歌登录或通行密钥来保护您的帐户。这确保您可以随时访问您的帐户。",
+      "actionButton": "前往安全设置"
     }
   },
   "relinkWarning": {
-    "buttonLabel": "{count} account needs attention | {count} accounts need attention",
-    "title": "Enable Banking: Action Required",
-    "description": "These Enable Banking accounts need to be updated due to a data schema change. This is a one-time action to improve synchronization reliability.",
+    "buttonLabel": "{count} 个账户需要注意 | {count} 个账户需要注意",
+    "title": "Enable Banking：需要操作",
+    "description": "由于数据格式发生变更，这些 Enable Banking 账户需要更新。这是一次性操作，以提高同步的可靠性。",
     "step1Full": "To save your time, firstly try reconnecting the whole bank connection. You can find a {reconnect} button under the {connectionValidity} section on each connection page:",
-    "reconnectButton": "Reconnect",
-    "connectionValiditySection": "Connection Validity",
-    "connectionLabel": "Connection #{id}",
-    "step2Full": "If any accounts remain listed below after reconnection, go to each account and manually {unlink} then {link} again.",
-    "unlinkAction": "Unlink",
-    "linkAction": "Link"
+    "reconnectButton": "重新连接",
+    "connectionValiditySection": "连接有效性",
+    "connectionLabel": "连接 #{id}",
+    "step2Full": "如何有账户在重新连接后仍在下列列表，请前往各个账户内手动{unlink}然后{link}。",
+    "unlinkAction": "取消连接",
+    "linkAction": "重新连接"
   },
   "pages": {
     "integrations": {
@@ -182,142 +186,142 @@
   },
   "dashboard": {
     "onboarding": {
-      "title": "Welcome to MoneyMatter",
-      "subtitle": "Get started by setting up your first account",
+      "title": "欢迎来到 MoneyMatter",
+      "subtitle": "从设置您的第一个账户开始",
       "createManualAccount": {
-        "title": "Create Manual Account",
-        "description": "Track cash, savings, or any account manually"
+        "title": "创建手动账户",
+        "description": "手动追踪现金、储蓄或任何账户"
       },
       "connectBank": {
-        "title": "Connect Your Bank",
-        "description": "Automatically sync transactions from your bank"
+        "title": "连接您的银行",
+        "description": "自动从您的银行同步交易"
       },
-      "divider": "or import existing data",
+      "divider": "或导入现有数据",
       "importFile": {
-        "title": "Import from File",
-        "description": "Import transactions from bank statements (PDF) or CSV files"
+        "title": "从文件导入",
+        "description": "从银行对账单 (PDF) 或 CSV 文件导入交易"
       },
       "quickStart": {
         "categories": {
           "getting-started": {
-            "title": "Getting Started"
+            "title": "快速上手"
           },
           "advanced-transactions": {
-            "title": "Advanced Transactions"
+            "title": "高级交易"
           },
           "organization": {
-            "title": "Organize Your Finances"
+            "title": "组织您的财务"
           },
           "bank-import": {
-            "title": "Connect & Import"
+            "title": "连接与导入"
           },
           "analytics": {
-            "title": "Explore Analytics"
+            "title": "探索分析"
           },
           "ai-settings": {
-            "title": "AI Features"
+            "title": "AI 功能"
           },
           "sharing": {
-            "title": "Sharing & Household"
+            "title": "共享和家庭"
           }
         },
         "tasks": {
           "create-account": {
-            "title": "Create your first account",
-            "description": "Add a bank account or wallet to track"
+            "title": "创建您的第一个账户",
+            "description": "添加并追踪一个银行账户或钱包"
           },
           "add-transaction": {
-            "title": "Add your first transaction",
-            "description": "Record an income or expense"
+            "title": "添加您的第一笔交易记录",
+            "description": "记录收入或支出"
           },
           "create-transfer": {
-            "title": "Create a transfer",
-            "description": "Move money between your accounts"
+            "title": "创建转账",
+            "description": "在您的账户之间转移资金"
           },
           "link-refund": {
-            "title": "Link a refund",
-            "description": "Connect refunds to original purchases"
+            "title": "链接退款",
+            "description": "将退款与原始交易链接"
           },
           "link-transactions": {
-            "title": "Link existing transactions",
-            "description": "Connect related transactions together"
+            "title": "链接现有的交易",
+            "description": "将相关的交易链接到一起"
           },
           "split-transaction": {
-            "title": "Split a transaction",
-            "description": "Divide expenses across categories"
+            "title": "拆分交易",
+            "description": "将支出拆分到不同分类"
           },
           "mark-transfer-out": {
-            "title": "Mark transfer out of wallet",
-            "description": "Track money leaving your accounts"
+            "title": "标记转出钱包",
+            "description": "追踪离开您帐户的资金"
           },
           "create-category": {
-            "title": "Create a custom category",
-            "description": "Organize your transactions by type"
+            "title": "创建自定义分类",
+            "description": "按分类整理您的交易"
           },
           "create-tag": {
-            "title": "Create a tag",
-            "description": "Add tags to group related transactions"
+            "title": "创建标签",
+            "description": "将标签添加到相关的交易"
           },
           "create-budget": {
-            "title": "Set up a budget",
-            "description": "Create spending limits for categories"
+            "title": "设置预算",
+            "description": "为分类创建支出限制"
           },
           "create-subscription": {
-            "title": "Create a subscription",
-            "description": "Set up recurring payments to track your subscriptions"
+            "title": "创建订阅",
+            "description": "设置定期付款来追踪您的订阅"
           },
           "create-account-group": {
-            "title": "Create an account group",
-            "description": "Organize accounts by type or purpose"
+            "title": "创建一个账户组",
+            "description": "按类型或目的整理帐户"
           },
           "setup-tag-reminder": {
-            "title": "Set up a tag reminder",
-            "description": "Get notified about recurring expenses"
+            "title": "设置标签提醒",
+            "description": "接收定期支出的通知"
           },
           "connect-bank": {
-            "title": "Connect a bank account",
-            "description": "Sync transactions automatically"
+            "title": "连接银行账户",
+            "description": "自动同步交易"
           },
           "import-csv": {
-            "title": "Import from any text source",
-            "description": "Import from CSV, PDF, or bank statements"
+            "title": "从任何文本源导入",
+            "description": "从 CSV、PDF 或银行对帐单导入"
           },
           "view-annual-overview": {
-            "title": "Check annual overview",
-            "description": "See yearly trends and patterns"
+            "title": "查看年度概览",
+            "description": "查看年度趋势和模式"
           },
           "view-cash-flow": {
-            "title": "View cash flow analytics",
-            "description": "Understand your income vs expenses"
+            "title": "查看现金流量分析",
+            "description": "了解您的收入与支出"
           },
           "review-ai-features": {
-            "title": "Review AI features",
-            "description": "Explore available AI capabilities"
+            "title": "审核 AI 功能",
+            "description": "探索可用的 AI 功能"
           },
           "configure-ai": {
-            "title": "Set your own API key",
-            "description": "Use your AI API key for the unlimited and uninterrupted access"
+            "title": "设置您自己的 API 密钥",
+            "description": "使用您的 AI API 密钥进行无限和不间断访问"
           },
           "invite-household-member": {
-            "title": "Invite a household member",
-            "description": "Share your whole financial life with someone — they get access to every account you have now and add later."
+            "title": "邀请家庭成员",
+            "description": "与对方分享您的财务生活——他们可以访问您现在和未来的所有帐户。"
           },
           "share-account": {
-            "title": "Share an account",
-            "description": "Open any account and use the Share action to grant a single user read or write access."
+            "title": "分享账户",
+            "description": "打开任何账户并使用共享授予单个用户读取或写入权限。"
           }
         },
         "ui": {
-          "title": "Quick Start",
-          "subtitle": "Use our Quick Start guide to learn about everything MoneyMatter can do for you.",
-          "dismissButton": "Dismiss permanently",
-          "dismissConfirmTitle": "Dismiss Quick Start?",
-          "dismissConfirmDescription": "You can always reopen the Quick Start guide from settings if you change your mind.",
-          "dismissConfirmButton": "Dismiss",
-          "triggerTooltip": "Quick Start - {count} tasks remaining",
-          "srDescription": "Complete these tasks to get started with the app",
-          "progressText": "{completed} of {total} complete",
-          "categoryProgress": "{completed} of {total} complete"
+          "title": "快速开始",
+          "subtitle": "使用我们的快速启动指南，了解 MoneyMatter 可以为您做的一切。",
+          "dismissButton": "永久关闭",
+          "dismissConfirmTitle": "隐藏快速开始？",
+          "dismissConfirmDescription": "如果您改变主意，您随时可以从设置中重新打开“快速开始”指南。",
+          "dismissConfirmButton": "隐藏",
+          "triggerTooltip": "快速开始——剩 {count} 个任务",
+          "srDescription": "完成这些任务以开始应用",
+          "progressText": "已完成 {completed}/{total}",
+          "categoryProgress": "已完成 {completed}/{total}"
         }
       }
     }

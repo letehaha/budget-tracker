@@ -1,0 +1,43 @@
+{
+  "oauth": {
+    "authorize": {
+      "title": "{name} muốn truy cập dữ liệu MoneyMatter của bạn",
+      "description": "Ứng dụng này đang yêu cầu các quyền sau:",
+      "approve": "Chấp nhận",
+      "deny": "Từ chối",
+      "footer": "Bạn có thể thu hồi quyền truy cập bất cứ lúc nào từ Cài đặt > Tích hợp AI.",
+      "error": "Không xử lý được yêu cầu. Vui lòng thử lại.",
+      "unexpected_response": "Phản hồi không mong đợi từ máy chủ. Vui lòng thử lại.",
+      "always_granted": "Luôn được cấp",
+      "optional": "Tùy chọn",
+      "delete_warning": "Chỉ cấp quyền cho ứng dụng bạn hoàn toàn tin tưởng",
+      "unknown_app": "Một ứng dụng"
+    },
+    "scopes": {
+      "finance_read": {
+        "label": "Xem dữ liệu tài chính của bạn",
+        "desc": "Đọc tài khoản, giao dịch, ngân sách, danh mục, thẻ, danh mục đầu tư và thống kê chi tiêu."
+      },
+      "finance_write": {
+        "label": "Tạo và chỉnh sửa dữ liệu tài chính của bạn",
+        "desc": "Thêm và cập nhật giao dịch, ngân sách, thanh toán định kỳ, danh mục đầu tư và hơn thế nữa."
+      },
+      "finance_delete": {
+        "label": "Xóa dữ liệu tài chính của bạn",
+        "desc": "Xóa vĩnh viễn giao dịch, tài khoản, ngân sách và các bản ghi khác."
+      },
+      "profile_read": {
+        "label": "Xem hồ sơ của bạn",
+        "desc": "Xem tên, email và tiền tệ mặc định của bạn."
+      },
+      "offline_access": {
+        "label": "Duy trì kết nối trong nền",
+        "desc": "Giữ quyền truy cập luôn hoạt động mà không cần hỏi lại mỗi phiên."
+      },
+      "unknown": {
+        "label": "Quyền bổ sung",
+        "desc": "Ứng dụng đã yêu cầu một quyền mà MoneyMatter không nhận dạng được."
+      }
+    }
+  }
+}

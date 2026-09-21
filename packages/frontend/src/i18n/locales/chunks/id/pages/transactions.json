@@ -37,6 +37,9 @@
       "plannedFilter": {
         "label": "Terencana"
       },
+      "attachments": {
+        "label": "Attachments"
+      },
       "filterOperation": {
         "all": "Semua",
         "exclude": "Kecualikan",
@@ -52,7 +55,8 @@
         "tagSingular": "tag",
         "tagPlural": "tag",
         "selected": "dipilih",
-        "searchPlaceholder": "Cari tag..."
+        "searchPlaceholder": "Cari tag...",
+        "blankOption": "No tags"
       },
       "payees": {
         "label": "Penerima",
@@ -114,9 +118,11 @@
       "tagModeAdd": "Tambahkan ke tag yang ada",
       "tagModeReplace": "Ganti semua tag",
       "tagModeRemove": "Hapus tag ini",
-      "unselectableReasons": {
-        "split": "Tidak dapat dipilih: transaksi split tidak mendukung pengeditan massal. Edit secara individual.",
-        "sharedAccount": "Tidak dapat dipilih: transaksi ini berada di akun yang dibagikan dengan Anda, dan hanya pemiliknya yang dapat mengeditnya."
+      "totals": {
+        "income": "Pemasukan",
+        "expense": "Pengeluaran",
+        "net": "Bersih",
+        "transfers": "Transfer"
       }
     },
     "transactionGroups": {
@@ -168,6 +174,10 @@
       "plannedTooltip": "Transaksi terencana",
       "expiredTooltip": "Diharapkan {days} hari lalu, tidak ada transaksi bank yang cocok",
       "mergedTooltip": "Dikonfirmasi dari entri terencana pada {date}"
+    },
+    "pending": {
+      "label": "Tertunda",
+      "tooltip": "The bank hasn't booked this transaction yet. It doesn't affect the account balance."
     },
     "table": {
       "columns": {

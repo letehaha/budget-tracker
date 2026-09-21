@@ -1,61 +1,61 @@
 {
   "settings": {
     "ai": {
-      "title": "AI Settings",
-      "description": "Configure AI-powered features like automatic transaction categorization",
+      "title": "AI 设定",
+      "description": "设置自动交易分类等AI驱动功能",
       "tabs": {
-        "features": "AI Features",
-        "apiKeys": "API Keys",
-        "invalidKeysTooltip": "One or more API keys are invalid",
-        "customEndpoints": "Custom endpoints",
-        "invalidEndpointsTooltip": "One or more custom endpoints are no longer working"
+        "features": "AI 功能",
+        "apiKeys": "API 密钥",
+        "invalidKeysTooltip": "有一个或多个 API 密钥无效",
+        "customEndpoints": "自定义端点",
+        "invalidEndpointsTooltip": "一个或多个自定义端点不再工作"
       },
       "apiKeyManager": {
-        "title": "API Keys",
-        "description": "Add your own API keys to use specific providers",
+        "title": "API 密钥",
+        "description": "添加您自己的 API 密钥以使用特定的提供商",
         "badges": {
-          "default": "Default"
+          "default": "默认"
         },
         "buttons": {
-          "setDefault": "Set as Default"
+          "setDefault": "设置为默认"
         },
-        "invalidKeyHelp": "Add a new key below to replace this one, or remove it if you no longer need it.",
+        "invalidKeyHelp": "在下方添加新密钥以替换此密钥，或如果不再需要则将其删除。",
         "deleteDialog": {
-          "title": "Remove API key?",
-          "description": "Are you sure you want to remove the {provider} API key?",
-          "descriptionMultiple": "AI features currently using {provider} will switch to another available provider.",
-          "cancel": "Cancel",
-          "remove": "Remove"
+          "title": "删除 API 密钥？",
+          "description": "您确认要删除 {provider} 的 API 密钥吗？",
+          "descriptionMultiple": "目前使用 {provider} 的 AI 功能将会切换使用另一个提供商。",
+          "cancel": "取消",
+          "remove": "删除"
         },
-        "allConfigured": "All providers are set up",
+        "allConfigured": "已设置所有提供商",
         "form": {
-          "titleAdd": "Add API Key",
-          "titleAddAnother": "Add Another Provider",
-          "providerLabel": "Provider",
-          "apiKeyLabel": "API Key",
-          "buttonSaving": "Validating...",
-          "buttonSave": "Save Key"
+          "titleAdd": "添加 API 密钥",
+          "titleAddAnother": "添加另一个提供商",
+          "providerLabel": "提供商",
+          "apiKeyLabel": "API 密钥",
+          "buttonSaving": "验证中……",
+          "buttonSave": "保存密钥"
         },
         "providers": {
           "anthropic": {
             "label": "Anthropic (Claude)",
             "placeholder": "sk-ant-...",
-            "description": "Get your API key from"
+            "description": "您可从此处获得 API 密钥："
           },
           "openai": {
             "label": "OpenAI (GPT)",
             "placeholder": "sk-...",
-            "description": "Get your API key from"
+            "description": "您可从此处获得 API 密钥："
           },
           "google": {
             "label": "Google (Gemini)",
             "placeholder": "AIza...",
-            "description": "Get your API key from"
+            "description": "您可从此处获得 API 密钥："
           },
           "groq": {
             "label": "Groq (Llama, GPT-OSS)",
             "placeholder": "gsk_...",
-            "description": "Get your API key from"
+            "description": "您可从此处获得 API 密钥："
           }
         },
         "notifications": {
@@ -73,7 +73,7 @@
         "invalidBadge": "Invalid"
       },
       "features": {
-        "title": "AI Features",
+        "title": "AI 功能",
         "description": "Configure which model to use for each AI-powered feature",
         "loading": "Loading features..."
       },
@@ -156,7 +156,7 @@
         "addKeyHintLink": "Add API key →",
         "customModel": {
           "nameLabel": "Model name",
-          "applyButton": "Apply",
+          "applyButton": "应用",
           "hint": "Sent as-is to {baseUrl}.",
           "endpointOption": "{endpoint} — {model}",
           "unknownEndpoint": "Custom endpoint",
@@ -165,7 +165,7 @@
         }
       },
       "customEndpoint": {
-        "title": "Custom endpoints",
+        "title": "自定义端点",
         "description": "Connect your own OpenAI-compatible servers and use their models for any AI feature.",
         "loading": "Loading endpoints…",
         "addButton": "Add endpoint",
@@ -183,7 +183,7 @@
         },
         "actions": {
           "menuAriaLabel": "Endpoint actions",
-          "reconnect": "Reconnect"
+          "reconnect": "重新连接"
         },
         "form": {
           "titleAdd": "Add endpoint",
@@ -201,7 +201,7 @@
           "removeApiKeyButton": "Remove saved key",
           "saveButton": "Save",
           "testButton": "Test connection",
-          "removeButton": "Remove"
+          "removeButton": "删除"
         },
         "compatibilityHint": "The endpoint must be OpenAI-compatible. Works with Ollama, vLLM, OpenRouter, LM Studio, and any /v1 proxy.",
         "test": {
@@ -221,7 +221,7 @@
         "removeDialog": {
           "title": "Remove custom endpoint?",
           "descriptionNamed": "\"{name}\" will be removed. Any feature using it falls back to another available model. This action cannot be undone.",
-          "confirm": "Remove"
+          "confirm": "删除"
         },
         "removeKeyDialog": {
           "title": "Remove saved key?",

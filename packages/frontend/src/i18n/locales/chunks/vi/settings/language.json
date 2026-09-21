@@ -1,0 +1,19 @@
+{
+  "settings": {
+    "language": {
+      "title": "Ngôn ngữ",
+      "description": "Ngôn ngữ hiển thị trên giao diện.",
+      "community": {
+        "title": "Bản dịch cộng đồng",
+        "hint": "Được dịch bởi các tình nguyện viên trên Crowdin. Các phần chưa được dịch sẽ hiển thị bằng tiếng Anh."
+      },
+      "contribute": {
+        "title": "Thiếu bản dịch hoặc bản dịch sai?",
+        "description": "Các ngôn ngữ cộng đồng được dịch trên Crowdin. Bạn có thể yêu cầu thêm ngôn ngữ, đề xuất chỉnh sửa hoặc tự dịch – không cần biết lập trình.",
+        "requestNote": "Không muốn dùng Crowdin? Hãy yêu cầu thêm ngôn ngữ trên {boardLink} của chúng tôi.",
+        "requestNoteLink": "bảng tính năng",
+        "action": "Đóng góp trên Crowdin"
+      }
+    }
+  }
+}

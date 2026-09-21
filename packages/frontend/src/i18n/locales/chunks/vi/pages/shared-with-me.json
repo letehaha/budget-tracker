@@ -1,0 +1,35 @@
+{
+  "pages": {
+    "sharedWithMe": {
+      "title": "Được chia sẻ với tôi",
+      "loadError": "Không tải được tài nguyên được chia sẻ.",
+      "empty": {
+        "title": "Chưa có gì được chia sẻ với bạn",
+        "description": "Khi ai đó chia sẻ một tài khoản với bạn, tài khoản đó sẽ hiển thị ở đây."
+      },
+      "sections": {
+        "account": "Tài khoản",
+        "household": "Gia đình",
+        "budget": "Ngân sách được chia sẻ với bạn"
+      },
+      "sharedBy": "Được chia sẻ bởi {handle}",
+      "viaHousehold": "Qua hộ gia đình {handle}",
+      "unnamedResource": "Không có tiêu đề",
+      "permissions": {
+        "read": "Xem",
+        "write": "Chỉnh sửa",
+        "manage": "Quản lý"
+      },
+      "leave": "Rời",
+      "leaveTitle": "Rời khỏi chia sẻ?",
+      "leaveDescription": "Bạn sẽ mất quyền truy cập vào {resource} do {owner} sở hữu. Chủ sở hữu sẽ không được thông báo.",
+      "leaveConfirm": "Rời",
+      "leaveSuccess": "Bạn đã rời khỏi chia sẻ.",
+      "leaveError": "Không thể rời khỏi chia sẻ.",
+      "pending": {
+        "heading": "Lời mời đang chờ",
+        "review": "Xem xét"
+      }
+    }
+  }
+}

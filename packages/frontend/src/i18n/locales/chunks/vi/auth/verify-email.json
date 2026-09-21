@@ -1,0 +1,17 @@
+{
+  "auth": {
+    "verifyEmail": {
+      "title": "Kiểm tra email của bạn",
+      "description": "Chúng tôi đã gửi liên kết xác minh đến",
+      "descriptionYourEmail": "địa chỉ email của bạn",
+      "descriptionContinued": ". Vui lòng nhấn vào liên kết để xác minh tài khoản của bạn.",
+      "didntReceive": "Không nhận được email? Hãy kiểm tra thư mục spam hoặc",
+      "resend": "nhấn vào đây để gửi lại",
+      "sending": "Đang gửi...",
+      "resendIn": "Gửi lại sau {count}s",
+      "backToSignIn": "Quay lại đăng nhập",
+      "resendSuccess": "Đã gửi email xác minh! Vui lòng kiểm tra hộp thư đến.",
+      "resendError": "Không gửi lại được email xác minh. Vui lòng thử lại."
+    }
+  }
+}

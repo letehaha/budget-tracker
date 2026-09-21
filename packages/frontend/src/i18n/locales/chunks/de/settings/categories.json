@@ -1,0 +1,53 @@
+{
+  "settings": {
+    "categories": {
+      "title": "Kategorien",
+      "description": "Organisiere deine Transaktionen in Kategorien und Unterkategorien. Ziehen eine Kategorie, um sie unter einer Oberkategorie oder in die oberste Ebene zu verschieben.",
+      "addButton": "Kategorie hinzufügen",
+      "organizeButton": "Organisieren",
+      "empty": "Noch keine Kategorien. Erstelle deine erste Kategorie, um loszulegen.",
+      "categoriesCount": "{n} Kategorie | {n} Kategorien",
+      "organizeHint": "Ziehe auf eine neue Oberkategorie oder hier ablegen für die oberste Ebene.",
+      "dropToTopLevel": "Hier ablegen, um aus “{name}” eine Kategorie auf oberster Ebene zu machen",
+      "movesQueued": "{n} Verschiebung in die Warteschlange eingereiht | {n} Verschiebungen in die Warteschlange eingereiht",
+      "unqueueMove": "Diese Verschiebung entfernen",
+      "topLevel": "Oberste Ebene",
+      "saveChanges": "Änderungen speichern",
+      "parentField": {
+        "label": "Oberkategorie",
+        "placeholder": "Wähle eine Oberkategorie aus",
+        "hiddenHint": "Kategorien, die nicht als Oberkategorie verwendet werden können, werden aus der Liste ausgeblendet."
+      },
+      "moveDialog": {
+        "title": "Verschiebe “{name}”",
+        "description": "Wähle eine neue Oberkategorie.",
+        "moveButton": "Verschieben"
+      },
+      "delete": {
+        "title": "Kategorie löschen?",
+        "description": "Dadurch wird \"{name}\" dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "deleteButton": "Löschen",
+        "cancelButton": "Abbrechen"
+      },
+      "errors": {
+        "cannotLoad": "Kategorien können nicht geladen werden"
+      },
+      "notifications": {
+        "deleteSuccess": "Kategorie gelöscht",
+        "deleteFailed": "Fehler beim Löschen der Kategorie",
+        "checkFailed": "Fehler beim Überprüfen der Kategorie",
+        "moveFailed": "Fehler beim Verschieben der Kategorie",
+        "saveSuccess": "Änderungen gespeichert.",
+        "staleMovesRemoved": "{n} in der Warteschlange befindliche Verschiebung, die nicht mehr zutrifft, wurde entfernt | {n} in der Warteschlange befindliche Verschiebungen, die nicht mehr zutreffen, wurden entfernt"
+      },
+      "dropErrors": {
+        "currentParent": "Bereits in dieser Kategorie",
+        "insideItself": "Eine Kategorie kann nicht in die eigene Unterkategorie verschoben werden",
+        "internalTarget": "Systemkategorien können keine anderen Kategorien enthalten",
+        "tooDeep": "Kategorien können nur {max} Ebenen tief verschachtelt werden",
+        "childrenTooDeep": "Seine Unterkategorien würden tiefer sein als {max} Ebenen",
+        "alreadyTopLevel": "Bereits eine Kategorie der obersten Ebene"
+      }
+    }
+  }
+}

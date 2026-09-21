@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "Giao diện",
+      "description": "Tùy chỉnh giao diện ứng dụng và những mục hiển thị trên thanh bên.",
+      "theme": {
+        "title": "Chủ đề",
+        "description": "Chọn giao diện cho ứng dụng. Tùy chọn Hệ thống sẽ theo cài đặt trên thiết bị của bạn."
+      },
+      "sidebar": {
+        "title": "Các mục trên thanh bên",
+        "description": "Chọn những mục sẽ hiển thị trên thanh bên.",
+        "alwaysVisibleTooltip": "Mục này luôn hiển thị."
+      },
+      "header": {
+        "title": "Tiêu đề",
+        "description": "Chọn những thao tác hiển thị trên thanh tiêu đề.",
+        "supportButton": "Nút Hỗ trợ"
+      },
+      "currency": {
+        "title": "Ký hiệu tiền tệ",
+        "description": "Cách đơn vị tiền tệ hiển thị bên số tiền. Ký hiệu ngắn gọn hiển thị dạng Rp, ₴ hay zł thay vì IDR, UAH hay PLN, nhưng những loại tiền tệ dùng chung một ký hiệu (USD, CAD, AUD, SGD) đều thành $.",
+        "narrowSymbol": "Dùng ký hiệu tiền tệ ngắn gọn"
+      }
+    }
+  }
+}

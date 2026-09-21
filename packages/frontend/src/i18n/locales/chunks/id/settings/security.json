@@ -33,7 +33,11 @@
           "passkeyCount": "{count} passkey terdaftar",
           "addButton": "Tambah Passkey",
           "passkeyName": "Passkey",
-          "added": "Ditambahkan {date}"
+          "added": "Ditambahkan {date}",
+          "rename": "Ubah nama",
+          "renamePlaceholder": "Enter passkey name",
+          "deleteConfirmTitle": "Remove passkey?",
+          "deleteConfirmDescription": "\"{name}\" will no longer be able to sign in to your account. This cannot be undone."
         },
         "warningOneMethod": "Tambahkan metode masuk lain sebelum memutuskan akun OAuth Anda.",
         "notifications": {
@@ -43,7 +47,8 @@
           "passkeyAddSuccess": "Passkey berhasil ditambahkan",
           "passkeyAddFailed": "Gagal menambahkan passkey. Pastikan perangkat Anda mendukung passkey.",
           "passkeyRemoveSuccess": "Passkey dihapus",
-          "passkeyRemoveFailed": "Gagal menghapus passkey"
+          "passkeyRemoveFailed": "Gagal menghapus passkey",
+          "passkeyRenameFailed": "Failed to rename passkey"
         }
       },
       "activeSessions": {
@@ -260,7 +265,8 @@
             "failedTitle": "Pemulihan gagal",
             "dismiss": "Tutup"
           }
-        }
+        },
+        "attachmentsNotIncluded": "Transaction attachments (receipts, invoices and other files) are not included in backups and are not restored."
       }
     }
   }

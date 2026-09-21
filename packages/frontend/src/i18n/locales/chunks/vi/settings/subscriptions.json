@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "Khoản định kỳ",
+      "defaultAutoRecord": {
+        "label": "Mặc định tự động ghi nhận cho thanh toán định kỳ mới",
+        "help": "Khi bật, mục \"tự động ghi nhận\" sẽ luôn được chọn sẵn mỗi khi bạn thêm gói đăng ký mới. Bạn vẫn có thể tắt đi cho từng gói nếu muốn.",
+        "successNotification": "Đã lưu cài đặt",
+        "errorNotification": "Lưu cài đặt thất bại"
+      }
+    }
+  }
+}

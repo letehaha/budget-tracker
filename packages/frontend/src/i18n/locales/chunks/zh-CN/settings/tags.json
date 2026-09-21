@@ -1,7 +1,7 @@
 {
   "settings": {
     "tags": {
-      "title": "Tags",
+      "title": "标签",
       "addButton": "Add Tag",
       "empty": "No tags yet. Create your first tag to organize your transactions.",
       "tabs": {
@@ -13,9 +13,9 @@
         "editTitle": "Edit Tag",
         "name": "Name",
         "namePlaceholder": "Tag name",
-        "color": "Color",
-        "icon": "Icon",
-        "iconPlaceholder": "Select icon",
+        "color": "颜色",
+        "icon": "图标",
+        "iconPlaceholder": "选择图标",
         "iconSearchPlaceholder": "Search icons...",
         "clearIcon": "Clear icon",
         "description": "Description",
@@ -27,7 +27,7 @@
         "title": "Delete tag?",
         "description": "This will permanently delete \"{name}\" and remove it from all transactions. This action cannot be undone.",
         "deleteButton": "Delete",
-        "cancelButton": "Cancel"
+        "cancelButton": "取消"
       },
       "notifications": {
         "createSuccess": "Tag created",
@@ -82,7 +82,7 @@
           "title": "Delete reminder?",
           "description": "This will permanently delete this reminder. This action cannot be undone.",
           "deleteButton": "Delete",
-          "cancelButton": "Cancel"
+          "cancelButton": "取消"
         },
         "notifications": {
           "createSuccess": "Reminder created",

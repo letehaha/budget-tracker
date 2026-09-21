@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "Aspetto",
+      "description": "Personalizza l'aspetto dell'app e quali sezioni appaiono nella barra laterale.",
+      "theme": {
+        "title": "Tema",
+        "description": "Scegli tra tema chiaro e tema scuro. L'opzione Sistema corrisponde all'impostazione del tuo dispositivo."
+      },
+      "sidebar": {
+        "title": "Sezioni della barra laterale",
+        "description": "Scegli quali sezioni appaiono nella barra laterale.",
+        "alwaysVisibleTooltip": "Questa sezione è sempre visibile."
+      },
+      "header": {
+        "title": "Intestazione",
+        "description": "Scegli quali azioni d'intestazione sono visibili.",
+        "supportButton": "Supporto"
+      },
+      "currency": {
+        "title": "Simboli di valuta",
+        "description": "Come gli importi mostrano la loro valuta. I simboli sostituiscono le sigle. Le valute che condividono un simbolo (USD, CAD, AUD, SGD) usano tutte lo stesso simbolo.",
+        "narrowSymbol": "Usa simboli di valuta brevi"
+      }
+    }
+  }
+}

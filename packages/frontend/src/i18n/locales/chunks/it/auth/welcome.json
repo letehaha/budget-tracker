@@ -1,0 +1,48 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "Seleziona la valuta di base",
+      "description": "La tua valuta base dovrebbe essere quella che usi più spesso. Tutte le transazioni con altre valute saranno calcolate in base a questa.",
+      "submitButton": "Conferma Valuta",
+      "trialStarted": "La tua prova gratuita è cominciata, tutte le funzionalità sono sbloccate per {count} giorno. {link} | La tua prova gratuita è cominciata, tutte le funzionalità sono sbloccate per {count} giorni. {link}",
+      "logout": "Esci",
+      "labels": {
+        "baseCurrency": "Valuta base"
+      },
+      "placeholders": {
+        "loading": "Caricamento in corso..."
+      },
+      "errors": {
+        "unableToLoadCurrencies": "Impossibile caricare l'elenco valute. Riprova più tardi",
+        "unableToSetCurrency": "Errore inatteso. Impossibile impostare la valuta di base. Riprova più tardi o contatta il supporto."
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "Accesso in corso...",
+      "errors": {
+        "accessDenied": {
+          "signIn": "L'accesso è stato annullato o negato",
+          "signUp": "La registrazione è stata annullata o l'accesso è stato negato",
+          "link": "Il collegamento è stato annullato o l'accesso è stato negato"
+        },
+        "userAlreadyExists": {
+          "signIn": "Esiste già un account con questa mail",
+          "signUp": "Esiste già un account con questa mail",
+          "link": "Questo account è già collegato a un altro utente"
+        },
+        "accountNotLinked": {
+          "signIn": "Nessun account trovato con questa email. Registrarsi.",
+          "signUp": "Impossibile creare l'account. Riprova.",
+          "link": "Impossibile collegare l'account. Riprova."
+        },
+        "genericError": {
+          "signIn": "Accesso fallito. Riprova.",
+          "signUp": "Impossibile registrarsi. Riprova.",
+          "link": "Impossibile collegare l'account. Riprova."
+        },
+        "unauthorizedClient": "Questa applicazione non è autorizzata ad usare questo metodo di autenticazione",
+        "temporarilyUnavailable": "Il servizio di autenticazione è temporaneamente non disponibile. Riprova più tardi."
+      }
+    }
+  }
+}

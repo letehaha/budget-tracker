@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "accountGroups": {
+      "page": {
+        "title": "Nhóm tài khoản",
+        "description": "Sắp xếp các tài khoản vào nhóm. Kết nối ngân hàng sẽ tự tạo và quản lý nhóm riêng của nó.",
+        "addButton": "Thêm nhóm"
+      },
+      "empty": {
+        "title": "Chưa có nhóm tài khoản nào",
+        "description": "Nhóm tài khoản theo ngân hàng, loại tiền tệ hoặc mục đích để danh sách tài khoản gọn gàng hơn."
+      },
+      "loadError": {
+        "title": "Không tải được nhóm của bạn",
+        "description": "Đã xảy ra lỗi khi tải các nhóm tài khoản. Hãy kiểm tra kết nối và thử lại.",
+        "retry": "Thử lại"
+      },
+      "row": {
+        "bankBadge": "Được tạo bởi kết nối ngân hàng",
+        "bankBadgeShort": "Kết nối",
+        "bankBadgeTooltip": "Nhóm này được tạo khi bạn kết nối ngân hàng, nhưng nó không đại diện cho kết nối đó — bạn có thể đổi tên, chuyển tài khoản hoặc xóa nhóm thoải mái. Tài khoản vẫn được đồng bộ bình thường.",
+        "accountsCount": "{count} tài khoản | {count} tài khoản",
+        "noAccounts": "Không có tài khoản",
+        "accountsElsewhere": "{count} tài khoản đã đồng bộ trong các nhóm khác | {count} tài khoản đã đồng bộ trong các nhóm khác",
+        "inParent": "trong {name}",
+        "manageConnection": "Quản lý kết nối"
+      },
+      "update": {
+        "label": "Tên nhóm",
+        "placeholder": "Nhập tên nhóm",
+        "saveButton": "Lưu",
+        "emptyNameError": "Tên nhóm không được để trống"
+      },
+      "accounts": {
+        "heading": "Tài khoản trong nhóm này",
+        "empty": "Chưa có tài khoản nào trong nhóm này. Hãy thêm tài khoản vào nhóm từ trang tài khoản.",
+        "emptyBankLinked": "Các tài khoản của kết nối này đã được sắp xếp vào các nhóm khác — việc di chuyển chúng không ảnh hưởng đến việc đồng bộ.",
+        "unlinkTooltip": "Bỏ khỏi nhóm",
+        "removeConfirmTitle": "Bỏ \"{name}\" khỏi nhóm này?",
+        "removeConfirmDescription": "Tài khoản không bị xóa — chỉ rời khỏi nhóm này.",
+        "removeConfirmAction": "Xóa"
+      },
+      "delete": {
+        "button": "Xóa nhóm",
+        "confirmTitle": "Xóa \"{name}\"?",
+        "accountsKept": "Tài khoản vẫn được giữ — chỉ là không còn thuộc nhóm nào.",
+        "syncContinues": "Đồng bộ ngân hàng vẫn tiếp tục — kết nối không phụ thuộc vào nhóm này.",
+        "ungroupedHeading": "Sẽ không còn thuộc nhóm nào"
+      }
+    }
+  }
+}

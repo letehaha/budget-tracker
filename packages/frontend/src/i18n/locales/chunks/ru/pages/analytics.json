@@ -15,7 +15,11 @@
         "investments": "Инвестиции"
       }
     },
+    "controls": {
+      "options": "Options"
+    },
     "cashFlow": {
+      "subtitle": "Income against expenses over time, and where the money went.",
       "income": "Доходы",
       "expenses": "Расходы",
       "netSavings": "Чистые сбережения",
@@ -77,6 +81,7 @@
       }
     },
     "trends": {
+      "subtitle": "Compare spending, income and savings with the previous period.",
       "metrics": {
         "expenses": "Расходы",
         "income": "Доходы",
@@ -104,12 +109,28 @@
       "cumulativeProgress": {
         "title": "Накопительный прогресс"
       },
+      "filters": {
+        "button": "Фильтры",
+        "title": "Фильтры",
+        "categories": "Категории",
+        "include": "Include",
+        "exclude": "Исключить",
+        "accounts": "Счета",
+        "payees": "Получатели",
+        "tags": "Теги",
+        "reset": "Сбросить"
+      },
+      "legend": {
+        "hide": "Hide from chart",
+        "show": "Show in chart"
+      },
       "vsPreviousPeriod": "по сравнению с предыдущим периодом",
       "loadError": "Не удалось загрузить данные",
       "noData": "Нет доступных данных",
       "noDataHint": "За этот период транзакции не зарегистрированы"
     },
     "investmentCalculator": {
+      "subtitle": "Project how your portfolio could grow with regular contributions.",
       "initialBalance": "Начальный баланс",
       "useCurrentBalance": "Использовать текущий баланс",
       "monthlyContribution": "Ежемесячный взнос",
@@ -148,7 +169,6 @@
     }
   },
   "pivotReport": {
-    "title": "Сводный отчёт",
     "subtitle": "Разбивайте расходы по любому измерению, распределяйте их по времени и сравнивайте.",
     "controls": {
       "rows": "Строки",
@@ -182,6 +202,9 @@
     "filters": {
       "period": "Период",
       "allCategories": "Все",
+      "button": "Фильтры",
+      "categories": "Категории",
+      "payees": "Получатели",
       "accounts": "Счета",
       "reset": "Сбросить",
       "resetTooltip": "Восстановить значения по умолчанию"
@@ -223,7 +246,6 @@
     }
   },
   "netWorthDrivers": {
-    "title": "Факторы чистого капитала",
     "subtitle": "Какая часть роста получена за счёт сбережений, а какая — за счёт рынка. Переводы между собственными счетами не относятся ни к одной из этих категорий.",
     "portfolioFilter": {
       "scopeHint": "Фильтр влияет только на инвестиционные активы и их рост. Сбережения и денежные средства на счетах не затрагиваются."
@@ -302,7 +324,6 @@
     }
   },
   "investmentContributions": {
-    "title": "Инвестиционные взносы",
     "subtitle": "Сколько денежных средств вы переводили в свои портфели с течением времени и куда они направлялись.",
     "average": "Среднее",
     "portfolioFilter": {
@@ -331,7 +352,6 @@
     }
   },
   "netWorthHistory": {
-    "title": "История чистого капитала",
     "subtitle": "Как ваши активы, обязательства и чистый капитал менялись со временем",
     "granularity": {
       "weekly": "По неделям",

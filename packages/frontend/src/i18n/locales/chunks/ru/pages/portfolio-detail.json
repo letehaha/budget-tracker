@@ -95,6 +95,7 @@
         "addFirstButton": "Добавить первую транзакцию"
       },
       "closedPositions": "Закрытые позиции ({count})",
+      "stalePrice": "Last available price. Market value and gains may be outdated.",
       "deleteHolding": {
         "ariaLabel": "Удалить позицию",
         "title": "Удалить позицию",

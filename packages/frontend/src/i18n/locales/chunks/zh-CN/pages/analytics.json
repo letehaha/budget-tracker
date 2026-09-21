@@ -15,7 +15,11 @@
         "investments": "Investments"
       }
     },
+    "controls": {
+      "options": "Options"
+    },
     "cashFlow": {
+      "subtitle": "Income against expenses over time, and where the money went.",
       "income": "Income",
       "expenses": "Expenses",
       "netSavings": "Net Savings",
@@ -45,13 +49,43 @@
         "thisYear": "This year",
         "previousYear": "Previous year",
         "allTime": "All time"
+      },
+      "composition": {
+        "detail": "Detail",
+        "levelsSummary": "Sources L{sources} · Expenses L{expenses}",
+        "levelsHint": "Category nesting level per side: higher levels break flows into subcategories.",
+        "sources": "Sources",
+        "level": "Level {level}",
+        "topN": "Top {count}",
+        "totalIncome": "Total income",
+        "incomePlusDeficit": "Income + deficit",
+        "savings": "储蓄",
+        "deficit": "Deficit",
+        "other": "Other",
+        "noData": "No transactions in this period",
+        "noDataHint": "Pick another period or click a bar in the chart above",
+        "loadError": "Failed to load composition",
+        "amount": "Amount",
+        "shareOfIncome": "Share of income",
+        "shareOfExpenses": "Share of expenses",
+        "saved": "Saved",
+        "pctOfIncome": "{pct} of income",
+        "pctSavingsRate": "{pct} savings rate",
+        "keptAsCash": "Kept as cash",
+        "shareOfSavings": "Share of savings",
+        "deficitOverspend": "Expenses exceeded income by {amount}. The gap was covered from existing account balances.",
+        "deficitInvested": "Portfolio contributions ({invested}) exceeded this period's net savings ({saved}). The difference came from existing account balances.",
+        "deficitBoth": "Expenses exceeded income by {overspend}, and {invested} was still moved into portfolios. Both were covered from existing account balances.",
+        "andMore": "+{count} more",
+        "settings": "Chart settings"
       }
     },
     "trends": {
+      "subtitle": "Compare spending, income and savings with the previous period.",
       "metrics": {
         "expenses": "Expenses",
         "income": "Income",
-        "savings": "Savings"
+        "savings": "储蓄"
       },
       "chart": {
         "selectedPeriod": "Selected period",
@@ -75,12 +109,28 @@
       "cumulativeProgress": {
         "title": "Cumulative Progress"
       },
+      "filters": {
+        "button": "搜索条件",
+        "title": "搜索条件",
+        "categories": "Categories",
+        "include": "Include",
+        "exclude": "Exclude",
+        "accounts": "Accounts",
+        "payees": "Payees",
+        "tags": "Tags",
+        "reset": "Reset"
+      },
+      "legend": {
+        "hide": "Hide from chart",
+        "show": "Show in chart"
+      },
       "vsPreviousPeriod": "vs previous period",
       "loadError": "Failed to load data",
       "noData": "No data available",
       "noDataHint": "No transactions recorded for this period"
     },
     "investmentCalculator": {
+      "subtitle": "Project how your portfolio could grow with regular contributions.",
       "initialBalance": "Initial balance",
       "useCurrentBalance": "Use current balance",
       "monthlyContribution": "Monthly contribution",
@@ -119,13 +169,12 @@
     }
   },
   "pivotReport": {
-    "title": "Pivot Report",
     "subtitle": "Break spending down by any dimension, lay it across time, and compare.",
     "controls": {
       "rows": "Rows",
       "columns": "Columns",
       "measure": "Measure",
-      "settings": "Settings"
+      "settings": "设置"
     },
     "dimensions": {
       "category": "Category",
@@ -153,6 +202,9 @@
     "filters": {
       "period": "Period",
       "allCategories": "All",
+      "button": "搜索条件",
+      "categories": "Categories",
+      "payees": "Payees",
       "accounts": "Accounts",
       "reset": "Reset",
       "resetTooltip": "Reset to defaults"
@@ -194,7 +246,6 @@
     }
   },
   "netWorthDrivers": {
-    "title": "Net Worth Drivers",
     "subtitle": "How much of your growth you saved, and how much the market returned. Transfers between your own accounts count as neither.",
     "portfolioFilter": {
       "scopeHint": "Filters investment holdings and growth only. Saved amounts and account cash are not affected."
@@ -222,7 +273,7 @@
       "grown": "Grown",
       "totalGained": "Total gained",
       "thisPeriod": "This period",
-      "periodSavings": "Savings",
+      "periodSavings": "储蓄",
       "periodGrowth": "Growth",
       "allocationContext": "{share}% of your net worth sits in investments (was {reference}% in {date})",
       "allocationContextNoReference": "{share}% of your net worth sits in investments"
@@ -273,7 +324,6 @@
     }
   },
   "investmentContributions": {
-    "title": "Investment Contributions",
     "subtitle": "How much cash you've moved into your portfolios over time, and where it went.",
     "average": "Average",
     "portfolioFilter": {
@@ -295,14 +345,13 @@
     "states": {
       "noData": "No contributions in this range",
       "noDataHint": "Move money into a portfolio during this period to see it here.",
-      "noPortfoliosTitle": "No portfolios yet",
+      "noPortfoliosTitle": "无投资组合",
       "noPortfoliosPlaceholder": "Create a portfolio and start investing to track your contributions here.",
       "noPortfoliosAction": "Add a portfolio",
       "loadError": "Couldn't load contributions"
     }
   },
   "netWorthHistory": {
-    "title": "Net Worth History",
     "subtitle": "How your assets, liabilities and net worth changed over time",
     "granularity": {
       "weekly": "Weekly",
@@ -320,7 +369,7 @@
       "cash": "Cash & accounts",
       "investments": "Investments",
       "vehicles": "Vehicles",
-      "ventures": "Ventures"
+      "ventures": "风险投资"
     },
     "assetFilter": {
       "all": "All assets",

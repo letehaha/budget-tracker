@@ -13,8 +13,8 @@
         "description": "Позвольте AI распределять некатегоризированные транзакции и просматривайте историю запусков."
       },
       "applyRules": {
-        "title": "Apply a rule to past transactions",
-        "description": "Pick one of your automations and run it over transactions you already have."
+        "title": "Применить правило к прошлым транзакциям",
+        "description": "Выберите одну из своих автоматизаций и примените её к уже существующим транзакциям."
       }
     },
     "aiCategorization": {

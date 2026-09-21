@@ -21,11 +21,11 @@
         "button": "Upload Security Prices",
         "dialogTitle": "Upload Security Prices",
         "selectSecurity": {
-          "searchLabel": "Search symbol or name",
+          "searchLabel": "搜索证券代码或名称",
           "searchPlaceholder": "AAPL",
           "searching": "Searching…",
-          "failed": "Failed to search securities.",
-          "noResults": "No results.",
+          "failed": "无法搜索证券。",
+          "noResults": "查无结果。",
           "changeButton": "Change"
         },
         "dateRangeInfo": {

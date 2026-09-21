@@ -9,7 +9,7 @@
       "title": "Recurring Payments",
       "description": "Track recurring payments, bills, and income",
       "addSubscription": "Add Recurring Payment",
-      "addSubscriptionShort": "Add",
+      "addSubscriptionShort": "添加",
       "backToList": "Back to recurring payments",
       "createTitle": "Create Recurring Payment",
       "typeSubscription": "Subscription",
@@ -17,7 +17,7 @@
       "typeInstallment": "Installment",
       "completed": "Completed",
       "paused": "Paused",
-      "cancel": "Cancel",
+      "cancel": "取消",
       "pauseSubscription": "Pause",
       "resumeSubscription": "Resume",
       "deleteSubscription": "Delete",
@@ -37,7 +37,7 @@
       "addMatchingRules": "Add matching rules",
       "updateMatchingRules": "Update matching rules",
       "linked": {
-        "totalPaid": "Total paid",
+        "totalPaid": "总计支付",
         "average": "Average",
         "lastPayment": "Last payment",
         "driftUp": "↑ {percent}% since first payment ({date})",
@@ -51,7 +51,7 @@
         "convertedTooltip": "Converted at each payment's exchange rate"
       },
       "quickAdd": {
-        "currencyPlaceholder": "Select currency",
+        "currencyPlaceholder": "选择货币",
         "nextPaymentLabel": "Next payment",
         "nextPaymentHint": "Optional. Set a date to track due payments and get reminders.",
         "refineHint": "You can add an account, category, tags, reminders and automation right after creating."
@@ -224,7 +224,7 @@
         "lastScanned": "Last scanned {time}",
         "emptyTitle": "No new subscriptions found",
         "emptyDescription": "We couldn't find any new recurring payment patterns in your transaction history.",
-        "add": "Add",
+        "add": "添加",
         "dismiss": "Dismiss",
         "basedOnTransactions": "Based on {count} transactions",
         "confidence": {

@@ -148,11 +148,12 @@
         "addedByTooltip": "Эта транзакция была прикреплена к бюджету пользователем {handle}",
         "externalLinkTooltip": "Открыть внешнюю ссылку",
         "locationTooltip": "Открыть местоположение на карте",
+        "attachmentsTooltip": "Has attachments",
         "hiddenAccount": "Скрытый счёт",
         "selectRow": "Выберите транзакцию",
         "unselectableReasons": {
-          "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
-          "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
+          "split": "Нельзя выбрать: транзакции с разбиением не поддерживают массовое редактирование. Измените эту транзакцию отдельно.",
+          "sharedAccount": "Нельзя выбрать: эта транзакция находится на счёте, доступ к которому вам предоставлен, и редактировать её может только владелец счёта."
         }
       }
     },
@@ -222,6 +223,7 @@
       "autoLabel": "Автоматически (из названия)",
       "domainHint": "Чтобы найти точный бренд, введите домен сайта компании (например, amazon.com) — так будет выбран правильный логотип.",
       "searchError": "Не удалось загрузить логотипы — попробуйте снова",
+      "brandNotConfigured": "Brand logos are not configured on this instance. Ask the admin to set VITE_LOGO_DEV_TOKEN, or use letters instead.",
       "editAriaLabel": "Изменить логотип",
       "dialogTitle": "Изменить логотип",
       "resetToAuto": "Вернуть автоматический выбор",
@@ -233,6 +235,18 @@
       "customColorAriaLabel": "Выбрать свой цвет",
       "applyLetters": "Применить",
       "lettersSelectedLabel": "Буквы «{letters}»"
+    },
+    "importBatchDeleteOverlay": {
+      "title": "Deleting imported transactions",
+      "description": "A large import batch is being removed. Balances are recalculated when it finishes, so the app is locked until then.",
+      "deleting": "Deleting transactions",
+      "preparing": "Getting ready",
+      "finishing": "Завершение",
+      "takingLong": "This is taking longer than usual — large batches can take several minutes. Keep this page open.",
+      "unreachableTitle": "Не удаётся подключиться к серверу",
+      "unreachableDescription": "The delete may still be running. Dismiss to keep using the app, and reload later to see the result.",
+      "failedTitle": "Delete failed",
+      "dismiss": "Скрыть"
     }
   },
   "accountGroups": {
@@ -368,6 +382,21 @@
     },
     "sessionExpiredNotice": "Демо-сеанс завершён. Создайте бесплатный аккаунт, чтобы продолжить, или войдите ниже, если аккаунт уже есть."
   },
+  "billing": {
+    "seePlans": "See plans",
+    "updatePaymentMethod": "Update your payment method",
+    "planRequired": {
+      "essential": "Included in the Essential plan",
+      "plus": "Included in the Plus plan",
+      "hint": "Your current plan doesn't include this feature. Upgrade to unlock it."
+    },
+    "banner": {
+      "trial": "{count} day left in your trial · {link} | {count} days left in your trial · {link}",
+      "readOnly": "Your trial has ended. You can view and export your data; subscribe to keep editing. {link}",
+      "subscriptionEnded": "Your subscription has ended. {link} to keep editing your data.",
+      "pastDue": "Your last payment failed. {link} to keep your plan."
+    }
+  },
   "settings": {
     "currencies": {
       "setBase": {
@@ -381,7 +410,6 @@
           "dismiss": "Закрыть",
           "preparing": "Подготовка…",
           "finishing": "Завершение…",
-          "stepCounter": "Шаг {current} из {total}",
           "steps": {
             "transactions": "Обновление транзакций",
             "accounts": "Обновление счетов",
