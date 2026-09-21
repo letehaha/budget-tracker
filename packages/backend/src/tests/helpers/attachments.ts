@@ -1,4 +1,8 @@
-import { ATTACHMENT_FILENAME_HEADER, type TransactionAttachmentModel } from '@bt/shared/types';
+import {
+  ATTACHMENT_FILENAME_HEADER,
+  ATTACHMENT_UPLOAD_TOKEN_HEADER,
+  type TransactionAttachmentModel,
+} from '@bt/shared/types';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import type { listAttachments as apiListAttachments } from '@services/attachments/attachments.service';
@@ -18,23 +22,41 @@ export interface UploadAttachmentResult {
   errorMessage: string | null;
 }
 
-/** POST raw file bytes through the authenticated upload endpoint. */
+export function createAttachmentUploadToken<R extends boolean | undefined = undefined>({
+  transactionId,
+  raw,
+}: {
+  transactionId: string;
+  raw?: R;
+}) {
+  return makeRequest<{ token: string }, R>({
+    method: 'post',
+    url: '/tests/attachment-upload-token',
+    payload: { transactionId },
+    raw,
+  });
+}
+
+/** POST raw file bytes to the upload endpoint; `uploadToken` is sent in addition to any session cookie. */
 export async function uploadAttachment({
   transactionId,
   file,
   filename = 'receipt.png',
   contentType = 'application/octet-stream',
+  uploadToken,
 }: {
   transactionId: string;
   file: Buffer;
   filename?: string;
   contentType?: string;
+  uploadToken?: string;
 }): Promise<UploadAttachmentResult> {
   const base = request(app)
     .post(`${API_PREFIX}/transactions/${transactionId}/attachments`)
     .set('Content-Type', contentType)
     .set(ATTACHMENT_FILENAME_HEADER, encodeURIComponent(filename));
   if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+  if (uploadToken) base.set(ATTACHMENT_UPLOAD_TOKEN_HEADER, uploadToken);
 
   const result = await base.send(file);
   const body = result.body as { response?: TransactionAttachmentModel & { message?: string } };

@@ -1,6 +1,7 @@
 import {
   ATTACHMENTS_MAX_PER_TRANSACTION,
   ATTACHMENT_QUOTA_BYTES,
+  ATTACHMENT_UPLOAD_TOKEN_TTL_SECONDS,
   type AttachmentMimeType,
   SHARE_PERMISSIONS,
   type SharePermission,
@@ -11,7 +12,9 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import TransactionAttachments from '@models/transaction-attachments.model';
+import { redisClient } from '@root/redis-client';
 import { getTransactionById } from '@services/transactions/get-by-id';
+import { createHash, randomBytes } from 'node:crypto';
 import type { Readable } from 'node:stream';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -76,6 +79,45 @@ const findAuthorizedAttachment = async ({
   });
   await authorizeTransaction({ userId, transactionId: attachment.transactionId, permission });
   return attachment;
+};
+
+/** Only the hash is stored, so a Redis dump never yields a usable token. */
+const uploadTokenKey = ({ token }: { token: string }) =>
+  `attachment-upload-token:${createHash('sha256').update(token).digest('base64url')}`;
+
+export const createAttachmentUploadToken = async ({
+  userId,
+  transactionId,
+}: {
+  userId: number;
+  transactionId: string;
+}): Promise<string> => {
+  await authorizeTransaction({ userId, transactionId, permission: SHARE_PERMISSIONS.write });
+
+  // Redis is the only store for the token, so a failed write must fail the mint:
+  // `CacheClient` swallows write errors and would hand back a token that never resolves.
+  const token = randomBytes(32).toString('base64url');
+  await redisClient.setex(
+    uploadTokenKey({ token }),
+    ATTACHMENT_UPLOAD_TOKEN_TTL_SECONDS,
+    JSON.stringify({ userId, transactionId }),
+  );
+  return token;
+};
+
+/** Returns the owning user id, or null when the token is unknown, expired, or minted for another transaction. */
+export const resolveAttachmentUploadToken = async ({
+  token,
+  transactionId,
+}: {
+  token: string;
+  transactionId: string;
+}): Promise<number | null> => {
+  const stored = await redisClient.get(uploadTokenKey({ token }));
+  if (!stored) return null;
+
+  const entry = JSON.parse(stored) as { userId: number; transactionId: string };
+  return entry.transactionId === transactionId ? entry.userId : null;
 };
 
 export const uploadAttachment = async ({

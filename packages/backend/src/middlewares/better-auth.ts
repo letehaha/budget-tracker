@@ -9,6 +9,7 @@ import Users from '@models/users.model';
 import { APIError } from 'better-auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import { NextFunction, Request, Response } from 'express';
+import type { WhereOptions } from 'sequelize';
 
 export type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role' | 'plan' | 'trialEndsAt'>;
 
@@ -19,6 +20,13 @@ const appUserCache = new CacheClient<AppUser>({
   ttl: 60, // 60 seconds
   logPrefix: 'AuthUserCache',
 });
+
+export const findAppUser = ({ where }: { where: WhereOptions<Users> }) =>
+  Users.findOne({
+    where,
+    attributes: ['username', 'id', 'authUserId', 'role', 'plan', 'trialEndsAt'],
+    raw: true,
+  }) as Promise<AppUser | null>;
 
 /** Remove a user from the cache (e.g., after profile update). Await it: a response that
  *  races the delete can be re-read from the stale entry. */
@@ -56,11 +64,7 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
 
     if (!user) {
       // Cache miss — look up the app user by authUserId
-      user = (await Users.findOne({
-        where: { authUserId },
-        attributes: ['username', 'id', 'authUserId', 'role', 'plan', 'trialEndsAt'],
-        raw: true,
-      })) as AppUser | null;
+      user = await findAppUser({ where: { authUserId } });
 
       if (user) {
         await appUserCache.write({ key: cacheKey, value: user });

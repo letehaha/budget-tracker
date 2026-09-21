@@ -11,6 +11,10 @@ export type AttachmentMimeType = (typeof ATTACHMENT_MIME_TYPES)[number];
 /** URI-encoded original filename, sent alongside the raw-bytes upload body. */
 export const ATTACHMENT_FILENAME_HEADER = 'X-Filename';
 
+/** Short-lived per-transaction credential minted by the MCP server; replaces the session on the upload route. */
+export const ATTACHMENT_UPLOAD_TOKEN_HEADER = 'X-Upload-Token';
+export const ATTACHMENT_UPLOAD_TOKEN_TTL_SECONDS = 300;
+
 export interface TransactionAttachmentModel {
   id: RecordId;
   transactionId: RecordId;

@@ -116,6 +116,7 @@ page.
 | `create_transaction`                    | Create an income, expense, or transfer transaction with optional splits/tags (`finance:write`)                   |
 | `update_transaction`                    | Update amount, date, category, tags, note, or splits on a transaction (`finance:write`)                          |
 | `delete_transaction`                    | Permanently delete a transaction; transfer pairs are deleted together (`finance:delete`)                         |
+| `create_attachment_upload_url`          | Get a short-lived URL to upload receipt files (JPEG/PNG/WebP/PDF) to a transaction over HTTP (`finance:write`)   |
 | `bulk_update_transactions`              | Update category, note, or tags on multiple transactions at once (`finance:write`)                                |
 | `split_transaction`                     | Split a transaction across multiple categories (`finance:write`)                                                 |
 | `delete_split`                          | Delete a single split by split ID (`finance:delete`)                                                             |
@@ -143,6 +144,10 @@ multi-currency data.
   Use them for cross-account totals when accounts have different currencies.
 - Transaction types: `income`, `expense`, `transfer`. Transfers are **not**
   income or expense — exclude them from spend/earn aggregations.
+- File bytes never travel through MCP tool arguments. To attach a receipt, call
+  `create_attachment_upload_url`, then POST each file as the raw request body to
+  the returned `url` with the returned headers plus the file's URI-encoded name in
+  the `filenameHeader` header (needs shell/HTTP access to the file).
 - Investment vs regular transactions are **separate datasets**.
   `search_transactions` returns regular (spending) transactions; investment
   activity (buy/sell/dividend/fee) lives in `get_investment_transactions` and

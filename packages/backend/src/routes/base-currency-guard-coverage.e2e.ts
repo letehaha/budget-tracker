@@ -77,6 +77,7 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   // Attachments are files on a transaction; they touch no amounts.
   'DELETE /api/v1/attachments/:id',
   'POST /api/v1/transactions/:transactionId/attachments',
+  'POST /api/v1/tests/attachment-upload-token',
 
   // AI suggestion call — reads nothing monetary, writes nothing.
   'POST /api/v1/import/ai-map-categories',
