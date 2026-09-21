@@ -268,7 +268,7 @@
     },
     {
       "name": "create_transaction",
-      "description": "Create a new income, expense, or transfer transaction with optional splits, tags, and category."
+      "description": "Create a new income, expense, or transfer transaction with optional splits, tags, category, and original (foreign-currency) amount."
     },
     {
       "name": "create_attachment_upload_url",
@@ -276,7 +276,7 @@
     },
     {
       "name": "update_transaction",
-      "description": "Update an existing transaction's amount, date, category, tags, note, or splits. Requires finance:write scope."
+      "description": "Update an existing transaction's amount, date, category, tags, note, splits, or original (foreign-currency) amount. Requires finance:write scope."
     },
     {
       "name": "delete_transaction",

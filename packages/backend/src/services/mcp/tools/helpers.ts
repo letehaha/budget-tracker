@@ -1,4 +1,4 @@
-import { USER_ROLES } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, USER_ROLES } from '@bt/shared/types';
 
 /**
  * Extract the app user ID from MCP request auth info.
@@ -41,6 +41,42 @@ export function requireScope({
   const scopes = extra?.authInfo?.scopes ?? [];
   if (!scopes.includes(scope)) {
     throw new Error(`Missing required scope: ${scope}. Re-connect the app and grant it.`);
+  }
+}
+
+/**
+ * Mirrors the REST transaction schemas: the original-currency pair is set (or cleared)
+ * together, and never rides on a payload that makes the transaction a transfer.
+ */
+export function assertOriginalCurrencyArgs({
+  args,
+}: {
+  args: {
+    originalAmount?: number | null;
+    originalCurrencyCode?: string | null;
+    transferNature?: TRANSACTION_TRANSFER_NATURE;
+    destinationAccountId?: unknown;
+    destinationAmount?: unknown;
+    destinationTransactionId?: unknown;
+  };
+}): void {
+  const { originalAmount, originalCurrencyCode } = args;
+
+  if (
+    (originalAmount === undefined) !== (originalCurrencyCode === undefined) ||
+    (originalAmount === null) !== (originalCurrencyCode === null)
+  ) {
+    throw new Error('"originalAmount" and "originalCurrencyCode" must be set, or cleared, together');
+  }
+  if (originalAmount == null) return;
+
+  const isTransfer =
+    (args.transferNature && args.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) ||
+    args.destinationAccountId ||
+    args.destinationAmount ||
+    args.destinationTransactionId;
+  if (isTransfer) {
+    throw new Error('Original currency metadata cannot be added to transfer transactions');
   }
 }
 
