@@ -39,7 +39,6 @@ const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const adjustmentDialogOpen = ref(false);
 const shareDialogOpen = ref(false);
-const logoPickerOpen = ref(false);
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
@@ -127,20 +126,7 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
       <div class="flex w-full justify-between gap-4">
         <div class="flex min-w-0 items-center gap-3">
           <!-- Account logo — hover reveals the edit affordance (owner only) -->
-          <div v-if="isOwner" class="group relative shrink-0">
-            <AccountLogo :account="account" class="size-10" />
-            <Tooltip.DesktopOnlyTooltip :content="$t('pages.account.logo.change')">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="bg-background/80 hover:bg-background absolute inset-0 size-full rounded-lg opacity-0 backdrop-blur-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
-                :aria-label="$t('pages.account.logo.change')"
-                @click="logoPickerOpen = true"
-              >
-                <PencilIcon class="size-4" />
-              </Button>
-            </Tooltip.DesktopOnlyTooltip>
-          </div>
+          <AccountLogoPicker v-if="isOwner" :account-id="account.id" class="size-10" />
           <AccountLogo v-else :account="account" class="size-10" />
 
           <!-- Account name — click to open rename popover (owner only) -->
@@ -282,14 +268,5 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
 
     <BalanceAdjustmentDialog v-if="adjustmentDialogOpen" :account="account" @close="adjustmentDialogOpen = false" />
     <ShareAccountDialog v-model:open="shareDialogOpen" :account="account" />
-    <AccountLogoPicker
-      v-if="isOwner"
-      v-model:open="logoPickerOpen"
-      :account-id="account.id"
-      :account-name="account.name"
-      :current-domain="account.logoDomain ?? null"
-      :current-initials="account.logoInitials ?? null"
-      :current-color="account.logoColor ?? null"
-    />
   </CardHeader>
 </template>

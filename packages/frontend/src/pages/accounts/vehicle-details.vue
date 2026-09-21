@@ -52,12 +52,10 @@
           </DesktopOnlyTooltip>
         </div>
 
-        <div class="relative grid gap-6 p-5 pt-20 @md/vehicle:p-8 @md/vehicle:pt-8 @md/vehicle:pr-[26rem]">
+        <div class="relative grid gap-6 p-5 pt-20 @md/vehicle:p-8 @md/vehicle:pt-8 @md/vehicle:pr-104">
           <div class="grid gap-4">
             <div class="flex items-center gap-3">
-              <div class="bg-primary/10 text-primary-text flex size-9 items-center justify-center rounded-xl">
-                <CarIcon class="size-5" />
-              </div>
+              <AccountLogoPicker :account-id="vehicle.accountId" class="size-9" />
               <div class="grid gap-0.5">
                 <div class="text-muted-foreground text-xs tracking-wider uppercase">
                   {{ $t(VEHICLE_CLASS_TRANSLATION_KEYS[vehicle.vehicleClass]) }}
@@ -257,6 +255,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
 import { captureException } from '@/lib/sentry';
+import AccountLogoPicker from '@/pages/account/components/account-logo-picker.vue';
 import BalanceAdjustmentDialog from '@/pages/account/components/balance-adjustment-dialog.vue';
 import DepreciationChart from '@/pages/accounts/components/vehicle-details/depreciation-chart.vue';
 import DetailRow from '@/pages/accounts/components/vehicle-details/detail-row.vue';
