@@ -12,6 +12,7 @@ import { registerArchiveAccount } from './tools/archive-account';
 import { registerArchiveBudget } from './tools/archive-budget';
 import { registerAssignTagsToTransaction } from './tools/assign-tags-to-transaction';
 import { registerBulkUpdateTransactions } from './tools/bulk-update-transactions';
+import { registerCreateAttachmentUploadUrl } from './tools/create-attachment-upload-url';
 import { registerCreateBudget } from './tools/create-budget';
 import { registerCreateCategory } from './tools/create-category';
 import { registerCreateInvestmentTransaction } from './tools/create-investment-transaction';
@@ -153,6 +154,7 @@ export function createMcpServer(): McpServer {
   // Transactions (read + CRUD + splits + refunds + transfer linking)
   registerSearchTransactions(server);
   registerCreateTransaction(server);
+  registerCreateAttachmentUploadUrl(server);
   registerUpdateTransaction(server);
   registerDeleteTransaction(server);
   registerBulkUpdateTransactions(server);

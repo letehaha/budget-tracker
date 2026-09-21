@@ -271,6 +271,10 @@
       "description": "Create a new income, expense, or transfer transaction with optional splits, tags, and category."
     },
     {
+      "name": "create_attachment_upload_url",
+      "description": "Returns a short-lived URL and headers for uploading receipt/invoice files (JPEG, PNG, WebP, PDF) to a transaction over HTTP. Requires finance:write scope."
+    },
+    {
       "name": "update_transaction",
       "description": "Update an existing transaction's amount, date, category, tags, note, or splits. Requires finance:write scope."
     },

@@ -27,6 +27,7 @@ import getTransferRecommendations from '@controllers/transactions.controller/tra
 import unlinkTransferTransactions from '@controllers/transactions.controller/transfer-linking/unlink-transfer-transactions';
 import unlinkFromPortfolio from '@controllers/transactions.controller/unlink-from-portfolio';
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
+import { authenticateSessionOrUploadToken } from '@middlewares/attachment-upload-auth';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { requireFeature } from '@middlewares/entitlements';
@@ -120,7 +121,7 @@ router.get(
 // Attachments. Listing stays ungated so a lapsed user can still reach their own files.
 router.post(
   '/:transactionId/attachments',
-  authenticateSession,
+  authenticateSessionOrUploadToken,
   requireFeature(FEATURES.attachments),
   attachmentUploadRateLimit,
   express.raw({ type: 'application/octet-stream', limit: ATTACHMENT_MAX_FILE_BYTES }),
