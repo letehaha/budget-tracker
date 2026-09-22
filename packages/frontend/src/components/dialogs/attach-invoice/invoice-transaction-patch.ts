@@ -1,6 +1,6 @@
 import { type ExtractedInvoice, TRANSACTION_TRANSFER_NATURE, type TransactionModel } from '@bt/shared/types';
 
-const MAX_REFERENCE_LENGTH = 255;
+export const MAX_REFERENCE_LENGTH = 255;
 
 type PatchableTransaction = Pick<
   TransactionModel,

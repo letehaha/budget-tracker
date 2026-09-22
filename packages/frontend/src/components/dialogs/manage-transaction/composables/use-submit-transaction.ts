@@ -1,14 +1,15 @@
 import { createTransaction, editTransaction, linkTransactions } from '@/api';
+import { uploadTransactionAttachment } from '@/api/attachments';
 import { accountToPortfolioTransfer, linkTransactionToPortfolio } from '@/api/portfolios';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
 import { getInvalidationQueryKey } from '@/composable/data-queries/opposite-tx-record';
 import { invalidateTransferRelatedQueries } from '@/composable/data-queries/portfolio-transfers';
 import { i18n } from '@/i18n';
-import { ApiErrorResponseError } from '@/js/errors';
+import { ApiErrorResponseError, extractApiErrorMessage, isApiErrorWithCode } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { useOnboardingStore } from '@/stores/onboarding';
-import { type TransactionModel } from '@bt/shared/types';
+import { API_ERROR_CODES, type TransactionModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 
 import type { UI_FORM_STRUCT } from '../types';
@@ -30,13 +31,19 @@ interface SubmitTransactionParams {
   transaction?: TransactionModel;
   linkedTransaction?: TransactionModel | null;
   oppositeTransaction?: TransactionModel;
+  /** Files picked before the row existed; uploaded right after creation. */
+  pendingAttachments?: File[];
 }
 
 interface OptimisticUpdateContext {
   previousQueries: Map<string, unknown>;
 }
 
-export function useSubmitTransaction({ onSuccess }: { onSuccess: (result: { created?: TransactionModel }) => void }) {
+export function useSubmitTransaction({
+  onSuccess,
+}: {
+  onSuccess: (result: { created?: TransactionModel; attachmentsFailed?: boolean }) => void;
+}) {
   const queryClient = useQueryClient();
   const { addErrorNotification } = useNotificationCenter();
 
@@ -51,6 +58,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: (result: { crea
         isRecordExternal,
         transaction,
         linkedTransaction,
+        pendingAttachments = [],
       } = params;
 
       if (isFormCreation) {
@@ -73,7 +81,29 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: (result: { crea
           }),
         );
         // A transfer's two legs give no single row a caller could act on, so answer with nothing.
-        return isTransferTx ? {} : { created: created[0] };
+        if (isTransferTx) return {};
+
+        // The row is already saved, so a failed upload is reported without failing the submit.
+        let attachmentsFailed = false;
+        for (const file of pendingAttachments) {
+          try {
+            await uploadTransactionAttachment({ transactionId: created[0]!.id, file });
+          } catch (error) {
+            attachmentsFailed = true;
+            // The API client already announces an expired session on 401 and toasts the 402.
+            if (
+              isApiErrorWithCode(error, API_ERROR_CODES.unauthorized) ||
+              isApiErrorWithCode(error, API_ERROR_CODES.planRequired)
+            ) {
+              continue;
+            }
+            addErrorNotification(
+              extractApiErrorMessage(error) ||
+                i18n.global.t('dialogs.manageTransaction.form.attachments.errors.upload'),
+            );
+          }
+        }
+        return { created: created[0], attachmentsFailed };
       } else if (linkedTransaction) {
         await linkTransactions({
           ids: [[transaction!.id, linkedTransaction.id]],

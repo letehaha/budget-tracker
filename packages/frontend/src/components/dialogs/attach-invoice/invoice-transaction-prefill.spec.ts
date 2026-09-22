@@ -1,5 +1,5 @@
 import { FORM_TYPES } from '@/components/dialogs/manage-transaction/types';
-import { type AccountModel, type ExtractedInvoice, TRANSACTION_TYPES } from '@bt/shared/types';
+import { type AccountModel, type CurrencyModel, type ExtractedInvoice, TRANSACTION_TYPES } from '@bt/shared/types';
 import { parseISO } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 
@@ -34,6 +34,8 @@ describe('buildInvoiceTransactionPrefill', () => {
       amount: 100,
       time: parseISO('2026-06-10'),
       note: 'Acme Cloud Services',
+      originalAmount: null,
+      originalCurrency: null,
     });
   });
 
@@ -72,6 +74,30 @@ describe('buildInvoiceTransactionPrefill', () => {
 
     expect(prefill.account).toBe(usd);
     expect(prefill.amount).toBe(200);
+    expect(prefill.originalAmount).toBeNull();
+    expect(prefill.originalCurrency).toBeNull();
+  });
+
+  it('carries the invoice details and the original pair when the account currency differs', () => {
+    const eurCurrency = { code: 'EUR' } as CurrencyModel;
+    const detailed = { ...invoice, invoiceNumber: 'INV-1', invoiceUrl: 'https://a.example/inv' };
+
+    const prefill = buildInvoiceTransactionPrefill({
+      invoice: detailed,
+      accounts: [usd],
+      defaultAccount: usd,
+      convert,
+      currencies: [eurCurrency],
+    });
+
+    expect(prefill.externalReference).toBe('INV-1');
+    expect(prefill.externalUrl).toBe('https://a.example/inv');
+    expect(prefill.originalAmount).toBe(100);
+    expect(prefill.originalCurrency).toBe(eurCurrency);
+
+    const same = buildInvoiceTransactionPrefill({ invoice: detailed, accounts: [eur], defaultAccount: eur, convert });
+    expect(same.originalAmount).toBeNull();
+    expect(same.originalCurrency).toBeNull();
   });
 
   it('leaves the amount empty when the rate is unknown or there is no account', () => {

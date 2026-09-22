@@ -38,10 +38,13 @@ import { useI18n } from 'vue-i18n';
 import AttachmentViewerDialog from './attachment-viewer-dialog.vue';
 import FormRow from './form-row.vue';
 
+/** Without `transactionId` the section only collects files; the caller uploads them once the row exists. */
 const props = defineProps<{
-  transactionId: string;
+  transactionId?: string;
   disabled?: boolean;
 }>();
+
+const pending = defineModel<File[]>('pending', { default: () => [] });
 
 const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
@@ -59,14 +62,36 @@ const pendingDeletion = ref<TransactionAttachmentModel[]>([]);
 
 const canManage = computed(() => !userStore.isFeatureGated(FEATURES.attachments));
 
+const isPersisted = computed(() => Boolean(props.transactionId));
 const queryKey = computed(() => [...VUE_QUERY_CACHE_KEYS.transactionAttachments, props.transactionId]);
 
 const { data, isLoading, isError } = useQuery({
   queryKey,
-  queryFn: () => loadTransactionAttachments({ transactionId: props.transactionId }),
+  queryFn: () => loadTransactionAttachments({ transactionId: props.transactionId! }),
+  enabled: isPersisted,
 });
 
 const attachments = computed<TransactionAttachmentModel[]>(() => data.value ?? []);
+
+type Item = {
+  key: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  stored?: TransactionAttachmentModel;
+  file?: File;
+};
+const items = computed<Item[]>(() =>
+  isPersisted.value
+    ? attachments.value.map((stored) => ({ key: stored.id, ...stored, stored }))
+    : pending.value.map((file, index) => ({
+        key: `${index}-${file.name}`,
+        filename: file.name,
+        size: file.size,
+        mimeType: file.type,
+        file,
+      })),
+);
 
 const invalidateKeys = [VUE_QUERY_CACHE_KEYS.transactionAttachments, [VUE_QUERY_GLOBAL_PREFIXES.transactionChange]];
 
@@ -96,23 +121,19 @@ const isAddDisabled = computed(
     props.disabled ||
     isError.value ||
     uploadingNames.value.length > 0 ||
-    attachments.value.length >= ATTACHMENTS_MAX_PER_TRANSACTION,
+    items.value.length >= ATTACHMENTS_MAX_PER_TRANSACTION,
 );
 
-const showDeleteAll = computed(() => canManage.value && attachments.value.length > 1);
+const showDeleteAll = computed(() => canManage.value && items.value.length > 1);
 
-const totalSize = computed(() => attachments.value.reduce((sum, attachment) => sum + attachment.size, 0));
+const totalSize = computed(() => items.value.reduce((sum, item) => sum + item.size, 0));
 
 const triggerLabel = computed(() => {
   if (uploadingNames.value.length) return t('dialogs.manageTransaction.form.attachments.trigger.uploading');
   if (isLoading.value) return t('dialogs.manageTransaction.form.attachments.loading');
-  if (attachments.value.length === 1) return attachments.value[0]!.filename;
-  if (attachments.value.length) {
-    return t(
-      'dialogs.manageTransaction.form.attachments.trigger.count',
-      { count: attachments.value.length },
-      attachments.value.length,
-    );
+  if (items.value.length === 1) return items.value[0]!.filename;
+  if (items.value.length) {
+    return t('dialogs.manageTransaction.form.attachments.trigger.count', { count: items.value.length }, items.value.length);
   }
   return t('dialogs.manageTransaction.form.attachments.trigger.empty');
 });
@@ -131,7 +152,7 @@ const uploadFiles = async (selected: File[]) => {
   }
   if (!accepted.length) return;
 
-  if (attachments.value.length + accepted.length > ATTACHMENTS_MAX_PER_TRANSACTION) {
+  if (items.value.length + accepted.length > ATTACHMENTS_MAX_PER_TRANSACTION) {
     addErrorNotification(
       t('dialogs.manageTransaction.form.attachments.errors.tooMany', { max: ATTACHMENTS_MAX_PER_TRANSACTION }),
     );
@@ -153,6 +174,9 @@ const uploadFiles = async (selected: File[]) => {
           }),
         );
         uploadingNames.value = uploadingNames.value.slice(1);
+      } else if (!props.transactionId) {
+        pending.value = [...pending.value, file];
+        uploadingNames.value = uploadingNames.value.slice(1);
       } else {
         try {
           await uploadMutation.mutateAsync({ transactionId: props.transactionId, file });
@@ -165,6 +189,16 @@ const uploadFiles = async (selected: File[]) => {
   } finally {
     uploadingNames.value = [];
   }
+};
+
+const removeItem = ({ item }: { item: Item }) => {
+  if (item.stored) pendingDeletion.value = [item.stored];
+  else pending.value = pending.value.filter((file) => file !== item.file);
+};
+
+const removeAll = () => {
+  if (isPersisted.value) pendingDeletion.value = attachments.value;
+  else pending.value = [];
 };
 
 const confirmDeletion = async () => {
@@ -196,12 +230,12 @@ const confirmDeletion = async () => {
           <LoaderCircleIcon v-if="uploadingNames.length" class="text-primary-text size-4 shrink-0 animate-spin" />
           <PaperclipIcon
             v-else
-            :class="cn('size-4 shrink-0', attachments.length ? 'text-primary-text' : 'text-muted-foreground')"
+            :class="cn('size-4 shrink-0', items.length ? 'text-primary-text' : 'text-muted-foreground')"
           />
-          <span :class="cn('min-w-0 flex-1 truncate text-left', !attachments.length && 'text-muted-foreground')">
+          <span :class="cn('min-w-0 flex-1 truncate text-left', !items.length && 'text-muted-foreground')">
             {{ triggerLabel }}
           </span>
-          <span v-if="attachments.length" class="text-muted-foreground shrink-0 text-xs">
+          <span v-if="items.length" class="text-muted-foreground shrink-0 text-xs">
             {{ formatBytes({ bytes: totalSize }) }}
           </span>
           <component
@@ -217,7 +251,7 @@ const confirmDeletion = async () => {
     <template #title>
       {{ $t('dialogs.manageTransaction.form.attachments.label') }}
       <span class="text-muted-foreground ml-1 text-sm font-normal">
-        {{ attachments.length }} / {{ ATTACHMENTS_MAX_PER_TRANSACTION }}
+        {{ items.length }} / {{ ATTACHMENTS_MAX_PER_TRANSACTION }}
       </span>
     </template>
 
@@ -247,22 +281,24 @@ const confirmDeletion = async () => {
         {{ $t('dialogs.manageTransaction.form.attachments.listLoadFailed') }}
       </p>
 
-      <div v-if="attachments.length || uploadingNames.length" class="grid gap-1">
-        <div v-for="attachment in attachments" :key="attachment.id" class="flex items-center gap-3 py-1">
+      <div v-if="items.length || uploadingNames.length" class="grid gap-1">
+        <div v-for="item in items" :key="item.key" class="flex items-center gap-3 py-1">
           <div class="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md">
-            <component :is="attachment.mimeType === 'application/pdf' ? FileTextIcon : ImageIcon" class="size-4" />
+            <component :is="item.mimeType === 'application/pdf' ? FileTextIcon : ImageIcon" class="size-4" />
           </div>
 
           <div class="grid min-w-0 flex-1">
             <Button
+              v-if="item.stored"
               type="button"
               variant="link"
               class="h-auto justify-start p-0 text-sm font-medium"
-              @click="openViewer(attachment)"
+              @click="openViewer(item.stored)"
             >
-              <span class="truncate">{{ attachment.filename }}</span>
+              <span class="truncate">{{ item.filename }}</span>
             </Button>
-            <span class="text-muted-foreground text-xs">{{ formatBytes({ bytes: attachment.size }) }}</span>
+            <span v-else class="truncate text-sm font-medium">{{ item.filename }}</span>
+            <span class="text-muted-foreground text-xs">{{ formatBytes({ bytes: item.size }) }}</span>
           </div>
 
           <DesktopOnlyTooltip v-if="canManage" :content="$t('common.actions.delete')">
@@ -272,7 +308,7 @@ const confirmDeletion = async () => {
               size="icon"
               :disabled="disabled"
               :aria-label="$t('common.actions.delete')"
-              @click="pendingDeletion = [attachment]"
+              @click="removeItem({ item })"
             >
               <Trash2Icon class="size-4" />
             </Button>
@@ -295,7 +331,7 @@ const confirmDeletion = async () => {
         variant="ghost-destructive"
         class="sm:mr-auto"
         :disabled="disabled"
-        @click="pendingDeletion = attachments"
+        @click="removeAll"
       >
         <Trash2Icon class="size-4" />
         {{ $t('dialogs.manageTransaction.form.attachments.deleteAll') }}

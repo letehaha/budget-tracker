@@ -119,12 +119,15 @@ interface CreateRecordModalProps {
   oppositeTransaction?: TransactionModel;
   /** Creation-mode starting values, laid over the form defaults. */
   prefill?: TransactionPrefill;
+  /** Creation-mode files uploaded to the new row right after it is created. */
+  initialAttachments?: File[];
 }
 
 const props = withDefaults(defineProps<CreateRecordModalProps>(), {
   transaction: undefined,
   oppositeTransaction: undefined,
   prefill: undefined,
+  initialAttachments: () => [],
 });
 
 // Keep `transaction` as the user-facing primary tx (set by useManageTransactionDialog
@@ -134,7 +137,10 @@ const props = withDefaults(defineProps<CreateRecordModalProps>(), {
 const transaction = computed(() => props.transaction);
 const oppositeTransaction = computed(() => props.oppositeTransaction);
 
-const emit = defineEmits<{ 'close-modal': []; created: [transaction: TransactionModel | undefined] }>();
+const emit = defineEmits<{
+  'close-modal': [];
+  created: [result: { transaction: TransactionModel | undefined; attachmentsFailed: boolean }];
+}>();
 const closeModal = () => {
   emit('close-modal');
 };
@@ -330,11 +336,13 @@ watch(
   { immediate: true },
 );
 
+const pendingAttachments = ref<File[]>(props.initialAttachments);
+
 const submitMutation = useSubmitTransaction({
-  onSuccess: ({ created }) => {
+  onSuccess: ({ created, attachmentsFailed }) => {
     // Emitted for every creation submit: only a plain creation answers with the new row, and a
     // listener that prefilled the form needs to know when it did not get one.
-    if (isFormCreation.value) emit('created', created);
+    if (isFormCreation.value) emit('created', { transaction: created, attachmentsFailed: Boolean(attachmentsFailed) });
     closeModal();
   },
 });
@@ -995,6 +1003,7 @@ const submit = () => {
     transaction: transaction.value,
     linkedTransaction: linkedTransaction.value,
     oppositeTransaction: oppositeTransaction.value,
+    pendingAttachments: pendingAttachments.value,
   });
 };
 
@@ -1039,9 +1048,14 @@ const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
 const { isEnabled: isOptionalFieldEnabled } = useOptionalFields();
 
-const showExternalUrl = computed(() => isOptionalFieldEnabled('externalUrl') || !!props.transaction?.externalUrl);
+const showExternalUrl = computed(
+  () => isOptionalFieldEnabled('externalUrl') || !!props.transaction?.externalUrl || !!props.prefill?.externalUrl,
+);
 const showExternalReference = computed(
-  () => isOptionalFieldEnabled('externalReference') || !!props.transaction?.externalReference,
+  () =>
+    isOptionalFieldEnabled('externalReference') ||
+    !!props.transaction?.externalReference ||
+    !!props.prefill?.externalReference,
 );
 const showOriginalAmount = computed(
   () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
@@ -1373,7 +1387,12 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
-    <AttachmentsSection v-if="transaction?.id" :transaction-id="transaction.id" :disabled="isFormFieldsDisabled" />
+    <AttachmentsSection
+      v-if="transaction?.id || !isTransferTx"
+      v-model:pending="pendingAttachments"
+      :transaction-id="transaction?.id"
+      :disabled="isFormFieldsDisabled"
+    />
     <FormRow v-if="!isTransferTx && showOriginalAmount">
       <AmountWithCurrencyField
         v-model:amount="form.originalAmount"

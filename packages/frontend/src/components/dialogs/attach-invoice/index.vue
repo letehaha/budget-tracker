@@ -25,7 +25,7 @@ import { formatUIAmount } from '@/js/helpers';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { captureException } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
-import { useAccountsStore, useUserStore } from '@/stores';
+import { useAccountsStore, useCurrenciesStore, useUserStore } from '@/stores';
 import {
   ATTACHMENT_MAX_FILE_BYTES,
   ATTACHMENT_MIME_TYPES,
@@ -70,6 +70,7 @@ const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const isBillingPage = useIsBillingPage();
 const userStore = useUserStore();
 const { txTargetableSourceAccountsActiveFirst } = storeToRefs(useAccountsStore());
+const { systemCurrencies } = storeToRefs(useCurrenciesStore());
 const { resolveDefaultAccount } = useAccountDropdownPrefs();
 const { convert } = useExchangeRates();
 
@@ -93,7 +94,6 @@ const isPickerOpen = ref(false);
 const isEditing = ref(false);
 const reviewedTransaction = ref<TransactionModel | null>(null);
 const createPrefill = ref<TransactionPrefill | null>(null);
-const attachingText = ref('');
 
 const matchMutation = useInvalidatingMutation({
   mutationFn: matchInvoice,
@@ -208,7 +208,7 @@ const analyze = async ({ selected }: { selected: File | null }) => {
 
 const progressText = computed(() => {
   if (matchMutation.isPending.value) return t('dialogs.attachInvoice.analyzing');
-  if (linkMutation.isPending.value) return attachingText.value;
+  if (linkMutation.isPending.value) return t('dialogs.attachInvoice.attaching');
   return '';
 });
 
@@ -325,53 +325,52 @@ const startCreate = () => {
     accounts,
     defaultAccount: resolveDefaultAccount({ accounts }),
     convert,
+    currencies: systemCurrencies.value,
   });
 };
 
-const link = async ({
-  transaction,
-  successText,
-  pendingText = t('dialogs.attachInvoice.attaching'),
-}: {
-  transaction: TransactionModel;
-  successText: string;
-  pendingText?: string;
-}) => {
-  attachingText.value = pendingText;
+const notifyLinked = ({ transaction, text }: { transaction: TransactionModel; text: string }) => {
+  open.value = false;
+  addNotification({
+    id: LINKED_TOAST_ID,
+    text,
+    type: NotificationType.success,
+    persistent: true,
+    action: {
+      label: t('dialogs.attachInvoice.openTransaction'),
+      onClick: () => reviewTransaction({ transaction }),
+    },
+  });
+};
+
+const link = async ({ transaction }: { transaction: TransactionModel }) => {
   try {
     await linkMutation.mutateAsync({ transaction });
-    open.value = false;
-    addNotification({
-      id: LINKED_TOAST_ID,
-      text: successText,
-      type: NotificationType.success,
-      persistent: true,
-      action: {
-        label: t('dialogs.attachInvoice.openTransaction'),
-        onClick: () => reviewTransaction({ transaction }),
-      },
-    });
+    notifyLinked({ transaction, text: t('dialogs.attachInvoice.linked') });
   } catch {
     // The mutation already surfaced the server message.
   }
 };
 
-const onTransactionCreated = ({ transaction }: { transaction: TransactionModel | undefined }) => {
-  // A transfer or a portfolio move answers with no row to attach to, so the dialog stays open
-  // for the user to pick the transaction instead.
-  if (!transaction) return addWarningNotification(t('dialogs.attachInvoice.errors.createdNotAttached'));
-
-  link({
-    transaction,
-    successText: t('dialogs.attachInvoice.created'),
-    pendingText: t('dialogs.attachInvoice.attachingToCreated'),
-  });
+const onTransactionCreated = ({
+  transaction,
+  attachmentsFailed,
+}: {
+  transaction: TransactionModel | undefined;
+  attachmentsFailed: boolean;
+}) => {
+  // A transfer answers with no row and a failed upload leaves the row bare; either way the dialog
+  // stays open for the user to pick the transaction and attach it.
+  if (!transaction || attachmentsFailed) {
+    return addWarningNotification(t('dialogs.attachInvoice.errors.createdNotAttached'));
+  }
+  notifyLinked({ transaction, text: t('dialogs.attachInvoice.created') });
 };
 
 const confirmLink = () => {
   const transaction = pendingTransaction.value;
   pendingTransaction.value = null;
-  if (transaction) link({ transaction, successText: t('dialogs.attachInvoice.linked') });
+  if (transaction) link({ transaction });
 };
 
 const closeTransactionModal = () => {
@@ -644,7 +643,8 @@ const closeTransactionModal = () => {
     <ManageTransactionDialogContent
       v-else-if="createPrefill"
       :prefill="createPrefill"
-      @created="(transaction) => onTransactionCreated({ transaction })"
+      :initial-attachments="file ? [file] : []"
+      @created="onTransactionCreated"
       @close-modal="closeTransactionModal"
     />
   </TransactionDetailsModal>
