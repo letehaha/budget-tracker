@@ -33,6 +33,8 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
   ],
   [AI_FEATURE.statementParsing]: DOCUMENT_EXTRACTION_MODELS,
   [AI_FEATURE.investmentTransactionsParsing]: DOCUMENT_EXTRACTION_MODELS,
+  // One short invoice per call, so the cheapest vision-capable Gemini leads.
+  [AI_FEATURE.receiptParsing]: [AI_MODEL_ID['google/gemini-3.5-flash-lite'], ...DOCUMENT_EXTRACTION_MODELS],
 };
 
 /**
@@ -43,4 +45,5 @@ export const FEATURE_DEFAULTS: Record<AI_FEATURE, AI_MODEL_ID> = {
   [AI_FEATURE.categorization]: AI_MODEL_ID['google/gemma-4-31b-it'],
   [AI_FEATURE.statementParsing]: AI_MODEL_ID['google/gemini-3.6-flash'],
   [AI_FEATURE.investmentTransactionsParsing]: AI_MODEL_ID['google/gemini-3.6-flash'],
+  [AI_FEATURE.receiptParsing]: AI_MODEL_ID['google/gemini-3.5-flash-lite'],
 };

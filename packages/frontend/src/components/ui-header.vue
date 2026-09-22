@@ -29,19 +29,56 @@
           </Sheet.Sheet>
         </template>
 
-        <ManageTransactionDialog>
-          <Button variant="default" size="sm">
-            <PlusIcon class="size-4" />
-            {{ isMobileView ? $t('header.add') : $t('header.newTransaction') }}
-          </Button>
-        </ManageTransactionDialog>
+        <div class="flex items-center gap-px">
+          <ManageTransactionDialog>
+            <Button variant="default" size="sm" class="rounded-r-none">
+              <PlusIcon class="size-4" />
+              {{ isMobileView ? $t('header.add') : $t('header.newTransaction') }}
+            </Button>
+          </ManageTransactionDialog>
 
-        <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" class="max-md:hidden">
-          <Button variant="secondary" size="sm">
-            <ImportIcon class="size-4" />
-            {{ $t('header.importData') }}
-          </Button>
-        </RouterLink>
+          <Popover.Popover v-model:open="isAddMenuOpen">
+            <Popover.PopoverTrigger as-child>
+              <Button variant="default" size="sm" class="rounded-l-none px-2" :aria-label="$t('header.moreActions')">
+                <ChevronDownIcon class="size-4" />
+              </Button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent class="grid w-72 gap-0.5 p-1.5" align="start">
+              <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" @click="isAddMenuOpen = false">
+                <Button variant="ghost" class="h-auto w-full justify-start gap-3 p-2 text-left">
+                  <span
+                    class="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-md"
+                  >
+                    <ImportIcon class="size-4" />
+                  </span>
+                  <span class="grid">
+                    <span class="text-sm font-semibold">{{ $t('header.importData') }}</span>
+                    <span class="text-muted-foreground text-xs font-normal">{{ $t('header.importDataHint') }}</span>
+                  </span>
+                </Button>
+              </RouterLink>
+
+              <Button
+                v-if="!userStore.isDemo"
+                variant="ghost"
+                class="h-auto w-full justify-start gap-3 p-2 text-left"
+                @click="openAttachInvoice"
+              >
+                <span
+                  class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-md"
+                >
+                  <ReceiptTextIcon class="size-4" />
+                </span>
+                <span class="grid">
+                  <span class="text-sm font-semibold">{{ $t('header.attachInvoice') }}</span>
+                  <span class="text-muted-foreground text-xs font-normal">{{ $t('header.attachInvoiceHint') }}</span>
+                </span>
+              </Button>
+            </Popover.PopoverContent>
+          </Popover.Popover>
+        </div>
+
+        <AttachInvoiceDialog v-if="isAttachInvoiceMounted" v-model:open="isAttachInvoiceOpen" />
       </div>
 
       <div class="ml-auto flex items-center gap-2">
@@ -164,24 +201,39 @@ import { useSupportButton } from '@/composable/use-support-button';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore } from '@/stores';
+import { useAccountsStore, useUserStore } from '@/stores';
 import {
   AlertTriangleIcon,
+  ChevronDownIcon,
   CloudAlertIcon,
   CloudCheckIcon,
   HeartIcon,
   ImportIcon,
   MenuIcon,
   PlusIcon,
+  ReceiptTextIcon,
   RefreshCcw,
   SettingsIcon,
   SparklesIcon,
 } from '@lucide/vue';
 import { useResizeObserver } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink, useRoute } from 'vue-router';
+
+const AttachInvoiceDialog = defineAsyncComponent(() => import('@/components/dialogs/attach-invoice/index.vue'));
+
+const userStore = useUserStore();
+const isAddMenuOpen = ref(false);
+const isAttachInvoiceMounted = ref(false);
+const isAttachInvoiceOpen = ref(false);
+
+const openAttachInvoice = () => {
+  isAddMenuOpen.value = false;
+  isAttachInvoiceMounted.value = true;
+  isAttachInvoiceOpen.value = true;
+};
 
 const accountsStore = useAccountsStore();
 const { accountsNeedingRelink, isAccountsFetched } = storeToRefs(accountsStore);

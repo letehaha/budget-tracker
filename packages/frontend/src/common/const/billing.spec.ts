@@ -35,6 +35,7 @@ describe('analyticsPlan', () => {
     plan: null,
     trialEndsAt: null,
     subscriptions: [],
+    trialUsage: {},
   };
   const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
   const sub = (status: 'active' | 'canceled', endsAt: string) => ({

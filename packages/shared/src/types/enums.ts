@@ -372,10 +372,10 @@ export enum AI_FEATURE {
   categorization = 'categorization',
   statementParsing = 'statement_parsing',
   investmentTransactionsParsing = 'investment_transactions_parsing',
+  receiptParsing = 'receipt_parsing',
   // Future features:
   // insights = 'insights',
   // budgetSuggestions = 'budget_suggestions',
-  // receiptParsing = 'receipt_parsing',
 }
 
 /**

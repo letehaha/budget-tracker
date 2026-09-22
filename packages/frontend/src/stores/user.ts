@@ -1,6 +1,7 @@
 import { loadUserData } from '@/api';
 import { isBillingEnabled, liveSubscription } from '@/common/const/billing';
 import {
+  FEATURE_TRIAL_LIMITS,
   SUBSCRIPTION_STATUSES,
   USER_ROLES,
   UserInfoResponse,
@@ -26,6 +27,14 @@ export const useUserStore = defineStore('user', () => {
   // user request is still in flight — neither is a denial.
   const isFeatureGated = (feature: Feature): boolean =>
     !isDemo.value && entitlements.value !== null && !hasFeature(feature);
+
+  /** Free tries left for a feature the plan does not cover; null when it does, or has no trial. */
+  const featureTriesLeft = ({ feature }: { feature: Feature }): number | null => {
+    const limit = FEATURE_TRIAL_LIMITS[feature];
+    if (!limit || !entitlements.value || hasFeature(feature)) return null;
+
+    return Math.max(0, limit - (entitlements.value.trialUsage[feature] ?? 0));
+  };
 
   const isReadOnly = computed(() => Boolean(entitlements.value?.readOnly));
 
@@ -57,6 +66,7 @@ export const useUserStore = defineStore('user', () => {
     entitlements,
     hasFeature,
     isFeatureGated,
+    featureTriesLeft,
     isReadOnly,
     isPastDue,
     hasSubscriptions,

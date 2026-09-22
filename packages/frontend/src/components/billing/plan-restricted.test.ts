@@ -31,11 +31,22 @@ const buildEntitlements = (features: Feature[]): Entitlements => ({
   plan: null,
   trialEndsAt: null,
   subscriptions: [],
+  trialUsage: {},
 });
 
-const mountRestricted = ({ feature, user, overlay }: { feature: Feature; user: UserModel | null; overlay?: boolean }) =>
+const mountRestricted = ({
+  feature,
+  user,
+  overlay,
+  hint,
+}: {
+  feature: Feature;
+  user: UserModel | null;
+  overlay?: boolean;
+  hint?: string;
+}) =>
   mount(PlanRestricted, {
-    props: { feature, overlay },
+    props: { feature, overlay, hint },
     slots: { default: '<p data-test="gated">gated content</p>' },
     global: {
       plugins: [createTestingPinia({ createSpy: vi.fn, stubActions: false, initialState: { user: { user } } }), i18n],
@@ -98,6 +109,23 @@ describe('PlanRestricted', () => {
 
     expect(wrapper.text()).toContain('Essential plan required');
     expect(wrapper.text()).not.toContain('See plans');
+  });
+
+  it('shows a custom hint in both the callout and the overlay', () => {
+    const user = { ...USER, entitlements: buildEntitlements([]) };
+    const hint = 'Your free tries ran out.';
+
+    expect(mountRestricted({ feature: FEATURES.data_export, user, hint }).text()).toContain(hint);
+    expect(mountRestricted({ feature: FEATURES.data_export, user, hint, overlay: true }).text()).toContain(hint);
+  });
+
+  it('falls back to the generic hint when none is given', () => {
+    const user = { ...USER, entitlements: buildEntitlements([]) };
+
+    expect(mountRestricted({ feature: FEATURES.data_export, user }).text()).toContain('Pick a plan to unlock it.');
+    expect(mountRestricted({ feature: FEATURES.data_export, user, overlay: true }).text()).toContain(
+      'Pick a plan to unlock it.',
+    );
   });
 
   it('names Essential for an Essential feature and Plus for a Plus one', () => {

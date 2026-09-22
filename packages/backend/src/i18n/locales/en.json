@@ -555,5 +555,11 @@
     "tooManyAttachments": "A transaction can hold at most {{max}} attachments.",
     "quotaExceeded": "Attachment storage quota exceeded.",
     "noFileUploaded": "No file was uploaded."
+  },
+  "invoiceMatching": {
+    "unsupportedFileType": "Unsupported file type. Upload a JPEG, PNG, WebP or PDF invoice.",
+    "notAnInvoice": "This document does not look like an invoice or a receipt.",
+    "incompleteInvoice": "Could not read a vendor, total amount and date from this invoice.",
+    "noFileUploaded": "No file was uploaded."
   }
 }

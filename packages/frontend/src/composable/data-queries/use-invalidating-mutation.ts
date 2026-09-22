@@ -1,4 +1,4 @@
-import { useNotificationCenter } from '@/components/notification-center';
+import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { extractApiErrorMessage, isApiErrorWithCode } from '@/js/errors';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { type QueryKey, useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -17,6 +17,7 @@ export const useInvalidatingMutation = <TData, TVariables>({
   successKey,
   errorKey,
   silentErrorCodes,
+  persistentErrorId,
   onSuccess,
 }: {
   mutationFn: (variables: TVariables) => Promise<TData>;
@@ -26,11 +27,13 @@ export const useInvalidatingMutation = <TData, TVariables>({
   errorKey: string;
   /** Codes the caller renders itself (e.g. inline), so the generic toast is skipped. */
   silentErrorCodes?: API_ERROR_CODES[];
+  /** Keeps the error toast up until dismissed, under this id so the caller can clear it on retry. */
+  persistentErrorId?: string;
   onSuccess?: () => void;
 }) => {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+  const { addNotification, addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
   return useMutation<TData, unknown, TVariables>({
     mutationFn,
@@ -46,7 +49,9 @@ export const useInvalidatingMutation = <TData, TVariables>({
       // The API client already toasted the 402 with a "See plans" action.
       if (isApiErrorWithCode(error, API_ERROR_CODES.planRequired)) return;
       if (silentErrorCodes?.some((code) => isApiErrorWithCode(error, code))) return;
-      addErrorNotification(extractApiErrorMessage(error) || t(errorKey));
+      const text = extractApiErrorMessage(error) || t(errorKey);
+      if (!persistentErrorId) return addErrorNotification(text);
+      addNotification({ id: persistentErrorId, text, type: NotificationType.error, persistent: true });
     },
   });
 };

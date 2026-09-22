@@ -27,10 +27,10 @@ export function buildHaystack({ payees }: { payees: Payees[] }): HaystackEntry[]
 }
 
 export const FUZZY_MATCH_THRESHOLD = 0.4;
-const MIN_MATCH_CHAR_LENGTH = 3;
+export const FUZZY_MIN_MATCH_CHAR_LENGTH = 3;
 
 /**
- * Fuse.js configuration for Payee name + alias matching.
+ * Fuse.js configuration for matching a name against free-form merchant text.
  *
  * `ignoreLocation` is critical: provider strings frequently embed merchant
  * names mid-string (e.g. `POS PURCHASE AMAZON.COM*A4B2 0815`), and the
@@ -39,14 +39,14 @@ const MIN_MATCH_CHAR_LENGTH = 3;
  * Threshold 0.4 mirrors the value used by `tag-auto-matching` per the PRD.
  * Tune empirically once real-world telemetry is available.
  */
-const FUSE_OPTIONS: IFuseOptions<HaystackEntry> = {
+export const fuzzyFuseOptions = <T extends { text: string }>(): IFuseOptions<T> => ({
   keys: ['text'],
   threshold: FUZZY_MATCH_THRESHOLD,
   includeScore: true,
   isCaseSensitive: false,
   ignoreLocation: true,
-  minMatchCharLength: MIN_MATCH_CHAR_LENGTH,
-};
+  minMatchCharLength: FUZZY_MIN_MATCH_CHAR_LENGTH,
+});
 
 interface FuzzyMatchResult {
   payeeId: string;
@@ -59,11 +59,11 @@ interface FuzzyMatchResult {
  * freshly-synced batch to avoid rebuilding per transaction.
  */
 export function buildFuzzyIndex({ haystack }: { haystack: HaystackEntry[] }) {
-  const fuse = new Fuse(haystack, FUSE_OPTIONS);
+  const fuse = new Fuse(haystack, fuzzyFuseOptions<HaystackEntry>());
   return {
     search({ query }: { query: string }): FuzzyMatchResult | null {
       const normalized = normalizePayeeName({ raw: query });
-      if (normalized.length < MIN_MATCH_CHAR_LENGTH) return null;
+      if (normalized.length < FUZZY_MIN_MATCH_CHAR_LENGTH) return null;
       const results = fuse.search(normalized);
       const best = results[0];
       if (!best || best.score === undefined || best.score > FUZZY_MATCH_THRESHOLD) {
