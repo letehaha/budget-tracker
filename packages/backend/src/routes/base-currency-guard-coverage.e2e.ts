@@ -70,6 +70,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'PUT /api/v1/user/settings/onboarding',
   'PUT /api/v1/user/update',
 
+  // Invoice matching only ranks candidates; the one write is the non-monetary trial counter.
+  'POST /api/v1/transactions/match-invoice',
+  'POST /api/v1/transactions/match-invoice/candidates',
+
   // AI categorization writes categoryId/categorizationMeta only, never ref amounts,
   // so a base-currency migration and a run cannot corrupt each other.
   'POST /api/v1/user/ai/categorization/trigger',

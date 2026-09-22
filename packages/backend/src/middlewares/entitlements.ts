@@ -1,6 +1,7 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, Entitlements, Feature } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
 import { API_PREFIX } from '@root/config';
+import { type FeatureAccess, getFeatureAccess } from '@services/entitlements/feature-trial.service';
 import { resolveEntitlements } from '@services/entitlements/resolve-entitlements.service';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -37,7 +38,7 @@ const planRequired = ({ res, message }: { res: Response; message: string }) =>
     response: { message, code: API_ERROR_CODES.planRequired },
   });
 
-/** Resolved once per request; `requireFeature` and the read-only guard share it. */
+/** Resolved once per request; the gates, the read-only guard and the handlers share it. */
 const getRequestEntitlements = async ({ req }: { req: Request }): Promise<Entitlements> => {
   if (!req.entitlements) {
     req.entitlements = await resolveEntitlements({ user: req.user! });
@@ -51,6 +52,30 @@ export const requireFeature =
     try {
       const { features } = await getRequestEntitlements({ req });
       if (!features.includes(feature)) {
+        planRequired({ res, message: 'This feature is not included in your current plan.' });
+        return;
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+/** Whether the feature is covered by the plan, by a free try, or not at all. */
+export const getRequestFeatureAccess = async ({
+  req,
+  feature,
+}: {
+  req: Request;
+  feature: Feature;
+}): Promise<FeatureAccess> => getFeatureAccess({ entitlements: await getRequestEntitlements({ req }), feature });
+
+/** Same 402 as `requireFeature` once the free tries are spent. */
+export const requireFeatureOrTrial =
+  (feature: Feature) =>
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if ((await getRequestFeatureAccess({ req, feature })) === 'denied') {
         planRequired({ res, message: 'This feature is not included in your current plan.' });
         return;
       }

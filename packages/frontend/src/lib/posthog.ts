@@ -54,7 +54,7 @@ type AnalyticsEvent =
       properties: { import_type: 'csv' | 'statement_parser' | 'ynab' | 'budget-bakers-wallet' | 'ms-money' | 'ofx' };
     }
   // AI features (ai_categorization_completed tracked on backend)
-  | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
+  | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' | 'invoice_matching' } }
   | { event: 'ai_settings_visited' }
   | { event: 'automations_mcp_tip_opened' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }

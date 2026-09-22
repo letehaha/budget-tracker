@@ -138,11 +138,13 @@ class ApiCaller {
   postRaw({
     endpoint,
     body,
+    query,
     headers,
     options = {},
   }: {
     endpoint: ApiCall['endpoint'];
     body: BodyInit;
+    query?: ApiCall['query'];
     headers?: Record<string, string>;
     options?: ApiCall['options'];
   }) {
@@ -150,6 +152,7 @@ class ApiCaller {
       method: 'POST',
       endpoint,
       options,
+      query,
       rawBody: body,
       headers,
     });

@@ -2,6 +2,7 @@
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { useCloseDialogWhen } from '@/composable/use-close-dialog-when';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { createReusableTemplate, useVModel } from '@vueuse/core';
 import type { HTMLAttributes } from 'vue';
@@ -17,6 +18,8 @@ const props = withDefaults(
     dialogContentClass?: HTMLAttributes['class'];
     drawerContentClass?: HTMLAttributes['class'];
     customClose?: boolean;
+    /** Closes the dialog the moment this turns true, e.g. `useIsBillingPage()` for dialogs with a "See plans" link. */
+    closeWhen?: boolean;
     /** When true, disables the internal scroll wrapper (display: contents).
      * Use when the dialog content manages its own scrolling layout. */
     noInternalScroll?: boolean;
@@ -47,6 +50,8 @@ const setOpen = (open: boolean) => {
 };
 
 const close = () => setOpen(false);
+
+useCloseDialogWhen({ when: () => !!props.closeWhen, close });
 </script>
 
 <template>

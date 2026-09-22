@@ -36,7 +36,7 @@ interface OptimisticUpdateContext {
   previousQueries: Map<string, unknown>;
 }
 
-export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
+export function useSubmitTransaction({ onSuccess }: { onSuccess: (result: { created?: TransactionModel }) => void }) {
   const queryClient = useQueryClient();
   const { addErrorNotification } = useNotificationCenter();
 
@@ -55,34 +55,39 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
 
       if (isFormCreation) {
         if (isTransferTx && form.toPortfolio) {
-          return accountToPortfolioTransfer({
+          await accountToPortfolioTransfer({
             portfolioId: form.toPortfolio.id,
             accountId: form.account!.id,
             amount: String(form.amount!),
             date: form.time.toISOString().split('T')[0]!,
             description: form.note,
           });
+          return {};
         }
 
-        return createTransaction(
+        const created: TransactionModel[] = await createTransaction(
           prepareTxCreationParams({
             form,
             isTransferTx,
             isCurrenciesDifferent,
           }),
         );
+        // A transfer's two legs give no single row a caller could act on, so answer with nothing.
+        return isTransferTx ? {} : { created: created[0] };
       } else if (linkedTransaction) {
-        return linkTransactions({
+        await linkTransactions({
           ids: [[transaction!.id, linkedTransaction.id]],
         });
+        return {};
       } else if (isTransferTx && form.toPortfolio && transaction) {
-        return linkTransactionToPortfolio({
+        await linkTransactionToPortfolio({
           transactionId: transaction.id,
           portfolioId: form.toPortfolio.id,
           affectsCash: !form.portfolioCashAlreadyReflected,
         });
+        return {};
       } else {
-        return editTransaction(
+        await editTransaction(
           prepareTxUpdationParams({
             form,
             transaction: transaction!,
@@ -93,6 +98,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
             isOriginalRefundsOverriden,
           }),
         );
+        return {};
       }
     },
     onMutate: async (params): Promise<OptimisticUpdateContext | undefined> => {
@@ -122,7 +128,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
 
       return context;
     },
-    onSuccess: (_, params) => {
+    onSuccess: (data, params) => {
       queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
 
       if (params.isTransferTx && params.form.toPortfolio) {
@@ -194,7 +200,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
         onboardingStore.completeTask('mark-transfer-out');
       }
 
-      onSuccess();
+      onSuccess(data);
     },
     onError: (error, _, context) => {
       // Rollback optimistic update on error

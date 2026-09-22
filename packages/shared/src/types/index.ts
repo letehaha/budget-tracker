@@ -28,6 +28,7 @@ export * from './transfer-nature';
 export * from './transaction-automations';
 export * from './billing';
 export * from './attachments';
+export * from './invoice-matching';
 export * from './testing';
 export * from './type-testing';
 export { endpointsTypes };

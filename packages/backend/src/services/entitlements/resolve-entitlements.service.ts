@@ -7,6 +7,7 @@ import {
   Plan,
   SEATS_BY_PLAN,
   TRIAL_EXCLUDED_FEATURES,
+  TRIALABLE_FEATURES,
   USER_ROLES,
   isEntitledSubscription,
 } from '@bt/shared/types';
@@ -15,6 +16,8 @@ import { NotFoundError } from '@js/errors';
 import { captureException } from '@js/utils/sentry';
 import BillingSubscriptions from '@models/billing-subscriptions.model';
 import Users from '@models/users.model';
+
+import { getTrialUsage } from './feature-trial.service';
 
 type EntitlementUser = Pick<Users, 'id' | 'role' | 'plan' | 'trialEndsAt'>;
 
@@ -28,6 +31,7 @@ const DEMO_EXCLUDED_FEATURES: readonly Feature[] = [
   FEATURES.attachments,
 ];
 const DEMO_FEATURES = PLAN_FEATURES.plus.filter((f) => !DEMO_EXCLUDED_FEATURES.includes(f));
+const READ_ONLY_FEATURES: readonly Feature[] = [FEATURES.data_export];
 
 const toIso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
 
@@ -51,14 +55,20 @@ export async function resolveEntitlements({ user }: { user: EntitlementUser }): 
     trialEndsAt: toIso(user.trialEndsAt),
     subscriptions: [] as Entitlements['subscriptions'],
   };
-  const grant = (features: readonly Feature[], seats: number): Entitlements => ({
+  const grant = async (features: readonly Feature[], seats: number): Promise<Entitlements> => ({
     ...base,
     features,
     seats,
     readOnly: false,
+    // Free tries only exist for a feature the user is not entitled to, so someone holding
+    // all of them never needs the counters read — and every write request resolves these.
+    trialUsage: TRIALABLE_FEATURES.every((feature) => features.includes(feature))
+      ? {}
+      : await getTrialUsage({ userId: user.id }),
   });
 
   if (isSelfHost()) return grant(ALL_FEATURES, SELF_HOST_SEATS);
+
   if (user.role === USER_ROLES.demo) return grant(DEMO_FEATURES, SEATS_BY_PLAN.plus);
 
   const now = Date.now();
@@ -98,12 +108,13 @@ export async function resolveEntitlements({ user }: { user: EntitlementUser }): 
   if (!user.trialEndsAt && subscriptions.length === 0) return grant(PLAN_FEATURES[PLANS.plus], SEATS_BY_PLAN.plus);
 
   // Read-only still grants data_export: a lapsed user must be able to take their
-  // data out.
+  // data out. A free try is unreachable for them — `enforceReadOnly` 402s the write first.
   return {
     ...base,
-    features: [FEATURES.data_export],
+    features: READ_ONLY_FEATURES,
     seats: SEATS_BY_PLAN.essential,
     readOnly: true,
+    trialUsage: {},
   };
 }
 

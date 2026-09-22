@@ -226,7 +226,15 @@ import {
   buildCustomModelId,
   isCustomModelId,
 } from '@bt/shared/types';
-import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, InfoIcon, LineChartIcon, TagIcon } from '@lucide/vue';
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FileTextIcon,
+  InfoIcon,
+  LineChartIcon,
+  ReceiptIcon,
+  TagIcon,
+} from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -253,6 +261,7 @@ const FEATURE_ICONS = {
   [AI_FEATURE.categorization]: TagIcon,
   [AI_FEATURE.statementParsing]: FileTextIcon,
   [AI_FEATURE.investmentTransactionsParsing]: LineChartIcon,
+  [AI_FEATURE.receiptParsing]: ReceiptIcon,
 } as const;
 
 const featureIcon = computed(() => FEATURE_ICONS[props.featureStatus.feature]);

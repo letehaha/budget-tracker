@@ -68,3 +68,6 @@ export interface UI_FORM_STRUCT {
   /** Any ISO currency, not only the user's linked ones. Sent to the API as its `code`. */
   originalCurrency?: CurrencyModel | null;
 }
+
+/** Creation-mode starting values. Narrow on purpose: prefilling anything else is unsupported. */
+export type TransactionPrefill = Pick<UI_FORM_STRUCT, 'type' | 'account' | 'amount' | 'time' | 'note'>;

@@ -8,7 +8,7 @@
       <div class="bg-card flex max-w-sm flex-col items-center gap-2 rounded-lg border p-5 text-center shadow-lg">
         <LockIcon class="text-primary-text size-6" />
         <p class="font-medium">{{ $t(`billing.planRequired.${requiredPlan}`) }}</p>
-        <p class="text-muted-foreground text-sm">{{ $t('billing.planRequired.hint') }}</p>
+        <p class="text-muted-foreground text-sm">{{ hint ?? $t('billing.planRequired.hint') }}</p>
         <RouterLink v-if="userStore.canSeeBilling" :to="{ name: ROUTES_NAMES.settingsPlanBilling }" class="mt-2">
           <Button size="sm">{{ $t('billing.seePlans') }}</Button>
         </RouterLink>
@@ -16,7 +16,7 @@
     </div>
   </div>
   <Callout v-else variant="info" :icon="LockIcon" :title="$t(`billing.planRequired.${requiredPlan}`)">
-    <p class="text-muted-foreground text-sm">{{ $t('billing.planRequired.hint') }}</p>
+    <p class="text-muted-foreground text-sm">{{ hint ?? $t('billing.planRequired.hint') }}</p>
     <RouterLink
       v-if="userStore.canSeeBilling"
       :to="{ name: ROUTES_NAMES.settingsPlanBilling }"
@@ -41,6 +41,8 @@ const props = defineProps<{
   feature: Feature;
   /** Keep the gated content visible but inert, with the upgrade prompt floating over it. */
   overlay?: boolean;
+  /** Replaces the generic "your plan lacks this" line, e.g. when free tries ran out. */
+  hint?: string;
 }>();
 
 const userStore = useUserStore();

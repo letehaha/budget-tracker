@@ -47,8 +47,15 @@ export const FEATURES = {
   backup_restore: 'backup_restore',
   data_export: 'data_export',
   attachments: 'attachments',
+  invoice_matching: 'invoice_matching',
 } as const;
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
+
+/** Features a user without the entitlement may still run this many times, ever. */
+export const FEATURE_TRIAL_LIMITS: Partial<Record<Feature, number>> = {
+  [FEATURES.invoice_matching]: 5,
+};
+export const TRIALABLE_FEATURES = Object.keys(FEATURE_TRIAL_LIMITS) as Feature[];
 
 const ESSENTIAL_FEATURES: readonly Feature[] = [
   FEATURES.backup_export,
@@ -56,7 +63,12 @@ const ESSENTIAL_FEATURES: readonly Feature[] = [
   FEATURES.data_export,
   FEATURES.attachments,
 ];
-const PLUS_FEATURES: readonly Feature[] = [...ESSENTIAL_FEATURES, FEATURES.bank_providers, FEATURES.operator_ai];
+const PLUS_FEATURES: readonly Feature[] = [
+  ...ESSENTIAL_FEATURES,
+  FEATURES.bank_providers,
+  FEATURES.operator_ai,
+  FEATURES.invoice_matching,
+];
 /** Plus as of launch (2026-09-15). Deliberately not a reference to PLUS_FEATURES: features added later are paid for early adopters. */
 const EARLY_ADOPTER_FEATURES: readonly Feature[] = [
   ...ESSENTIAL_FEATURES,
@@ -107,6 +119,8 @@ export interface Entitlements {
   plan: Plan | null;
   trialEndsAt: string | null;
   subscriptions: BillingSubscriptionSummary[];
+  /** Tries already spent against `FEATURE_TRIAL_LIMITS`. Absent key means zero. */
+  trialUsage: Partial<Record<Feature, number>>;
 }
 
 /** Access continues while the status is entitled and the paid period has not elapsed. */

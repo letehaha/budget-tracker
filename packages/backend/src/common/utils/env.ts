@@ -11,6 +11,7 @@ export enum EnvVar {
   BETTER_AUTH_SECRET = 'BETTER_AUTH_SECRET',
   COINGECKO_API_KEY = 'COINGECKO_API_KEY',
   LOGO_DEV_SECRET_KEY = 'LOGO_DEV_SECRET_KEY',
+  TYPESAFE_API_KEY = 'TYPESAFE_API_KEY',
 }
 
 // Catches values still set to the .env.template default (e.g. `your-resend-api-key`,
