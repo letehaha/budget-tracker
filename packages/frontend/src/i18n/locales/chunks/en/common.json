@@ -131,6 +131,10 @@
       "investmentTransactionsParsing": {
         "name": "Investment transactions import",
         "description": "AI-extracted buy/sell transactions from exchange exports, broker statements, or pasted text."
+      },
+      "receiptParsing": {
+        "name": "Invoice matching",
+        "description": "Reads an uploaded invoice or receipt and finds the transaction it belongs to."
       }
     },
     "transactions": {

@@ -57,6 +57,10 @@
   "header": {
     "add": "Додати",
     "importData": "Імпорт даних",
+    "moreActions": "Інші способи додати дані",
+    "importDataHint": "CSV-файл або банківська виписка",
+    "attachInvoice": "Прикріпити інвойс",
+    "attachInvoiceHint": "Ми знайдемо транзакцію, до якої він належить",
     "language": "Мова",
     "newTransaction": "Нова транзакція",
     "settings": "Налаштування",

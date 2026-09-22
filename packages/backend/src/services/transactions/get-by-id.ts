@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import { ForbiddenError, NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BudgetTransactions from '@models/budget-transactions.model';
+import Tags from '@models/tags.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import { findOneTransaction } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
@@ -12,14 +13,30 @@ import {
   canUserAccessResource,
 } from '@services/sharing/auth/can-user-access-resource.service';
 import { getAccessibleBudgetIdsForUser } from '@services/sharing/auth/get-accessible-budget-ids.service';
-import { Op } from 'sequelize';
+import { Includeable, Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+
+const buildInclude = ({
+  includeSplits,
+  includeTags,
+}: {
+  includeSplits?: boolean;
+  includeTags?: boolean;
+}): Includeable[] => {
+  const include: Includeable[] = [];
+  if (includeSplits) include.push({ model: TransactionSplits, as: 'splits' });
+  if (includeTags) {
+    include.push({ model: Tags, through: { attributes: [] }, attributes: ['id', 'name', 'color', 'icon'] });
+  }
+  return include;
+};
 
 interface GetTransactionByIdParams {
   id: string;
   userId: number;
   includeSplits?: boolean;
+  includeTags?: boolean;
   /** Defaults to `read`. Pass `write` from update/delete callers so the auth check happens once here instead of being re-run in the caller. */
   requiredPermission?: SharePermission;
 }
@@ -50,12 +67,13 @@ export const getTransactionById = withTransaction(
     id,
     userId,
     includeSplits,
+    includeTags,
     requiredPermission = SHARE_PERMISSIONS.read,
   }: GetTransactionByIdParams): Promise<{
     tx: Transactions.default;
     access: GrantedAccessResult;
   } | null> => {
-    const authored = await Transactions.getTransactionById({ id, userId, includeSplits });
+    const authored = await Transactions.getTransactionById({ id, userId, includeSplits, includeTags });
     if (authored) {
       // Verify the parent account also belongs to the caller before synthesizing the
       // owner-fast-path. A recipient who created a tx on a shared account would otherwise
@@ -99,6 +117,7 @@ export const getTransactionById = withTransaction(
       access: 'unscoped-internal',
       balanceAdjustments: 'include',
       where: { id },
+      include: buildInclude({ includeSplits, includeTags }),
     });
     if (!tx) return null;
 
@@ -111,19 +130,7 @@ export const getTransactionById = withTransaction(
       resourceId: tx.accountId,
       requiredPermission,
     });
-    if (access.granted) {
-      if (includeSplits) {
-        const withSplits = await findOneTransaction({
-          planned: 'include',
-          access: 'unscoped-internal',
-          balanceAdjustments: 'include',
-          where: { id },
-          include: [{ model: TransactionSplits, as: 'splits' }],
-        });
-        return withSplits ? { tx: withSplits, access } : null;
-      }
-      return { tx, access };
-    }
+    if (access.granted) return { tx, access };
 
     // Budget-share visibility fallback. The list endpoint already surfaces tx rows that
     // a caller can see only because they accepted a budget share — keeping the detail
@@ -156,16 +163,6 @@ export const getTransactionById = withTransaction(
       accessSource: ACCESS_SOURCES.budget,
     };
 
-    if (includeSplits) {
-      const withSplits = await findOneTransaction({
-        planned: 'include',
-        access: 'unscoped-internal',
-        balanceAdjustments: 'include',
-        where: { id },
-        include: [{ model: TransactionSplits, as: 'splits' }],
-      });
-      return withSplits ? { tx: withSplits, access: budgetVisibilityAccess } : null;
-    }
     return { tx, access: budgetVisibilityAccess };
   },
 );

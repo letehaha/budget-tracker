@@ -24,10 +24,10 @@ interface ApplyPayeeDefaultTagsParams {
  * `TransactionTags` composite PK. Shared by the transaction-creation path
  * (`create-transaction`, manual + sync) and the post-sync note fuzzy backfill.
  *
- * Callers gate this on the transaction having NO caller-supplied tag list —
- * an explicit `tagIds` (even an empty array) means the client already decided
- * the final tag set, e.g. the transaction form applies payee tags client-side
- * and the user may have deselected some of them.
+ * Callers skip this only when the caller supplied both the payee and an
+ * explicit tag list (even an empty one) — that pair means the client already
+ * decided the final tag set. A payee resolved server-side is unknown to the
+ * client, so its defaults are merged on top of whatever tags the row has.
  *
  * Returns the Payee's rule tag ids (the set attempted for the row — tags
  * already present are silently skipped). Empty when the Payee has no rule or

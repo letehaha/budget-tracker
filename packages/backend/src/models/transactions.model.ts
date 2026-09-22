@@ -83,7 +83,7 @@ import {
   HasMany,
 } from 'sequelize-typescript';
 
-const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
+const prepareTXInclude = ({ includeSplits, includeTags }: { includeSplits?: boolean; includeTags?: boolean }) => {
   const include: Includeable[] = [];
 
   if (includeSplits) {
@@ -91,6 +91,14 @@ const prepareTXInclude = ({ includeSplits }: { includeSplits?: boolean }) => {
       model: TransactionSplits,
       as: 'splits',
       include: [{ model: Categories, as: 'category' }],
+    });
+  }
+
+  if (includeTags) {
+    include.push({
+      model: Tags,
+      through: { attributes: [] },
+      attributes: ['id', 'name', 'color', 'icon'],
     });
   }
 
@@ -1276,12 +1284,14 @@ export const getTransactionById = ({
   id,
   userId,
   includeSplits,
+  includeTags,
 }: {
   id: string;
   userId: number;
   includeSplits?: boolean;
+  includeTags?: boolean;
 }): Promise<Transactions | null> => {
-  const include = prepareTXInclude({ includeSplits });
+  const include = prepareTXInclude({ includeSplits, includeTags });
 
   return Transactions.findOne({
     where: { id, userId },

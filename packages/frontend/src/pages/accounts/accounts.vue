@@ -328,12 +328,11 @@ const bankAccountsByConnectionId = computed(() => {
   return map;
 });
 
-// Connections with no active accounts (nothing selected, or everything archived/unlinked)
-// are skipped rather than shown as "0 accounts" rows.
 const connectionRows = computed(() =>
-  (bankConnections.value ?? [])
-    .map((connection) => ({ connection, accounts: bankAccountsByConnectionId.value.get(connection.id) ?? [] }))
-    .filter((row) => row.accounts.length > 0),
+  (bankConnections.value ?? []).map((connection) => ({
+    connection,
+    accounts: bankAccountsByConnectionId.value.get(connection.id) ?? [],
+  })),
 );
 
 // Manual section shows only manual accounts: folder groups pruned of bank-linked accounts

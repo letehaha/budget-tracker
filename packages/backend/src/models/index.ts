@@ -17,6 +17,7 @@ import CategoriesModel from './categories.model';
 import { connection } from './connection';
 import CurrenciesModel from './currencies.model';
 import ExchangeRatesModel from './exchange-rates.model';
+import FeatureUsagesModel from './feature-usages.model';
 import HoldingsModel from './investments/holdings.model';
 import InvestmentTransactionModel from './investments/investment-transaction.model';
 import PortfolioBalancesModel from './investments/portfolio-balances.model';
@@ -89,6 +90,7 @@ const models = [
   CategoriesModel,
   CurrenciesModel,
   ExchangeRatesModel,
+  FeatureUsagesModel,
   MerchantCategoryCodesModel,
   NotificationsModel,
   RefundTransactionsModel,

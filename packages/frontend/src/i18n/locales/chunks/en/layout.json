@@ -57,6 +57,10 @@
   "header": {
     "add": "Add",
     "importData": "Import data",
+    "moreActions": "More ways to add data",
+    "importDataHint": "CSV file or bank statement",
+    "attachInvoice": "Attach invoice",
+    "attachInvoiceHint": "We find the transaction it belongs to",
     "language": "Language",
     "newTransaction": "Add transaction",
     "settings": "Settings",

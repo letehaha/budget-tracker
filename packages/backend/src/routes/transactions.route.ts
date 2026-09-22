@@ -14,12 +14,14 @@ import getPortfolioLink from '@controllers/transactions.controller/get-portfolio
 import getTransactions from '@controllers/transactions.controller/get-transaction';
 import getTransactionsByIds from '@controllers/transactions.controller/get-transactions-by-ids';
 import linkToPortfolio from '@controllers/transactions.controller/link-to-portfolio';
+import matchInvoice from '@controllers/transactions.controller/match-invoice';
 import createRefund from '@controllers/transactions.controller/refunds/create-refund';
 import deleteRefund from '@controllers/transactions.controller/refunds/delete-refund';
 import getRefund from '@controllers/transactions.controller/refunds/get-refund';
 import getRefundRecommendations from '@controllers/transactions.controller/refunds/get-refund-recommendations';
 import getRefunds from '@controllers/transactions.controller/refunds/get-refunds';
 import getRefundsForTransactionById from '@controllers/transactions.controller/refunds/get-refunds-for-transaction-by-id';
+import rematchInvoice from '@controllers/transactions.controller/rematch-invoice';
 import deleteSplit from '@controllers/transactions.controller/splits/delete-split';
 import bulkScanTransferRecommendations from '@controllers/transactions.controller/transfer-linking/bulk-scan-transfer-recommendations';
 import dismissTransferSuggestion from '@controllers/transactions.controller/transfer-linking/dismiss-transfer-suggestion';
@@ -30,7 +32,7 @@ import updateTransaction from '@controllers/transactions.controller/update-trans
 import { authenticateSessionOrUploadToken } from '@middlewares/attachment-upload-auth';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { requireFeature } from '@middlewares/entitlements';
+import { requireFeature, requireFeatureOrTrial } from '@middlewares/entitlements';
 import { attachmentUploadRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import express, { Router } from 'express';
@@ -78,6 +80,27 @@ router.post(
   checkBaseCurrencyLock,
   validateEndpoint(createRefund.schema),
   createRefund.handler,
+);
+// Reads the uploaded invoice and ranks candidates; nothing is stored, so no base-currency lock.
+router.post(
+  '/match-invoice',
+  authenticateSession,
+  requireFeature(FEATURES.attachments),
+  requireFeatureOrTrial(FEATURES.invoice_matching),
+  attachmentUploadRateLimit,
+  express.raw({ type: 'application/octet-stream', limit: ATTACHMENT_MAX_FILE_BYTES }),
+  validateEndpoint(matchInvoice.schema),
+  matchInvoice.handler,
+);
+router.post(
+  '/match-invoice/candidates',
+  authenticateSession,
+  // No AI and no try spent, so a user whose free tries are gone can still correct the
+  // fields of the invoice they just read. Only the attachments gate applies.
+  requireFeature(FEATURES.attachments),
+  attachmentUploadRateLimit,
+  validateEndpoint(rematchInvoice.schema),
+  rematchInvoice.handler,
 );
 router.delete(
   '/refund',

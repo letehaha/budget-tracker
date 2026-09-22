@@ -13,6 +13,7 @@ import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import Currencies from '@models/currencies.model';
 import ExchangeRates from '@models/exchange-rates.model';
+import FeatureUsages from '@models/feature-usages.model';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
@@ -549,6 +550,10 @@ export const BACKUP_EXCLUDED: readonly BackupExcludedDef[] = [
   },
   { model: BillingWebhookEvents, reason: 'Webhook dedupe markers for a Stripe account, meaningless outside it.' },
   { model: SignupLedger, reason: 'Global signup/trial ledger keyed by email hash, not per-user data.' },
+  {
+    model: FeatureUsages,
+    reason: 'Feature-trial counters. Restoring them would hand back spent tries on every restore.',
+  },
   {
     model: TransactionAttachments,
     reason:

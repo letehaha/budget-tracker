@@ -1,4 +1,6 @@
 import {
+  FEATURES,
+  FEATURE_TRIAL_LIMITS,
   SUBSCRIPTION_STATUSES,
   USER_ROLES,
   type BillingSubscriptionSummary,
@@ -19,6 +21,7 @@ const buildEntitlements = (overrides: Partial<Entitlements> = {}): Entitlements 
   plan: null,
   trialEndsAt: null,
   subscriptions: [],
+  trialUsage: {},
   ...overrides,
 });
 
@@ -241,6 +244,38 @@ describe('useUserStore', () => {
       );
 
       expect(store.isPastDue).toBe(false);
+    });
+  });
+
+  describe('featureTriesLeft', () => {
+    const limit = FEATURE_TRIAL_LIMITS[FEATURES.invoice_matching]!;
+
+    it('counts down from the limit for a plan without the feature', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements({ trialUsage: { [FEATURES.invoice_matching]: 2 } }));
+
+      expect(store.featureTriesLeft({ feature: FEATURES.invoice_matching })).toBe(limit - 2);
+    });
+
+    it('returns 0 once every try is spent', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements({ trialUsage: { [FEATURES.invoice_matching]: limit + 1 } }));
+
+      expect(store.featureTriesLeft({ feature: FEATURES.invoice_matching })).toBe(0);
+    });
+
+    it('returns null when the plan already includes the feature', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements({ features: [FEATURES.invoice_matching] }));
+
+      expect(store.featureTriesLeft({ feature: FEATURES.invoice_matching })).toBeNull();
+    });
+
+    it('returns null for a feature with no trial', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements());
+
+      expect(store.featureTriesLeft({ feature: FEATURES.bank_providers })).toBeNull();
     });
   });
 });

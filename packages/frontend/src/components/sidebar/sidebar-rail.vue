@@ -247,43 +247,22 @@ const sectionItems = computed<RailSectionItem[]>(() => {
 
       <div class="bg-border/50 h-px" />
 
-      <div class="-mx-2 grid gap-1">
+      <div class="grid gap-0.5">
         <ResponsiveHoverCard
           v-for="section in sectionItems"
           :key="section.key"
           :open="openFlyoutKey === section.key"
-          content-class-name="w-72"
+          content-class-name="w-max min-w-72 max-w-96"
           @update:open="setFlyoutOpen({ key: section.key, open: $event })"
         >
-          <RailIconTrigger
-            :to="{ name: section.routeName }"
-            class="hover:bg-accent flex w-full flex-col items-center gap-1 rounded-md py-1.5 transition-colors"
-          >
-            <span class="sr-only">{{ section.label }}</span>
-            <component :is="section.icon" class="text-muted-foreground size-4 shrink-0" />
-            <GroupTotal
-              v-if="section.total && baseCurrencyCode"
-              :amount="section.total.total"
-              :currency-code="baseCurrencyCode"
-              :is-approx="section.total.isApprox"
-              :loading="section.loading"
-              :text-class="
-                cn(
-                  'block w-full truncate text-center text-[10px] leading-none',
-                  section.total.total >= 0 && 'text-muted-foreground',
-                )
-              "
-            />
-            <span
-              v-else-if="section.count !== undefined"
-              class="text-muted-foreground text-[10px] leading-none tabular-nums"
-            >
-              {{ section.count }}
-            </span>
+          <RailIconTrigger :to="{ name: section.routeName }" :aria-label="section.label">
+            <ui-button variant="ghost" as="span" size="icon">
+              <component :is="section.icon" class="text-muted-foreground size-4 shrink-0" />
+            </ui-button>
           </RailIconTrigger>
 
           <template #content>
-            <div class="grid gap-1">
+            <div class="grid grid-cols-[minmax(0,1fr)] gap-1">
               <router-link
                 :to="{ name: section.routeName }"
                 class="hover:bg-accent flex items-center justify-between gap-2 rounded-md px-2 py-1.5"

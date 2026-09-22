@@ -93,7 +93,9 @@ services:
     # HTTP_PORT also accepts HTTP_PORT=127.0.0.1:8080 — then the port is only
     # reachable from this machine itself. Use that when a reverse proxy on the
     # same host fronts the app, so the plain-HTTP port isn't open to the world.
-    ports: ['${HTTP_PORT:-8080}:80']
+    # LISTEN_PORT is the port nginx binds inside the container. Raise it above
+    # 1024 (e.g. 8080) on hosts that reserve low ports for root, such as Synology.
+    ports: ['${HTTP_PORT:-8080}:${LISTEN_PORT:-80}']
     depends_on:
       backend: { condition: service_healthy }
     environment:
@@ -104,6 +106,7 @@ services:
       # to /dashboard (or sign-in when logged out). Set SKIP_LANDING=false in
       # .env to serve the landing page instead.
       SKIP_LANDING: ${SKIP_LANDING:-true}
+      LISTEN_PORT: ${LISTEN_PORT:-80}
       # Empty API_HTTP => same-origin mode: the SPA calls relative /api/v1 and
       # nginx inside this container proxies /api/ to BACKEND_URL. Set it to an
       # absolute API URL only if you serve the API from a separate origin.

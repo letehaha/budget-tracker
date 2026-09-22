@@ -73,11 +73,14 @@ function createProviderModel(spec: ProviderModelSpec): LanguageModel {
 export async function createAIClient({
   userId,
   feature,
+  allowOperatorKey,
 }: {
   userId: number;
   feature: AI_FEATURE;
+  /** Grants the server key for this one call, for a feature the caller gates itself. */
+  allowOperatorKey?: boolean;
 }): Promise<AIClientResult | null> {
-  const resolution = await resolveAIConfiguration({ userId, feature });
+  const resolution = await resolveAIConfiguration({ userId, feature, allowOperatorKey });
 
   if (!resolution) {
     return null;

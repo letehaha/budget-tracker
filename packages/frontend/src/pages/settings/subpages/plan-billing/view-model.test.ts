@@ -16,6 +16,7 @@ const buildEntitlements = (overrides: Partial<Entitlements> = {}): Entitlements 
   plan: null,
   trialEndsAt: null,
   subscriptions: [],
+  trialUsage: {},
   ...overrides,
 });
 

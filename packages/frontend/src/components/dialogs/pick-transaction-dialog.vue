@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import RecordsFiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import RecordsFilters from '@/components/records-filters/index.vue';
 import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
@@ -68,7 +69,8 @@ const handleSelect = ([tx]: [TransactionModel, TransactionModel | undefined]) =>
   isOpen.value = false;
 };
 
-const parentRef = ref<HTMLElement | null>(null);
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
+const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
 const flatTransactions = computed(() => {
   const all = transactionsPages.value?.pages?.flat() ?? [];
   if (props.excludeIds.length === 0) return all;
@@ -96,24 +98,26 @@ const isMobileView = useWindowBreakpoints(1024);
 </script>
 
 <template>
-  <ResponsiveDialog v-model:open="isOpen" dialogContentClass="max-w-[900px]">
+  <ResponsiveDialog v-model:open="isOpen" dialog-content-class="max-w-[900px] h-[85vh]" no-internal-scroll>
     <template #title>
       <span>{{ t('dialogs.pickTransaction.title') }}</span>
     </template>
 
-    <div class="grid max-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)]">
-      <div class="relative min-h-0 overflow-y-auto px-1">
+    <!-- The row tracks need a definite height to scroll each column on its own: under a bare
+         max-height an auto track grows to its content and the whole dialog scrolls instead. -->
+    <div
+      class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]"
+    >
+      <ScrollArea class="relative min-h-0 px-1">
         <template v-if="isMobileView">
           <RecordsFiltersDialog v-model:open="isFiltersDialogOpen" :isAnyFiltersApplied="isAnyFiltersApplied">
-            <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
-              <RecordsFilters
-                v-model:filters="filters"
-                :is-reset-button-disabled="isResetButtonDisabled"
-                :is-filters-out-of-sync="isFiltersOutOfSync"
-                @reset-filters="resetFilters"
-                @apply-filters="applyFilters"
-              />
-            </div>
+            <RecordsFilters
+              v-model:filters="filters"
+              :is-reset-button-disabled="isResetButtonDisabled"
+              :is-filters-out-of-sync="isFiltersOutOfSync"
+              @reset-filters="resetFilters"
+              @apply-filters="applyFilters"
+            />
           </RecordsFiltersDialog>
         </template>
         <template v-else>
@@ -125,9 +129,14 @@ const isMobileView = useWindowBreakpoints(1024);
             @apply-filters="applyFilters"
           />
         </template>
-      </div>
+      </ScrollArea>
 
-      <div v-if="transactionsPages" ref="parentRef" class="relative max-h-[60vh] min-h-0 w-full overflow-y-auto">
+      <ScrollArea
+        v-if="transactionsPages"
+        ref="scrollAreaRef"
+        class="min-h-0 w-full"
+        viewport-class="max-lg:max-h-[60vh]"
+      >
         <div :style="{ height: `${totalSize}px`, position: 'relative' }">
           <div
             v-for="virtualRow in virtualRows"
@@ -153,7 +162,7 @@ const isMobileView = useWindowBreakpoints(1024);
         <template v-if="!hasNextPage">
           <p class="flex justify-center">{{ t('transactions.list.noMoreData') }}</p>
         </template>
-      </div>
+      </ScrollArea>
     </div>
   </ResponsiveDialog>
 </template>

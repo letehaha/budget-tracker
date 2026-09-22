@@ -40,15 +40,18 @@ type AIConfigResolution = CatalogConfigResolution | CustomConfigResolution;
 export async function resolveAIConfiguration({
   userId,
   feature,
+  allowOperatorKey = false,
 }: {
   userId: number;
   feature: AI_FEATURE;
+  /** Grants the server key for this one call, for a feature the caller gates itself. */
+  allowOperatorKey?: boolean;
 }): Promise<AIConfigResolution | null> {
   const config = await getFeatureConfig({ userId, feature });
   const aiSettings = await getStoredAiSettings({ userId });
   const endpoints = aiSettings?.customEndpoints ?? [];
   const storedKeyProviders = (aiSettings?.apiKeys ?? []).map((key) => key.provider);
-  const operatorAiAllowed = await hasFeature({ userId, feature: FEATURES.operator_ai });
+  const operatorAiAllowed = allowOperatorKey || (await hasFeature({ userId, feature: FEATURES.operator_ai }));
 
   if (config && !getProviderFromModelId({ modelId: config.modelId })) {
     logger.warn('Unknown model ID in user feature config', { userId, feature, modelId: config.modelId });
