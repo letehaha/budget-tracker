@@ -24,6 +24,9 @@ export const getTransactionById = createController(
       id,
       userId,
       includeSplits,
+      // The edit form seeds `tagIds` from this response; an absent `tags` array would make
+      // the next save submit an empty tag set.
+      includeTags: true,
     });
 
     if (!fetched) return { data: null };

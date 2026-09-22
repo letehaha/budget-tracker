@@ -118,7 +118,7 @@ describe('Payee default tags', () => {
     // through the exact same `resolvePayeeForRawMerchant` → auto-tag path,
     // so this is the e2e-reachable proxy for provider syncs (same pattern as
     // extraction-from-note.e2e.ts).
-    it('applies default tags on a canonical or alias match, unless the caller sent explicit tags', async () => {
+    it('applies default tags on a canonical or alias match, merged on top of caller tags', async () => {
       await helpers.updateUserSettings({
         settings: { locale: 'en', payeeExtractionUsesDescription: true },
       });
@@ -176,7 +176,7 @@ describe('Payee default tags', () => {
       const tagsOf = (id: string) => list.find((item) => item.id === id)?.tags?.map((t) => t.id) ?? [];
 
       expect(tagsOf(canonicalTx.id)).toEqual([autoTag.id]);
-      expect(tagsOf(callerTaggedTx.id)).toEqual([manualTag.id]);
+      expect(tagsOf(callerTaggedTx.id).sort()).toEqual([autoTag.id, manualTag.id].sort());
       expect(tagsOf(aliasTx.id)).toEqual([autoTag.id]);
     }, 30000);
   });

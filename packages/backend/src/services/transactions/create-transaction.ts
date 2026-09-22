@@ -723,11 +723,9 @@ export const createTransaction = withTransaction(
           }
         }
 
-        // Payee default tags. Only when the caller sent no tag list at all —
-        // an explicit `tagIds` (even `[]`) means the client already computed
-        // the final tag set (the transaction form applies payee tags
-        // client-side, where the user may have deselected some). Add-only,
-        // so it composes with rows that gained tags through other means.
+        // Payee default tags, add-only. An explicit `tagIds` (even `[]`) is the
+        // final tag set only when the caller also picked the payee. A payee
+        // resolved here was unknown to the caller, so its defaults merge on top.
         //
         // No catch-and-continue here: `applyPayeeDefaultTags` joins this
         // create's transaction via `withTransaction`, and a failed SQL
@@ -735,7 +733,7 @@ export const createTransaction = withTransaction(
         // error would just poison every subsequent query before commit.
         // Letting it propagate keeps the create atomic and surfaces a real
         // error to the caller instead of silently dropping tags.
-        if (tagIds === undefined) {
+        if (tagIds === undefined || !callerPayeeId) {
           await applyPayeeDefaultTags({
             accountOwnerUserId,
             transactionId: baseTransaction!.id,

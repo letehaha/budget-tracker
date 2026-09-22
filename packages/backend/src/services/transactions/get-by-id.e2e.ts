@@ -186,6 +186,31 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((unknownIdRes as any).body.response).toBeNull();
   });
+
+  it('always returns tags: tagged tx lists its tags, untagged tx gets an empty array', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const tag = await helpers.createTag({
+      payload: helpers.buildTagPayload({ name: 'Groceries' }),
+      raw: true,
+    });
+    const [tagged] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id, amount: 20 }),
+        tagIds: [tag.id],
+      },
+      raw: true,
+    });
+    const [untagged] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 30 }),
+      raw: true,
+    });
+
+    const taggedRes = await helpers.getTransactionById({ id: tagged.id, raw: true });
+    expect(taggedRes!.tags!.map((t) => t.id)).toEqual([tag.id]);
+
+    const untaggedRes = await helpers.getTransactionById({ id: untagged.id, raw: true });
+    expect(untaggedRes!.tags).toEqual([]);
+  });
 });
 
 describe('GET /transactions/:id — canEdit flag', () => {

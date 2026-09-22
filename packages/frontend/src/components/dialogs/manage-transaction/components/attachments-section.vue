@@ -133,7 +133,11 @@ const triggerLabel = computed(() => {
   if (isLoading.value) return t('dialogs.manageTransaction.form.attachments.loading');
   if (items.value.length === 1) return items.value[0]!.filename;
   if (items.value.length) {
-    return t('dialogs.manageTransaction.form.attachments.trigger.count', { count: items.value.length }, items.value.length);
+    return t(
+      'dialogs.manageTransaction.form.attachments.trigger.count',
+      { count: items.value.length },
+      items.value.length,
+    );
   }
   return t('dialogs.manageTransaction.form.attachments.trigger.empty');
 });

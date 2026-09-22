@@ -72,5 +72,13 @@ export interface UI_FORM_STRUCT {
 /** Creation-mode starting values. Narrow on purpose: prefilling anything else is unsupported. */
 export type TransactionPrefill = Pick<
   UI_FORM_STRUCT,
-  'type' | 'account' | 'amount' | 'time' | 'note' | 'externalReference' | 'externalUrl' | 'originalAmount' | 'originalCurrency'
+  | 'type'
+  | 'account'
+  | 'amount'
+  | 'time'
+  | 'note'
+  | 'externalReference'
+  | 'externalUrl'
+  | 'originalAmount'
+  | 'originalCurrency'
 >;
