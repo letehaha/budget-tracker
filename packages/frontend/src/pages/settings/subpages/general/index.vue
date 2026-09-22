@@ -124,6 +124,24 @@
         <div class="flex items-center justify-between gap-4">
           <div class="flex-1">
             <div class="text-sm font-medium">
+              {{ $t('settings.general.quickStart.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.quickStart.description') }}
+            </p>
+          </div>
+          <Switch
+            :model-value="!isQuickStartDismissed"
+            :disabled="!isOnboardingInitialized"
+            @update:model-value="handleQuickStartToggle"
+          />
+        </div>
+
+        <Separator />
+
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex-1">
+            <div class="text-sm font-medium">
               {{ $t('settings.general.showUpcomingTransactions.label') }}
             </div>
             <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
@@ -207,6 +225,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { filterDropdownAccounts, useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useAccountsStore } from '@/stores';
+import { useOnboardingStore } from '@/stores/onboarding';
 import { AccountModel, TRANSACTION_OPTIONAL_FIELDS, TransactionOptionalField } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -218,6 +237,8 @@ const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { data: userSettings, mutateAsync, isUpdating, patchAsync, isPatching } = useUserSettings();
 const { accountsRecord, txTargetableSourceAccountsActiveFirst } = storeToRefs(useAccountsStore());
+const onboardingStore = useOnboardingStore();
+const { isDismissed: isQuickStartDismissed, isInitialized: isOnboardingInitialized } = storeToRefs(onboardingStore);
 const {
   defaultAccountId,
   showArchivedInDropdowns,
@@ -332,6 +353,9 @@ const handleDefaultAccountChange = (account: AccountModel | null) =>
 
 const handleShowArchivedToggle = (value: boolean) =>
   applyDropdownPref({ update: () => setShowArchivedInDropdowns({ value }) });
+
+const handleQuickStartToggle = (value: boolean) =>
+  value ? onboardingStore.reopen() : onboardingStore.dismissPermanently();
 
 const handleShowUpcomingToggle = async (value: boolean) => {
   try {
