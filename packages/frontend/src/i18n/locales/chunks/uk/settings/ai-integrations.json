@@ -15,18 +15,18 @@
         "openSettings": "Відкрити налаштування",
         "claude": {
           "steps": {
-            "createConnector": "Натисніть значок {icon} поруч із \"Connectors\", щоб створити нове з'єднання",
+            "createConnector": "Натисніть значок {icon} поруч із «Connectors», щоб створити новий конектор",
             "selectCustom": "Виберіть {action}",
-            "enterName": "Для поля \"Name\" введіть {value}",
-            "pasteUrl": "Для поля \"Remote MCP server URL\" вставте {value}",
-            "finish": "Залиште \"Advanced settings\" пустим і натисніть {action}",
+            "enterName": "Для поля «Name» введіть {value}",
+            "pasteUrl": "Для поля «Remote MCP server URL» вставте {value}",
+            "finish": "Залиште розділ «Advanced settings» порожнім і натисніть {action}",
             "authorize": "Вас буде перенаправлено в MoneyMatter для авторизації доступу"
           }
         },
         "chatgpt": {
           "steps": {
             "addConnector": "Натисніть {action}",
-            "pasteUrl": "Для поля \"URL\" вставте {value}",
+            "pasteUrl": "Для поля «URL» вставте {value}",
             "clickAdd": "Натисніть {action}",
             "authorize": "Вас буде перенаправлено в MoneyMatter для авторизації доступу"
           }

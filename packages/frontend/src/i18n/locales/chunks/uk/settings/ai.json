@@ -205,7 +205,7 @@
         },
         "compatibilityHint": "Ендпоінт має бути сумісним з OpenAI. Працює з Ollama, vLLM, OpenRouter, LM Studio та будь-яким /v1 проксі.",
         "test": {
-          "success": "З'єднання успішне.",
+          "success": "З'єднання встановлено.",
           "failed": "Не вдалося з'єднатися з ендпоінтом."
         },
         "notifications": {

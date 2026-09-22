@@ -41,13 +41,13 @@
             "parseFailed": "Не вдалося розібрати файл. Перевірте формат та спробуйте знову.",
             "merge": {
               "emptySelection": "Виберіть принаймні один CSV-файл",
-              "fileReadFailed": "Не вдалося прочитати \"{file}\"",
-              "fileEmpty": "\"{file}\" порожній",
-              "fileNoDataRows": "\"{file}\" не містить рядків даних",
-              "headerMismatch": "Стовпці у \"{file}\" не збігаються з першим файлом. Усі файли повинні мати однакові стовпці в однаковому порядку.",
-              "forbiddenHeader": "\"{file}\" використовує зарезервовану назву стовпця",
+              "fileReadFailed": "Не вдалося прочитати «{file}»",
+              "fileEmpty": "«{file}» порожній",
+              "fileNoDataRows": "«{file}» не містить рядків даних",
+              "headerMismatch": "Стовпці у «{file}» не збігаються з першим файлом. Усі файли повинні мати однакові стовпці в однаковому порядку.",
+              "forbiddenHeader": "«{file}» використовує зарезервовану назву стовпця",
               "tooManyRows": "Вибрані файли містять більше {max} рядків. Видаліть деякі файли або рядки та спробуйте знову.",
-              "parseError": "Не вдалося обробити \"{file}\". Переконайтеся, що це коректний CSV-файл."
+              "parseError": "Не вдалося обробити «{file}». Переконайтеся, що це коректний CSV-файл."
             }
           }
         },
@@ -145,10 +145,10 @@
         "detecting": "Виявлення дублікатів…"
       },
       "common": {
-        "selectOption": "Вибрати опцію...",
-        "selectColumn": "Вибрати стовпець...",
+        "selectOption": "Виберіть опцію...",
+        "selectColumn": "Виберіть стовпець...",
         "noneOptional": "Немає (необов'язково)",
-        "selectAction": "Вибрати дію..."
+        "selectAction": "Виберіть дію..."
       },
       "transactionTypeMapping": {
         "columnLabel": "Стовпець типу транзакції",
@@ -156,7 +156,7 @@
         "expenseValuesLabel": "Значення витрат",
         "commaSeparatedHint": "Значення, розділені комами",
         "uncoveredValues": "Ці значення у стовпці типу ще не призначені до Доходу або Витрати: {values}. Додайте кожне до відповідного списку вище, щоб продовжити.",
-        "selectColumn": "Вибрати стовпець...",
+        "selectColumn": "Виберіть стовпець...",
         "incomeValuesPlaceholder": "напр., Credit, Deposit, Income",
         "expenseValuesPlaceholder": "напр., Debit, Withdrawal, Expense",
         "methodOptions": {
@@ -166,17 +166,17 @@
         "amountSignInfo": "ℹ️ Типи транзакцій визначатимуться автоматично: від'ємні суми = витрати, додатні суми = доходи"
       },
       "currencyMapping": {
-        "selectCurrency": "Вибрати валюту...",
+        "selectCurrency": "Виберіть валюту...",
         "methodOptions": {
           "dataSourceColumn": "Зі стовпця CSV",
           "existingCurrency": "Використовувати одну валюту для всіх транзакцій"
         }
       },
       "categoryMapping": {
-        "selectCategory": "Вибрати категорію..."
+        "selectCategory": "Виберіть категорію..."
       },
       "accountMapping": {
-        "selectAccount": "Вибрати рахунок..."
+        "selectAccount": "Виберіть рахунок..."
       },
       "accountAssignment": {
         "title": "Призначення рахунків",
@@ -204,10 +204,10 @@
           "mapToExisting": "Зіставити з існуючим рахунком"
         },
         "noMatchingCurrency": "Немає доступних рахунків з відповідною валютою ({currency})",
-        "willBeCreated": "Новий рахунок \"{name}\" буде створений з валютою {currency}",
+        "willBeCreated": "Новий рахунок «{name}» буде створений з валютою {currency}",
         "defaultCurrency": "за замовчуванням",
-        "mappedTo": "зіставлений з \"{name}\"",
-        "selectAccount": "Вибрати рахунок..."
+        "mappedTo": "зіставлений з «{name}»",
+        "selectAccount": "Виберіть рахунок..."
       },
       "categoryMappingTable": {
         "csvCategoryName": "Назва категорії CSV"
@@ -223,7 +223,7 @@
         "csvTagName": "Значення тегу CSV"
       },
       "resolveValues": {
-        "selectAction": "Вибрати дію",
+        "selectAction": "Виберіть дію",
         "actions": {
           "createNew": "Створити новий",
           "linkExisting": "Прив'язати до існуючого",
@@ -250,9 +250,9 @@
           "currency": "Валюта",
           "action": "Дія",
           "target": "Цільовий рахунок",
-          "selectTarget": "Вибрати рахунок",
+          "selectTarget": "Виберіть рахунок",
           "noMatchingCurrency": "Немає рахунків з валютою {currency}",
-          "willCreate": "Буде створено \"{name}\" ({currency})",
+          "willCreate": "Буде створено «{name}» ({currency})",
           "empty": "У CSV не знайдено рахунків",
           "currentBalanceLabel": "Поточний баланс",
           "currentBalancePlaceholder": "0.00",
@@ -269,8 +269,8 @@
           "csvName": "Тег CSV",
           "action": "Дія",
           "target": "Цільовий тег",
-          "selectTarget": "Вибрати тег",
-          "willCreate": "Буде створено \"{name}\"",
+          "selectTarget": "Виберіть тег",
+          "willCreate": "Буде створено «{name}»",
           "willSkip": "Буде пропущено",
           "noExistingTags": "Немає існуючих тегів для прив'язки",
           "loadFailed": "Не вдалося завантажити теги",

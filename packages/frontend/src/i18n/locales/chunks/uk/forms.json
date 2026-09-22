@@ -13,7 +13,7 @@
       "securityPlaceholder": "Виберіть цінний папір",
       "quantityLabel": "Кількість",
       "quantityPlaceholder": "0.00",
-      "priceLabel": "Ціна за акцію",
+      "priceLabel": "Ціна за одиницю",
       "pricePlaceholder": "0.00",
       "priceHelp": "Вкажіть 0 для стейкінг-винагород, аірдропів або коригування балансу.",
       "feesLabel": "Комісії (необов'язково)",
@@ -103,7 +103,7 @@
       "submitButtonLoading": "Обробка...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "description": "Буде створено {action} на {amount} з «{from}» до «{to}»",
         "actionTransfer": "переказ",
         "actionWithdrawal": "зняття",
         "actionDeposit": "поповнення",
@@ -171,7 +171,7 @@
       "submitButtonLoading": "Зберігається...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "description": "Буде створено {action} на {amount} з «{from}» до «{to}»",
         "cancelButton": "Скасувати",
         "confirmButton": "Підтвердити",
         "actionDeposit": "поповнення",
@@ -199,15 +199,15 @@
       "amountPlaceholder": "0.00",
       "maxButton": "Максимум: {amount}",
       "dateLabel": "Дата обміну",
-      "descriptionLabel": "Опис (необовязково)",
+      "descriptionLabel": "Опис (необов'язково)",
       "descriptionPlaceholder": "Додайте примітку про цей обмін...",
       "cancelButton": "Скасувати",
       "submitButton": "Обміняти",
       "submitButtonLoading": "Обробка...",
       "validation": {
-        "required": "Це поле обовязкове",
+        "required": "Це поле обов'язкове",
         "minValue": "Сума повинна бути більше 0",
-        "sameCurrency": "Валюти \"З\" і \"На\" повинні бути різними"
+        "sameCurrency": "Вихідна та цільова валюти мають бути різними"
       },
       "notifications": {
         "success": "Валюту успішно обміняно",
@@ -307,7 +307,7 @@
   "fields": {
     "categorySelect": {
       "noCategoriesFound": "Категорій не знайдено",
-      "selectCategoryLabel": "Вибрати категорію",
+      "selectCategoryLabel": "Виберіть категорію",
       "searchCategoryLabel": "Шукати категорію",
       "clearSearchLabel": "Очистити пошук",
       "clearSelectionLabel": "Очистити вибір",
@@ -317,7 +317,7 @@
       "sharedOwnerCategoriesLoadError": "Не вдалося завантажити категорії спільного рахунку. Спробуйте ще раз."
     },
     "select": {
-      "selectOption": "Вибрати опцію",
+      "selectOption": "Виберіть опцію",
       "searchPlaceholder": "Пошук..."
     },
     "currencySelect": {
@@ -374,7 +374,7 @@
       "placeholder": "Виберіть отримувача платежу",
       "searchPlaceholder": "Шукати отримувачів…",
       "empty": "Отримувачів платежу поки немає",
-      "createAffordance": "Створити отримувача \"{name}\"",
+      "createAffordance": "Створити отримувача «{name}»",
       "createNew": "Створити нового отримувача",
       "sharedOwnerPayeesLoadError": "Не вдалося завантажити отримувачів платежу спільного рахунку. Спробуйте ще раз."
     }

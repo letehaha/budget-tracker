@@ -11,7 +11,7 @@
     "card": {
       "hidden": "Прихований",
       "portfolioType": "Портфель {type}",
-      "costBasis": "Собівартість"
+      "costBasis": "Базова вартість"
     },
     "empty": {
       "title": "Портфелів ще немає",
@@ -28,7 +28,7 @@
       "purgeButton": "Видалити зараз",
       "purgingButton": "Видалення…",
       "confirmPurgeTitle": "Безповоротно видалити портфель?",
-      "confirmPurge": "Безповоротно видалити \"{name}\"? Це неможливо буде скасувати.",
+      "confirmPurge": "Безповоротно видалити «{name}»? Цю дію неможливо скасувати.",
       "tryAgain": "Спробувати ще раз",
       "notifications": {
         "restored": "Портфель відновлено",

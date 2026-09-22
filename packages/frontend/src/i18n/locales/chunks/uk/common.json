@@ -56,7 +56,7 @@
       "copyToClipboardFailed": "Не вдалося скопіювати до буфера обміну"
     },
     "notifications": {
-      "subscriptionCurrencyNotConnected": "Підсумок підписок не може конвертувати {currencies} у вашу базову валюту. Підключіть валюту в Налаштування → Валюти.",
+      "subscriptionCurrencyNotConnected": "Підсумок регулярних платежів не може конвертувати {currencies} у вашу базову валюту. Підключіть валюту в «Налаштування → Валюти».",
       "backgroundJobFailed": "Поки вас не було, фонове завдання завершилося з помилкою: {error}",
       "inviteLinkCopied": "Посилання-запрошення скопійовано в буфер обміну"
     },
@@ -448,7 +448,7 @@
       "deleteAction": "Видалити групу",
       "transactionsLabel": "Транзакції",
       "deleteGroupTitle": "Видалити групу",
-      "deleteGroupDescription": "Ви впевнені, що хочете видалити \"{groupName}\"? Транзакції не будуть видалені.",
+      "deleteGroupDescription": "Ви впевнені, що хочете видалити «{groupName}»? Транзакції не будуть видалені.",
       "removeTransactionTitle": "Видалити транзакцію з групи",
       "removeTransactionDescription": "Це залишить менше 2 транзакцій у групі, тому група буде видалена. Продовжити?",
       "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",

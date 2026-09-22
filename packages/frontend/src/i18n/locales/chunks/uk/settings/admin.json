@@ -44,7 +44,7 @@
         "fieldMapper": {
           "title": "Зіставлення полів",
           "description": "Зіставте поля вашого файлу з обов'язковими полями нижче.",
-          "selectField": "Вибрати поле...",
+          "selectField": "Виберіть поле...",
           "dateFormatLabel": "Формат дати",
           "dateFormatDescription": "Виберіть формат дати, що використовується у вашому файлі",
           "dateFormats": {

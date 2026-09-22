@@ -235,7 +235,7 @@
     "latestRecords": {
       "config": {
         "includeScheduled": {
-          "label": "Включити заплановані платежі",
+          "label": "Включити регулярні платежі",
           "on": "Увім.",
           "off": "Вимк."
         }

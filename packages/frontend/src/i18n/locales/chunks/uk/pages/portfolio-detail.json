@@ -22,7 +22,7 @@
         "costBasis": "Базова вартість",
         "unrealized": "Нереалізований",
         "realized": "Реалізований",
-        "totalReturn": "Загальний дохід"
+        "totalReturn": "Загальна дохідність"
       }
     },
     "cashBalances": {
@@ -61,7 +61,7 @@
       },
       "buysSells": {
         "emptyState": "Немає операцій купівлі/продажу",
-        "shares": "акцій"
+        "shares": "од."
       }
     },
     "holdings": {
@@ -81,9 +81,9 @@
       "headers": {
         "symbol": "Символ",
         "name": "Назва",
-        "shares": "Акції",
+        "shares": "Кількість",
         "price": "Ціна",
-        "avgCostPerShare": "СВ/Акція",
+        "avgCostPerShare": "СВ за одиницю",
         "totalCost": "Загальна вартість",
         "marketValue": "Ринкова вартість",
         "unrealizedGain": "Нереалізований прибуток",

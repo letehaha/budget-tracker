@@ -19,7 +19,7 @@
           "parsing": "Читання файлу…",
           "continue": "Продовжити",
           "errors": {
-            "invalidFormatNamed": "\"{name}\" не є файлом OFX або QFX."
+            "invalidFormatNamed": "«{name}» не є файлом OFX або QFX."
           }
         },
         "errors": {

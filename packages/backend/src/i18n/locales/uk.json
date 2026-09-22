@@ -1,6 +1,6 @@
 {
   "common": {
-    "processAlreadyLocked": "Процес синхронізації для \"{{lockKey}}\" вже заблоковано.",
+    "processAlreadyLocked": "Процес синхронізації для «{{lockKey}}» вже заблоковано.",
     "serviceTemporarilyUnavailable": "Сервіс тимчасово недоступний. Спробуйте ще раз."
   },
   "accounts": {
@@ -18,7 +18,7 @@
   },
   "balanceAdjustment": {
     "defaultNote": "Коригування балансу",
-    "accountNotFound": "Рахунок з id \"{{accountId}}\" не знайдено.",
+    "accountNotFound": "Рахунок з id «{{accountId}}» не знайдено.",
     "vehicleUseOverride": "Вартість транспортного засобу можна змінити лише на його сторінці.",
     "vehicleNegativeValue": "Вартість транспортного засобу не може бути від'ємною."
   },
@@ -126,11 +126,11 @@
     "notifications": {
       "thresholdExceeded": {
         "title": "Сповіщення про витрати по тегу",
-        "message": "Ваші витрати на \"{{tagName}}\" ({{actualAmount}}) перевищили встановлений поріг {{thresholdAmount}}"
+        "message": "Ваші витрати на «{{tagName}}» ({{actualAmount}}) перевищили встановлений поріг {{thresholdAmount}}"
       },
       "existenceCheck": {
         "title": "Підсумок активності тегу",
-        "message": "У вас {{count}} транзакцій з тегом \"{{tagName}}\""
+        "message": "У вас транзакцій з тегом «{{tagName}}»: {{count}}"
       }
     }
   },
@@ -160,14 +160,14 @@
     "currencyNotFound": "Валюту не знайдено",
     "transactionNotFound": "Інвестиційну транзакцію не знайдено",
     "userBaseCurrencyNotFound": "Базову валюту користувача не знайдено",
-    "insufficientSharesToSell": "Недостатньо акцій для продажу. Після цього оновлення у вас буде {{adjustedQuantity}} акцій, але ви намагаєтесь продати {{sellQuantity}} акцій.",
+    "insufficientSharesToSell": "Недостатня кількість для продажу. Після цього оновлення кількість становитиме {{adjustedQuantity}}, а кількість для продажу — {{sellQuantity}}.",
     "sourceAndDestinationMustDiffer": "Вихідний і цільовий портфелі повинні бути різними",
     "transferAmountMustBePositive": "Сума переказу повинна бути більше нуля",
     "sourcePortfolioNotFound": "Вихідний портфель не знайдено",
     "destinationPortfolioNotFound": "Цільовий портфель не знайдено",
     "sourceAccountNotFound": "Вихідний рахунок не знайдено",
     "destinationAccountNotFound": "Цільовий рахунок не знайдено",
-    "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть всі акції.",
+    "cannotDeleteHoldingWithActivePosition": "Не можна видалити актив з активною позицією. Будь ласка, спочатку продайте або перекажіть усі одиниці активу.",
     "transactionAlreadyTransfer": "Транзакція вже позначена як переказ і не може бути прив'язана до портфеля.",
     "transactionAlreadyLinkedToPortfolio": "Транзакція вже прив'язана до переказу в портфель.",
     "transactionAlreadyLinkedToVenture": "Транзакція вже прив'язана до венчурної угоди",
@@ -189,13 +189,13 @@
     "correctionOverpay": "Скоригований залишок призвів би до переплати кредиту на {{overpayAmount}}: платежі на загальну суму {{paymentsTotal}} датовані на дату {{asOfDate}} або пізніше"
   },
   "errors": {
-    "connectionNotFound": "З'єднання не знайдено",
-    "connectionNotFoundOrNotYours": "З'єднання не знайдено або не належить вам",
+    "connectionNotFound": "Підключення не знайдено",
+    "connectionNotFoundOrNotYours": "Підключення не знайдено або не належить вам",
     "providerNoReauthorization": "Провайдер {{providerType}} не підтримує повторну авторизацію",
     "providerNotFoundInRegistry": "Провайдер {{providerType}} не знайдено в реєстрі",
-    "connectionIdNotFound": "З'єднання банківського провайдера {{connectionId}} не знайдено",
+    "connectionIdNotFound": "Підключення банківського провайдера {{connectionId}} не знайдено",
     "accountIdNotFound": "Рахунок {{accountId}} не знайдено",
-    "providerTypeMismatch": "З'єднання {{connectionId}} призначене для провайдера {{actualType}}, а не {{expectedType}}",
+    "providerTypeMismatch": "Підключення {{connectionId}} призначене для провайдера {{actualType}}, а не {{expectedType}}",
     "providerAlreadyRegistered": "Провайдер {{providerType}} вже зареєстрований. Не можна реєструвати дублікати провайдерів.",
     "providerNotRegistered": "Провайдер {{providerType}} не зареєстрований. Доступні провайдери: {{available}}",
     "missingRequiredProviders": "Відсутні необхідні банківські провайдери: {{missing}}. Переконайтеся, що ці провайдери зареєстровані при запуску програми."
@@ -214,32 +214,32 @@
   },
   "bankDataProviders": {
     "reauthorizationStarted": "Повторну авторизацію розпочато. Будь ласка, завершіть процес OAuth.",
-    "connectionEstablished": "З'єднання успішно встановлено",
+    "connectionEstablished": "Підключення встановлено",
     "failedToFetchBanks": "Не вдалося отримати список банків. Перевірте ваші облікові дані та код країни.",
     "failedToFetchCountries": "Не вдалося отримати список країн. Перевірте ваші облікові дані.",
-    "accountNotLinkedToConnection": "Рахунок не знайдено або не прив'язаний до цього з'єднання",
-    "accountAlreadyConnectedToAnotherConnection": "Рахунок \"{{account}}\" вже підключено через \"{{connection}}\". Спочатку відключіть його там.",
-    "cannotLoadBeforeLinkDate": "Не можна завантажити транзакції до дати прив'язки рахунку ({{linkedAt}}). Цей рахунок був прив'язаний за стратегією \"лише вперед\" для запобігання дублювання даних.",
+    "accountNotLinkedToConnection": "Рахунок не знайдено або його не прив'язано до цього підключення",
+    "accountAlreadyConnectedToAnotherConnection": "Рахунок «{{account}}» вже підключено через «{{connection}}». Спочатку відключіть його там.",
+    "cannotLoadBeforeLinkDate": "Не можна завантажити транзакції до дати прив'язки рахунку ({{linkedAt}}). Цей рахунок був прив'язаний за стратегією «лише вперед» для запобігання дублюванню даних.",
     "dateRangeExceedsLimit": "Діапазон дат не може перевищувати 1 рік.",
     "fromAfterTo": "Дата \"from\" повинна бути раніше дати \"to\"",
     "fromMustBeValidDate": "\"from\" повинен бути дійсним рядком дати",
     "toMustBeValidDate": "\"to\" повинен бути дійсним рядком дати",
-    "reconciliationOnlyForEnableBanking": "Узгодження дублікатів доступне лише для з'єднань Enable Banking",
+    "reconciliationOnlyForEnableBanking": "Узгодження дублікатів доступне лише для підключень Enable Banking",
     "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
     "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
-    "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",
+    "accountCurrencyNotSupported": "Валюта рахунку «{{currency}}» не підтримується системою.",
     "periodLoadNotSupported": "Завантаження транзакцій за довільний період не підтримується цим провайдером.",
-    "transactionsLoadedCount": "Завантажено {{count}} транзакцій.",
-    "transactionsAllDuplicates": "Знайдено {{count}} транзакцій за цей період — усі вже були імпортовані.",
+    "transactionsLoadedCount": "Завантажено транзакцій: {{count}}.",
+    "transactionsAllDuplicates": "Знайдено транзакцій за цей період: {{count}} — усі вже були імпортовані.",
     "transactionsNoneInPeriod": "Провайдер не повернув жодної транзакції за цей період.",
     "apiError": "Помилка API {{provider}}: {{message}}",
-    "currencySelectionRequired": "Рахунок \"{{account}}\" не має валюти, повідомленої банком — оберіть для нього валюту перед підключенням.",
+    "currencySelectionRequired": "Рахунок «{{account}}» не має валюти, повідомленої банком — оберіть для нього валюту перед підключенням.",
     "monobank": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
       "invalidApiToken": "Недійсний API токен Monobank",
       "rateLimitExceeded": "Перевищено ліміт запитів до API Monobank. Спробуйте ще раз через хвилину.",
       "accountNotFound": "Рахунок {{accountExternalId}} не знайдено в Monobank",
-      "accountReconnectRequired": "Цей рахунок більше не доступний у Monobank. Будь ласка, повторно підключіть з'єднання з Monobank, щоб відновити синхронізацію.",
+      "accountReconnectRequired": "Цей рахунок більше не доступний у Monobank. Будь ласка, повторно підключіть Monobank, щоб відновити синхронізацію.",
       "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
       "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}",
       "geoBlocked": "Monobank блокує запити з IP-адреси цього сервера. Вимкніть VPN або використайте українську IP-адресу.",
@@ -249,12 +249,12 @@
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Enable Banking",
       "invalidRsaKey": "Недійсний формат RSA приватного ключа",
       "invalidCredentials": "Недійсні облікові дані Enable Banking",
-      "authUrlNotFound": "URL авторизації не знайдено для цього з'єднання",
+      "authUrlNotFound": "URL авторизації не знайдено для цього підключення",
       "invalidOAuthState": "Недійсний параметр стану OAuth",
       "oAuthStateExpired": "Стан OAuth закінчився або недійсний",
       "oAuthAuthorizationFailed": "Авторизація OAuth не вдалася: {{error}}",
       "invalidStoredCredentials": "Недійсні збережені облікові дані",
-      "bankInfoNotFound": "Інформацію про банк не знайдено в метаданих з'єднання",
+      "bankInfoNotFound": "Інформацію про банк не знайдено в метаданих підключення",
       "noActiveSession": "Немає активної сесії. Спочатку завершіть процес OAuth.",
       "noActiveSessionGeneric": "Немає активної сесії",
       "noBalanceInfo": "Інформація про баланс недоступна",
@@ -294,15 +294,15 @@
     "csvFileMalformed": "Не вдалося розпарсити CSV файл. Перевірте, чи немає незакритих лапок або неочікуваного роздільника, або спробуйте експортувати файл повторно.",
     "csvFileTooManyRows": "CSV файл перевищує максимально дозволену кількість рядків {{max}}.",
     "csvFileForbiddenHeader": "CSV файл містить назву заголовку, яка не дозволена.",
-    "invalidDateFormat": "Недійсний формат дати: \"{{dateStr}}\". Очікується формат ISO (РРРР-ММ-ДД).",
-    "invalidAmount": "Недійсна сума: \"{{amountStr}}\". Очікується числове значення.",
+    "invalidDateFormat": "Недійсний формат дати: «{{dateStr}}». Очікується формат ISO (РРРР-ММ-ДД).",
+    "invalidAmount": "Недійсна сума: «{{amountStr}}». Очікується числове значення.",
     "accountNameEmpty": "Назва рахунку порожня",
     "currencyCodeEmpty": "Код валюти порожній",
-    "unknownTransactionType": "Невідомий тип транзакції: \"{{typeValue}}\"",
-    "dateColumnNotFound": "Стовпець дати \"{{columnName}}\" не знайдено в CSV",
-    "amountColumnNotFound": "Стовпець суми \"{{columnName}}\" не знайдено в CSV",
-    "invalidDefaultCurrency": "Недійсний код валюти за замовчуванням: \"{{defaultCurrency}}\"",
-    "payeeColumnNotFound": "Стовпець отримувача \"{{column}}\" не знайдено в заголовках CSV"
+    "unknownTransactionType": "Невідомий тип транзакції: «{{typeValue}}»",
+    "dateColumnNotFound": "Стовпець дати «{{columnName}}» не знайдено в CSV",
+    "amountColumnNotFound": "Стовпець суми «{{columnName}}» не знайдено в CSV",
+    "invalidDefaultCurrency": "Недійсний код валюти за замовчуванням: «{{defaultCurrency}}»",
+    "payeeColumnNotFound": "Стовпець отримувача «{{column}}» не знайдено в заголовках CSV"
   },
   "importExport": {
     "batchDeleteBankLinkedAccount": "Цей імпорт більше не можна скасувати, оскільки його рахунок тепер підключено до банку. Видалення цих транзакцій може порушити синхронізований баланс.",
@@ -339,15 +339,15 @@
     "userSettingsNotFound": "Налаштування користувача не знайдено"
   },
   "users": {
-    "usernameAlreadyTaken": "Ім'я користувача \"{{username}}\" вже зайняте"
+    "usernameAlreadyTaken": "Ім'я користувача «{{username}}» вже зайняте"
   },
   "userCurrencies": {
     "baseCurrencyExists": "Базова валюта вже існує!",
     "currencyCodeNotExist": "Валюта з переданим кодом не існує.",
-    "currencyNotExist": "Валюта з кодом \"{{currencyCode}}\" не існує.",
+    "currencyNotExist": "Валюта з кодом «{{currencyCode}}» не існує.",
     "cannotDeleteDefaultCurrency": "Не дозволено видаляти валюту за замовчуванням. Спочатку зніміть статус за замовчуванням.",
-    "cannotDeleteCurrencyWithAccounts": "Не дозволено видаляти валюту, пов'язану з рахунками. Спочатку видаліть рахунки. Назви рахунків: \"{{accountNames}}\".",
-    "cannotDeleteCurrencyWithInvestments": "Не можна видалити валюту \"{{currencyCode}}\", доки вона використовується в інвестиційних активах. Спочатку видаліть ці активи.",
+    "cannotDeleteCurrencyWithAccounts": "Не дозволено видаляти валюту, пов'язану з рахунками. Спочатку видаліть рахунки. Назви рахунків: «{{accountNames}}».",
+    "cannotDeleteCurrencyWithInvestments": "Не можна видалити валюту «{{currencyCode}}», доки вона використовується в інвестиційних активах. Спочатку видаліть ці активи.",
     "defaultCurrencyNotPresent": "Не можна видалити валюту. Валюта за замовчуванням відсутня в системі"
   },
   "ai": {
@@ -355,8 +355,8 @@
     "noApiKeyForProvider": "API ключ не налаштовано для провайдера: {{provider}}",
     "customEndpointUnreachable": "Не вдалося з'єднатися з ендпоінтом. Перевірте базовий URL і переконайтеся, що сервер працює та доступний з інтернету.",
     "customEndpointAuthFailed": "Ендпоінт відхилив API ключ. Перевірте, що ключ правильний і має необхідні дозволи.",
-    "customEndpointModelNotFound": "Ендпоінт не надає модель з назвою \"{{model}}\".",
-    "customEndpointModelNotListed": "Ендпоінт не надає \"{{model}}\". Доступні моделі: {{available}}.",
+    "customEndpointModelNotFound": "Ендпоінт не надає модель з назвою «{{model}}».",
+    "customEndpointModelNotListed": "Ендпоінт не надає «{{model}}». Доступні моделі: {{available}}.",
     "customEndpointMoreModels": "та ще {{count}}",
     "customEndpointNotApiResponse": "Сервер за цією URL-адресою відповів HTTP {{status}} замість відповіді, сумісної з OpenAI. Перевірте, що сервер працює і що базовий URL правильний — зазвичай він закінчується на /v1.",
     "customEndpointValidationFailed": "Ендпоінт не повернув придатну відповідь. Перевірте базовий URL, назву моделі та API ключ.",
@@ -483,8 +483,8 @@
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу.",
     "cannotLinkDifferentTransactionType": "Неможливо прив'язати транзакції з типом, відмінним від типу регулярного платежу",
-    "summaryCurrencyNotConnected": "Неможливо розрахувати підсумок підписок: валюту {{currencyCodes}} не підключено до вашого акаунту. Підключіть її в Налаштування → Валюти.",
-    "summaryBaseCurrencyNotSet": "Базову валюту не встановлено. Встановіть валюту за замовчуванням у ваших налаштуваннях, щоб переглянути підсумок підписок.",
+    "summaryCurrencyNotConnected": "Неможливо розрахувати підсумок регулярних платежів: валюту {{currencyCodes}} не підключено до вашого облікового запису. Підключіть її в «Налаштування → Валюти».",
+    "summaryBaseCurrencyNotSet": "Базову валюту не встановлено. Встановіть валюту за замовчуванням у ваших налаштуваннях, щоб переглянути підсумок регулярних платежів.",
     "payeeNotFoundOrNotBelongToUser": "Отримувача платежу не знайдено або він не належить користувачу.",
     "tagsNotFoundOrNotBelongToUser": "Один або кілька тегів не знайдено або вони не належать користувачу.",
     "validation": {
@@ -512,14 +512,14 @@
   "payees": {
     "aliasNameRequired": "Назва псевдоніма обов'язкова",
     "aliasNotFound": "Псевдонім не знайдено",
-    "aliasUsedByOtherPayee": "Цей псевдонім вже використовується отримувачем \"{{name}}\"",
-    "nameUsedByAliasOfOtherPayee": "Ця назва вже використовується як псевдонім отримувача \"{{name}}\"",
-    "cannotDeleteCanonicalAlias": "Неможливо видалити псевдонім, який відповідає канонічному імені Отримувача. Замість цього перейменуйте Отримувача, якщо хочете змінити його основну назву.",
+    "aliasUsedByOtherPayee": "Цей псевдонім вже використовується отримувачем «{{name}}»",
+    "nameUsedByAliasOfOtherPayee": "Ця назва вже використовується як псевдонім отримувача «{{name}}»",
+    "cannotDeleteCanonicalAlias": "Неможливо видалити псевдонім, який відповідає канонічному імені отримувача. Замість цього перейменуйте отримувача, якщо хочете змінити його основну назву.",
     "defaultCategoryNotOwned": "Обрана типова категорія не належить вашому акаунту",
     "defaultTagsNotOwned": "Один або кілька тегів не належать користувачу",
     "duplicateAlias": "Цей псевдонім вже прив'язано до цього отримувача",
     "duplicateName": "Отримувач з такою назвою вже існує",
-    "ignoredNameCollidesWithPayee": "Отримувач з такою назвою вже існує. Спочатку видаліть Отримувача або передайте `force: true`, щоб видалити його як частину цієї операції.",
+    "ignoredNameCollidesWithPayee": "Отримувач з такою назвою вже існує. Спочатку видаліть отримувача або передайте `force: true`, щоб видалити його як частину цієї операції.",
     "ignoredNameNotFound": "Проігноровану назву не знайдено.",
     "mergeSelf": "Не можна об'єднати отримувача із самим собою",
     "nameRequired": "Назва отримувача обов'язкова",
@@ -531,8 +531,8 @@
     "colorRequiresInitials": "Колір монограми потребує літер монограми."
   },
   "venture": {
-    "dealNotFound": "Угоду венчура не знайдено",
-    "eventNotFound": "Подію венчура не знайдено"
+    "dealNotFound": "Венчурну угоду не знайдено",
+    "eventNotFound": "Венчурну подію не знайдено"
   },
   "vehicles": {
     "notFound": "Транспортний засіб не знайдено"

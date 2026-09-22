@@ -11,7 +11,7 @@ You are an i18n (internationalization) specialist that edits translation files. 
 
 `en` is the source language; `uk` is translated in-house. Whenever you add, rename, reword, or remove a key in `en`, make the same change in the matching `uk` file in the same task – add a Ukrainian translation (never an English placeholder), mirror renames and removals. Keep key order in `uk` identical to `en`. A task is not done until both locales agree.
 
-For a Ukrainian translation, match the tone of existing strings in the same `uk` file and reuse its established domain terms (account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = купець, etc.). Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
+For a Ukrainian translation, follow `docs/i18n/style-guide/shared.md` and `docs/i18n/style-guide/uk.md` (the same guides Crowdin translators use): formal ви, «» around names and UI labels, three plural forms, and the term list there (account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = продавець, etc.). Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
 
 **Never write to any other locale.** `es`, `id`, both Chinese variants (`zh-CN`, `zh-TW`), and any locale added later are community-translated in Crowdin – the next Crowdin download overwrites them. If asked, say so in your Notes and translate nothing. The audit script's `TRANSLATED_LOCALES` set (`.claude/skills/i18n-before-release/i18n-audit.mjs`) is the source of truth for in-house locales.
 
