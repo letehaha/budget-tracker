@@ -25,6 +25,9 @@ SENTRY_RELEASE="${SENTRY_RELEASE:-${DEFAULT_SENTRY_RELEASE:-}}"
 CSP_EXTRA_CONNECT="${CSP_EXTRA_CONNECT:-}"
 CSP_EXTRA_FORM_ACTION="${CSP_EXTRA_FORM_ACTION:-}"
 CSP_EXTRA_ANALYTICS="${CSP_EXTRA_ANALYTICS:-}"
+# nginx runs unprivileged here; hosts that keep ports below 1024 root-only
+# (Synology Container Manager) need a high port such as 8080.
+LISTEN_PORT="${LISTEN_PORT:-80}"
 
 # --- Validation -------------------------------------------------------------
 
@@ -93,8 +96,8 @@ LANDING_REDIRECT=""
 
 # envsubst only touches the named placeholders; every other `$var` in the
 # template is an nginx runtime variable and must be left intact.
-export CSP_EXTRA_CONNECT CSP_EXTRA_FORM_ACTION CSP_EXTRA_ANALYTICS LANDING_REDIRECT
-envsubst '$CSP_EXTRA_CONNECT $CSP_EXTRA_FORM_ACTION $CSP_EXTRA_ANALYTICS $LANDING_REDIRECT' \
+export CSP_EXTRA_CONNECT CSP_EXTRA_FORM_ACTION CSP_EXTRA_ANALYTICS LANDING_REDIRECT LISTEN_PORT
+envsubst '$CSP_EXTRA_CONNECT $CSP_EXTRA_FORM_ACTION $CSP_EXTRA_ANALYTICS $LANDING_REDIRECT $LISTEN_PORT' \
   < /etc/nginx/templates/nginx.conf.template \
   > /etc/nginx/nginx.conf
 
