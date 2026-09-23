@@ -58,6 +58,8 @@ export const askLandingFaq = async ({ question }: { question: string }): Promise
       prompt: question,
       output: Output.object({ schema: answerSchema }),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
+      // Answering from the given knowledge needs little reasoning, and default thinking can push past the timeout.
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
       abortSignal: AbortSignal.timeout(AI_CALL_TIMEOUT_MS),
       maxRetries: 1,
     });

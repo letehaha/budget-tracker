@@ -16,10 +16,10 @@ const SERVER_ERROR_MESSAGE = "Couldn't get an answer right now. Please email sup
 
 export async function askFaq({ question }: { question: string }): Promise<AskFaqResult> {
   const startedAt = Date.now();
-  const track = ({ outcome, status }: { outcome: FaqOutcome; status?: number }) =>
+  const track = ({ outcome, status, answer }: { outcome: FaqOutcome; status?: number; answer?: string }) =>
     trackAnalyticsEvent({
       event: 'landing_faq_asked',
-      properties: { question, outcome, duration_ms: Date.now() - startedAt, status },
+      properties: { question, answer, outcome, duration_ms: Date.now() - startedAt, status },
     });
 
   let response: Response;
@@ -54,7 +54,7 @@ export async function askFaq({ question }: { question: string }): Promise<AskFaq
 
     if (!answer) throw new Error('The response carries no answer');
 
-    track({ outcome: status });
+    track({ outcome: status, answer });
     return { answer };
   } catch (error) {
     console.error('Failed to read the FAQ assistant response:', error);

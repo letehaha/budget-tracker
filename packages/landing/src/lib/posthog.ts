@@ -28,7 +28,13 @@ type LandingAnalyticsEvent =
     }
   | {
       event: 'landing_faq_asked';
-      properties: { question: string; outcome: FaqOutcome; duration_ms: number; status?: number };
+      properties: {
+        question: string;
+        answer?: string;
+        outcome: FaqOutcome;
+        duration_ms: number;
+        status?: number;
+      };
     };
 
 function isPostHogEnabled(): boolean {
