@@ -9,7 +9,7 @@
         "cancel": "Скасувати",
         "unlinkSelected": "Відв'язати вибрані",
         "noMatchingTransactions": "Немає відповідних транзакцій",
-        "noTransactionsLinked": "Жодних транзакцій не пов'язано",
+        "noTransactionsLinked": "Жодних транзакцій не прив'язано",
         "filterAdjustmentHint": "Спробуйте скорегувати фільтри, щоб побачити більше транзакцій.",
         "addTransactionsHint": "Додайте транзакції до цього бюджету, щоб почати відстежувати свої витрати.",
         "resetFilters": "Скинути фільтри",
@@ -27,7 +27,7 @@
       "stats": {
         "income": "Доходи",
         "expenses": "Витрати",
-        "netBalance": "Баланс"
+        "netBalance": "Сальдо"
       },
       "utilization": {
         "title": "Використання бюджету",
@@ -40,7 +40,7 @@
       "tabs": {
         "statistics": "Статистика",
         "transactions": "Транзакції",
-        "sharing": "Поділ"
+        "sharing": "Спільний доступ"
       },
       "statistics": {
         "tabs": {
@@ -60,8 +60,8 @@
         "expensesLabel": "Витрати:"
       },
       "sharing": {
-        "title": "Поділ",
-        "description": "Керуйте тим, хто може бачити цей бюджет та вносити в нього свій внесок.",
+        "title": "Спільний доступ",
+        "description": "Керуйте тим, хто може бачити цей бюджет та прив'язувати до нього свої транзакції.",
         "inviteAnother": "Запросити користувача",
         "membersHeading": "Учасники",
         "pendingHeading": "Запрошення в очікуванні",
@@ -69,7 +69,7 @@
         "permissions": {
           "read": "Лише перегляд",
           "write": "Прив'язувати власні транзакції",
-          "manage": "Керувати"
+          "manage": "Керування"
         },
         "member": {
           "you": "ви",
@@ -78,12 +78,12 @@
           "ownerHint": "Повний контроль над цим бюджетом",
           "updateSuccess": "Дозвіл оновлено.",
           "updateError": "Не вдалося оновити дозвіл.",
-          "revoke": "Скасувати доступ",
-          "revokeConfirm": "Скасувати",
-          "revokeTitle": "Скасувати доступ?",
+          "revoke": "Відкликати доступ",
+          "revokeConfirm": "Відкликати",
+          "revokeTitle": "Відкликати доступ?",
           "revokeDescription": "{user} втратить доступ до {budget}.",
-          "revokeSuccess": "Доступ скасовано.",
-          "revokeError": "Не вдалося скасувати доступ."
+          "revokeSuccess": "Доступ відкликано.",
+          "revokeError": "Не вдалося відкликати доступ."
         },
         "pending": {
           "empty": "Немає запрошень в очікуванні.",

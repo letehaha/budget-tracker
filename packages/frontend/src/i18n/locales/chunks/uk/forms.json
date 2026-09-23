@@ -5,7 +5,7 @@
       "types": {
         "buy": "Купівля",
         "sell": "Продаж",
-        "dividend": "Дивіденди",
+        "dividend": "Дивіденд",
         "fee": "Комісія",
         "tax": "Податок"
       },
@@ -13,14 +13,14 @@
       "securityPlaceholder": "Виберіть цінний папір",
       "quantityLabel": "Кількість",
       "quantityPlaceholder": "0.00",
-      "priceLabel": "Ціна за акцію",
+      "priceLabel": "Ціна за одиницю",
       "pricePlaceholder": "0.00",
       "priceHelp": "Вкажіть 0 для стейкінг-винагород, аірдропів або коригування балансу.",
       "feesLabel": "Комісії (необов'язково)",
       "feesPlaceholder": "0.00",
       "dateLabel": "Дата транзакції",
-      "noteLabel": "Нотатка",
-      "notePlaceholder": "Необов'язково. Додайте нотатку про цю транзакцію",
+      "noteLabel": "Примітка",
+      "notePlaceholder": "Необов'язково. Додайте примітку про цю транзакцію",
       "cancelButton": "Скасувати",
       "submitButton": "Створити транзакцію",
       "submitButtonLoading": "Створення...",
@@ -29,17 +29,17 @@
         "error": "Не вдалося створити транзакцію."
       },
       "settlement": {
-        "toggleLabel": "Вказати фактичну суму в готівці",
+        "toggleLabel": "Вказати фактичну суму розрахунку",
         "toggleHint": "Використовуйте, якщо угода розрахована в іншій валюті або ви знаєте лише загальну суму і хочете автоматично вивести комісію",
-        "currencyLabel": "Валюта оплати",
+        "currencyLabel": "Валюта розрахунку",
         "currencyPlaceholder": "Виберіть валюту",
         "totalPaidLabel": "Всього сплачено",
         "totalReceivedLabel": "Всього отримано",
         "totalPlaceholder": "напр. 1700",
-        "feeLabel": "Комісія (у валюті оплати)",
+        "feeLabel": "Комісія (у валюті розрахунку)",
         "feePlaceholder": "0",
         "sameCurrencyFeeHint": "Комісія записується як різниця між загальною сумою та кількістю × ціна.",
-        "crossCurrencyFeeHint": "Явна комісія брокера. Будь-який спред обмінного курсу відображається у курсі конвертації угоди.",
+        "crossCurrencyFeeHint": "Явна комісія брокера. Будь-який спред курсу обміну відображається у курсі конвертації угоди.",
         "modeFee": "Я знаю комісію",
         "modeAuto": "Авто",
         "modeRate": "Я знаю курс",
@@ -103,7 +103,7 @@
       "submitButtonLoading": "Обробка...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "description": "Буде створено {action} на {amount} з «{from}» до «{to}»",
         "actionTransfer": "переказ",
         "actionWithdrawal": "зняття",
         "actionDeposit": "поповнення",
@@ -167,11 +167,11 @@
       "adjustmentHint": "Грошовий баланс усе одно зміниться, але це не враховуватиметься як внесені вами гроші у звіті «Інвестиційні внески».",
       "descriptionPlaceholder": "Необов'язковий опис",
       "cancelButton": "Скасувати",
-      "submitButton": "Підтвердити",
+      "submitButton": "Продовжити",
       "submitButtonLoading": "Зберігається...",
       "confirmDialog": {
         "title": "Підтвердити переказ",
-        "description": "{action} на {amount} буде створено з {from} до {to}",
+        "description": "Буде створено {action} на {amount} з «{from}» до «{to}»",
         "cancelButton": "Скасувати",
         "confirmButton": "Підтвердити",
         "actionDeposit": "поповнення",
@@ -182,8 +182,8 @@
         "minValue": "Сума повинна бути більше 0"
       },
       "notifications": {
-        "success": "Грошову операцію створено успішно",
-        "error": "Не вдалося створити грошову операцію"
+        "success": "Грошову транзакцію створено успішно",
+        "error": "Не вдалося створити грошову транзакцію"
       }
     },
     "validators": {
@@ -199,15 +199,15 @@
       "amountPlaceholder": "0.00",
       "maxButton": "Максимум: {amount}",
       "dateLabel": "Дата обміну",
-      "descriptionLabel": "Опис (необовязково)",
+      "descriptionLabel": "Опис (необов'язково)",
       "descriptionPlaceholder": "Додайте примітку про цей обмін...",
       "cancelButton": "Скасувати",
       "submitButton": "Обміняти",
       "submitButtonLoading": "Обробка...",
       "validation": {
-        "required": "Це поле обовязкове",
+        "required": "Це поле обов'язкове",
         "minValue": "Сума повинна бути більше 0",
-        "sameCurrency": "Валюти \"З\" і \"На\" повинні бути різними"
+        "sameCurrency": "Вихідна та цільова валюти мають бути різними"
       },
       "notifications": {
         "success": "Валюту успішно обміняно",
@@ -215,14 +215,14 @@
       }
     },
     "createVehicle": {
-      "nameLabel": "Назва транспорту",
+      "nameLabel": "Назва транспортного засобу",
       "namePlaceholder": "напр. Моя Camry",
       "currencyLabel": "Валюта",
       "makeLabel": "Марка",
       "modelLabel": "Модель",
       "trimLabel": "Комплектація (необов'язково)",
       "yearLabel": "Рік",
-      "vehicleClassLabel": "Тип транспорту",
+      "vehicleClassLabel": "Тип транспортного засобу",
       "purchasePriceLabel": "Ціна придбання",
       "purchaseDateLabel": "Дата придбання",
       "depreciationPresetLabel": "Шаблон амортизації",
@@ -230,19 +230,19 @@
       "salvageFloorPctLabel": "Мінімальна вартість (% від ціни придбання)",
       "currentMileageLabel": "Поточний пробіг (необов'язково)",
       "currentMileagePlaceholder": "напр. 45000",
-      "submitButton": "Додати транспорт",
+      "submitButton": "Додати транспортний засіб",
       "submitButtonLoading": "Додаю...",
       "notifications": {
-        "success": "Транспорт додано",
-        "error": "Не вдалося додати транспорт"
+        "success": "Транспортний засіб додано",
+        "error": "Не вдалося додати транспортний засіб"
       }
     },
     "editVehicle": {
       "submitButton": "Зберегти зміни",
       "submitButtonLoading": "Зберігаю...",
       "notifications": {
-        "success": "Транспорт оновлено",
-        "error": "Не вдалося оновити транспорт"
+        "success": "Транспортний засіб оновлено",
+        "error": "Не вдалося оновити транспортний засіб"
       }
     },
     "loan": {
@@ -252,24 +252,24 @@
       "loanTypePlaceholder": "Оберіть тип кредиту",
       "currencyLabel": "Валюта",
       "currencyPlaceholder": "Оберіть валюту",
-      "originalPrincipalLabel": "Початкова сума боргу",
+      "originalPrincipalLabel": "Початкова сума",
       "originalPrincipalPlaceholder": "напр. 320 000",
       "initialBalanceLabel": "Поточний залишок боргу",
       "initialBalancePlaceholder": "Скільки ви винні сьогодні",
       "interestRateLabel": "Процентна ставка (річна %)",
       "interestRatePlaceholder": "напр. 6.25",
-      "minPaymentEstimateTooltip": "Розраховано на основі основної суми, річної ставки та терміну за допомогою стандартної формули амортизації.",
-      "minPaymentApplyEstimateAriaLabel": "Використати розраховану мінімальну виплату",
-      "termMonthsLabel": "Термін (місяців)",
-      "termPresetsAriaLabel": "Предустановки терміну",
-      "termPresetsHeader": "Поширені терміни",
+      "minPaymentEstimateTooltip": "Розраховано на основі основної суми, річної ставки та строку за допомогою стандартної формули погашення.",
+      "minPaymentApplyEstimateAriaLabel": "Використати розрахований мінімальний платіж",
+      "termMonthsLabel": "Строк (місяців)",
+      "termPresetsAriaLabel": "Предустановки строку",
+      "termPresetsHeader": "Поширені строки",
       "termMonthsSuffix": "міс",
       "termPresetYears": "{count} рік | {count} роки | {count} років",
       "termMonthsPlaceholder": "напр. 360 для 30-річного кредиту",
       "startDateLabel": "Дата початку",
       "startDatePlaceholder": "ДД.ММ.РРРР",
-      "startDateTooltip": "Дата оформлення кредиту — коли ви його отримали. Це інформаційне поле: воно не впливає на поточний залишок боргу і не змінює прогноз виплат.",
-      "plannedPaymentLabel": "Плановий щомісячний платіж",
+      "startDateTooltip": "Дата оформлення кредиту — коли ви його отримали. Це інформаційне поле: воно не впливає на поточний залишок боргу і не змінює прогноз погашення.",
+      "plannedPaymentLabel": "Планований щомісячний платіж",
       "plannedPaymentPlaceholder": "Скільки ви реально платите",
       "minPaymentLabel": "Мінімальний щомісячний платіж",
       "minPaymentPlaceholder": "Необов'язково, вказано кредитором",
@@ -297,7 +297,7 @@
         "mustBePositive": "Повинно бути більше 0.",
         "mustBeNonNegative": "Повинно бути 0 або більше.",
         "interestRateRange": "Процентна ставка має бути від 0 до 99.9999.",
-        "termRange": "Термін має бути від 1 до 1200 місяців.",
+        "termRange": "Строк має бути від 1 до 1200 місяців.",
         "paymentDayRange": "День місяця має бути від 1 до 31.",
         "asOfInFuture": "Дата не може бути в майбутньому"
       },
@@ -307,7 +307,7 @@
   "fields": {
     "categorySelect": {
       "noCategoriesFound": "Категорій не знайдено",
-      "selectCategoryLabel": "Вибрати категорію",
+      "selectCategoryLabel": "Виберіть категорію",
       "searchCategoryLabel": "Шукати категорію",
       "clearSearchLabel": "Очистити пошук",
       "clearSelectionLabel": "Очистити вибір",
@@ -317,7 +317,7 @@
       "sharedOwnerCategoriesLoadError": "Не вдалося завантажити категорії спільного рахунку. Спробуйте ще раз."
     },
     "select": {
-      "selectOption": "Вибрати опцію",
+      "selectOption": "Виберіть опцію",
       "searchPlaceholder": "Пошук..."
     },
     "currencySelect": {
@@ -374,7 +374,7 @@
       "placeholder": "Виберіть отримувача платежу",
       "searchPlaceholder": "Шукати отримувачів…",
       "empty": "Отримувачів платежу поки немає",
-      "createAffordance": "Створити отримувача \"{name}\"",
+      "createAffordance": "Створити отримувача «{name}»",
       "createNew": "Створити нового отримувача",
       "sharedOwnerPayeesLoadError": "Не вдалося завантажити отримувачів платежу спільного рахунку. Спробуйте ще раз."
     }

@@ -50,7 +50,7 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LOCAL_ENV="$ROOT/.env.development.local"
 CONFIG="$ROOT/crowdin.yml"
 
