@@ -1,102 +1,96 @@
-import {
-  AIFeatureConfig,
-  AI_FEATURE,
-  buildCustomModelId,
-  getModelNameFromModelId,
-  isCustomModelId,
-} from '@bt/shared/types';
+import { AIFeatureStatus, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import type { StoredAiSettings } from '@models/user-settings.model';
 
-import { getDefaultModelForFeature, getModelInfo } from '../ai/models-config';
-import { pickResolutionStep, type LadderEndpoint } from '../ai/resolution-ladder';
+import { getModelProfile } from '../ai/model-catalog';
+import { buildConnectionModelId, getServerModel, pickResolutionStep } from '../ai/resolution-ladder';
 
-interface FeatureModelDisplay {
-  modelId: string;
-  /** Catalog name of `modelId`, or the free-text name for a custom model */
-  modelName: string;
-  usingUserKey: boolean;
-  /** Set together with a `custom/*` `modelId` */
-  customEndpointId?: string;
-  endpointName?: string;
-}
-
-/** A custom model has no catalog entry, so its label is the free-text name itself. */
-function describeModel({ modelId, usingUserKey }: { modelId: string; usingUserKey: boolean }): FeatureModelDisplay {
-  return {
-    modelId,
-    modelName: isCustomModelId({ modelId })
-      ? getModelNameFromModelId({ modelId })
-      : (getModelInfo({ modelId })?.name ?? modelId),
-    usingUserKey,
-  };
-}
-
-function describeEndpointModel({
-  endpoint,
-  modelId,
-}: {
-  endpoint: LadderEndpoint;
-  modelId: string;
-}): FeatureModelDisplay {
-  return {
-    modelId,
-    modelName: getModelNameFromModelId({ modelId }),
-    usingUserKey: true,
-    customEndpointId: endpoint.id,
-    endpointName: endpoint.name,
-  };
+async function describeModel(spec: {
+  provider: AI_PROVIDER;
+  model: string;
+  baseUrl?: string;
+}): Promise<Pick<AIFeatureStatus, 'modelName' | 'pricing' | 'capabilities'>> {
+  const { name, pricing, capabilities } = await getModelProfile(spec);
+  return { modelName: name, pricing, capabilities };
 }
 
 /**
  * Display-only projection of the same `pickResolutionStep` walk the runtime uses, so the
  * screen cannot name a model the run would not pick — `serverKeysAllowed` therefore has to
- * be the caller's real `operator_ai` entitlement. Credential failures stay invisible here:
+ * match what the run gets. A native connection without a key is skipped as the run skips it;
  * an undecryptable stored key surfaces only when the request is made.
  */
-export function resolveFeatureModelDisplay({
+export async function resolveFeatureStatus({
   feature,
-  config,
   aiSettings,
   serverKeysAllowed,
 }: {
   feature: AI_FEATURE;
-  config: AIFeatureConfig | null;
   aiSettings: StoredAiSettings | null;
   serverKeysAllowed: boolean;
-}): FeatureModelDisplay {
+}): Promise<AIFeatureStatus> {
+  const config = aiSettings?.featureConfigs?.find((candidate) => candidate.feature === feature) ?? null;
+  const connections = aiSettings?.connections ?? [];
+  const serverModel = getServerModel({ feature, serverKeysAllowed });
+  const serverModelName = serverModel ? (await describeModel(serverModel)).modelName : null;
   const step = pickResolutionStep({
     feature,
     config,
-    keyProviders: new Set((aiSettings?.apiKeys ?? []).map((key) => key.provider)),
-    endpoints: aiSettings?.customEndpoints ?? [],
+    connections,
     serverKeysAllowed,
+    excludedConnectionIds: new Set(
+      connections
+        .filter((connection) => connection.provider !== AI_PROVIDER.custom && !connection.keyEncrypted)
+        .map((connection) => connection.id),
+    ),
   });
 
   switch (step.kind) {
-    case 'configured-custom':
-      return describeEndpointModel({ endpoint: step.endpoint, modelId: step.modelId });
+    // With every connection down the run refuses rather than move to the server model, so the
+    // first connection is still what the screen names.
+    case 'configured':
+    case 'default-connection':
+    case 'all-connections-down': {
+      const { connection } = step;
+      const modelId = buildConnectionModelId(connection);
 
-    case 'configured-catalog':
-    case 'default-catalog':
-      return describeModel({ modelId: step.modelId, usingUserKey: step.usingUserKey });
+      return {
+        feature,
+        isConfigured: step.kind === 'configured',
+        configuredConnectionId: step.kind === 'configured' ? connection.id : undefined,
+        servedBy: step.kind === 'all-connections-down' ? null : 'connection',
+        modelId,
+        ...(await describeModel(connection)),
+        usingUserKey: true,
+        connectionId: connection.id,
+        connectionName: connection.name,
+        serverModelName,
+      };
+    }
 
-    case 'fallback-endpoint':
-      return describeEndpointModel({ endpoint: step.endpoint, modelId: step.modelId });
-
-    // A flagged endpoint still names the feature: the run refuses to move to the server
-    // key behind the user's back, so the endpoint is the only thing that could answer.
-    case 'all-endpoints-down':
-      return describeEndpointModel({
-        endpoint: step.endpoint,
-        modelId: buildCustomModelId({ modelName: step.endpoint.defaultModel }),
-      });
-
-    // No credentials anywhere: nothing runs, so the screen keeps naming the user's own
-    // pick (or the feature default) rather than inventing a different model.
-    case 'unserved':
-      return describeModel({
-        modelId: config?.modelId ?? getDefaultModelForFeature({ feature }),
+    case 'configured-server':
+    case 'server-default':
+      return {
+        feature,
+        isConfigured: step.kind === 'configured-server',
+        configuredConnectionId: step.kind === 'configured-server' ? null : undefined,
+        servedBy: 'server',
+        modelId: buildConnectionModelId(step.model),
+        ...(await describeModel(step.model)),
         usingUserKey: false,
-      });
+        serverModelName,
+      };
+
+    case 'unserved':
+      return {
+        feature,
+        isConfigured: false,
+        servedBy: null,
+        modelId: '',
+        modelName: '',
+        pricing: null,
+        capabilities: null,
+        usingUserKey: false,
+        serverModelName,
+      };
   }
 }

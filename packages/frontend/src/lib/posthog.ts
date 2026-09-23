@@ -1,7 +1,7 @@
 import { config } from '@/common/config';
 import type { DemoBlockedFeature, DemoEndReason } from '@/common/const/demo';
 import type { FeedbackType } from '@/components/dialogs/feedback-submission';
-import type { BillingCycle, BillingTier, Feature, Plan } from '@bt/shared/types';
+import type { AI_PROVIDER, BillingCycle, BillingTier, Feature, Plan } from '@bt/shared/types';
 import posthog from 'posthog-js';
 import type { Router } from 'vue-router';
 
@@ -58,7 +58,7 @@ type AnalyticsEvent =
   | { event: 'invoice_attached'; properties: { method: 'link' | 'create' } }
   | { event: 'ai_settings_visited' }
   | { event: 'automations_mcp_tip_opened' }
-  | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
+  | { event: 'ai_connection_created'; properties: { provider: AI_PROVIDER } }
   // Transactions filter bar (which filters people actually use — informs which
   // ones to pin or rank higher in the "+ add filter" menu)
   | { event: 'transactions_filter_added'; properties: { filter: string } }

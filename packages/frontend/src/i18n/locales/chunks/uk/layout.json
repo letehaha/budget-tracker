@@ -303,8 +303,8 @@
             "description": "Дослідіть доступні можливості AI"
           },
           "configure-ai": {
-            "title": "Встановіть свій власний API-ключ",
-            "description": "Використовуйте свій AI API-ключ для необмеженого і безперебійного доступу"
+            "title": "Додайте власну AI-модель",
+            "description": "Підключіть OpenAI, Claude, Gemini або локальну модель."
           },
           "invite-household-member": {
             "title": "Запросити члена сім'ї",

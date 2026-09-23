@@ -431,7 +431,7 @@
   "ai": {
     "estimatedCost": {
       "yourApiKey": "(your API key)",
-      "setByEndpoint": "Set by your endpoint"
+      "setByEndpoint": "Priced by your provider"
     }
   },
   "transactionGroups": {

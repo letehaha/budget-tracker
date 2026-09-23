@@ -98,7 +98,7 @@
     "translatable": true,
     "uk": "AI",
     "ukAvoid": ["ШІ"],
-    "ukNote": "Latin script everywhere. As a leading modifier it takes a hyphen: «AI-категоризація», «AI-помічник», «AI-інтеграції»."
+    "ukNote": "Latin script everywhere. As a leading modifier it takes a hyphen: «AI-категоризація», «AI-помічник», «AI-модель»."
   },
   {
     "term": "AI assistant",
@@ -119,13 +119,13 @@
     "ukNote": "Hyphenated compound in sentence case. The feature-list name 'Transaction Categorization' (common.aiFeatures.categorization.name) = «Категоризація транзакцій»."
   },
   {
-    "term": "AI integrations",
+    "term": "AI model",
     "partOfSpeech": "noun",
-    "definition": "The Settings section for connecting AI assistants such as Claude or ChatGPT to your MoneyMatter data (MCP server, connected apps). Not a bank integration.",
+    "definition": "A saved entry in Settings → AI → AI models: a provider (OpenAI, Anthropic, Google, OpenRouter, Ollama, LM Studio or a custom OpenAI-compatible server), a model name and an API key (optional for local servers), under a name the user picks. Each AI feature can run on one. Not MoneyMatter AI, the model included in the plan.",
     "translatable": true,
-    "uk": "AI-інтеграції",
-    "ukAvoid": ["AI інтеграції", "AI Інтеграції", "інтеграції ШІ"],
-    "ukNote": "Follows the AI decision. oauth.authorize.footer must quote the exact Settings label."
+    "uk": "AI-модель",
+    "ukAvoid": ["модель ШІ", "AI модель"],
+    "ukNote": "Follows the AI decision (hyphenated leading modifier). Tab and section title: «AI-моделі». A bare \"model\" stays «модель»."
   },
   {
     "term": "airdrop",
@@ -366,6 +366,14 @@
     "uk": "тренд балансу"
   },
   {
+    "term": "Balanced",
+    "partOfSpeech": "adjective",
+    "definition": "The middle of three model tiers in the \"Which model fits?\" guide: a mid-size model that stays accurate over long text and files (e.g. for statement parsing). Inserted as {tier} in \"{tier} model is enough\".",
+    "translatable": true,
+    "uk": "Збалансований",
+    "ukNote": "Masculine, agreeing with the implied «рівень»: «Достатньо рівня «{tier}»»."
+  },
+  {
     "term": "bank connection",
     "partOfSpeech": "noun",
     "definition": "A user's link to a bank or data provider (Monobank, Enable Banking, Lunch Flow, SimpleFIN, Walutomat) that accounts sync through. Not a network or MCP (AI assistant) connection.",
@@ -407,6 +415,14 @@
     "uk": "базова валюта",
     "ukAvoid": ["основна валюта", "валюта обліку"],
     "variants": ["reference currency"]
+  },
+  {
+    "term": "base URL",
+    "partOfSpeech": "noun",
+    "definition": "The web address of the OpenAI-compatible server an AI model sends requests to, usually ending in /v1 (e.g. https://example.com/v1). OpenAI, Anthropic and Google models use their official address and take none.",
+    "translatable": true,
+    "uk": "базовий URL",
+    "ukNote": "Field label: «Базовий URL». URL stays in Latin script (see URL)."
   },
   {
     "term": "beta",
@@ -779,6 +795,14 @@
     "ukNote": "Claude's and ChatGPT's own UI labels («Connectors», «Add connector», «Add custom connector», «Add») stay in English inside «» (shared.md §10); fix settings.aiIntegrations.actions.addConnector, addCustomConnector, add. In prose: «конектор»."
   },
   {
+    "term": "Connectors (MCP)",
+    "partOfSpeech": "noun",
+    "definition": "The Settings → AI tab where the user connects AI assistants such as Claude or ChatGPT to their MoneyMatter data through the MCP server, and reviews or revokes active connectors. Not a bank integration.",
+    "translatable": true,
+    "uk": "Конектори (MCP)",
+    "ukNote": "Tab label settings.ai.tabs.connectedApps. oauth.authorize.footer must quote the exact path: «Налаштування → AI → Конектори (MCP)». Claude's and ChatGPT's own «Connectors» label stays in English (see connector)."
+  },
+  {
     "term": "consent",
     "partOfSpeech": "noun",
     "definition": "The permission the user gives at their bank for MoneyMatter to read their accounts through an open-banking provider; it expires and is renewed by reconnecting.",
@@ -890,15 +914,6 @@
     "uk": "поточний рахунок"
   },
   {
-    "term": "custom endpoint",
-    "partOfSpeech": "noun",
-    "definition": "A user-added OpenAI-compatible AI server (base URL, model name, optional API key) used instead of a built-in provider. In two server errors a bare \"endpoint\" means an API route instead.",
-    "translatable": true,
-    "uk": "власний ендпоінт",
-    "ukNote": "Short form «ендпоінт» where the English drops 'custom'.",
-    "variants": ["endpoint"]
-  },
-  {
     "term": "custom exchange rate",
     "partOfSpeech": "noun",
     "definition": "An exchange rate the user sets by hand in Settings → Currencies, overriding the live market rate; shown alone as the badge \"Custom\". Not the \"Custom rate\" vehicle depreciation preset.",
@@ -909,7 +924,7 @@
   {
     "term": "custom instructions",
     "partOfSpeech": "noun",
-    "definition": "Free-text notes the user writes to guide how AI categorizes their transactions (e.g. which merchant goes to which category). Needs the user's own AI key or endpoint.",
+    "definition": "Free-text notes the user writes to guide how AI categorizes their transactions (e.g. which merchant goes to which category). Needs one of the user's own AI models; they don't apply when MoneyMatter AI runs categorization.",
     "translatable": true,
     "uk": "власні інструкції"
   },
@@ -1158,6 +1173,13 @@
     "uk": "Enable Banking",
     "ukAvoid": ["EnableBanking"],
     "variants": ["EnableBanking"]
+  },
+  {
+    "term": "endpoint",
+    "partOfSpeech": "noun",
+    "definition": "In AI model errors: the OpenAI-compatible server (e.g. Ollama, LM Studio or a custom one) that an AI model reaches at its base URL. In two other server errors (loan and vehicle account creation, category budgets) it means an API route instead.",
+    "translatable": true,
+    "uk": "ендпоінт"
   },
   {
     "term": "entry",
@@ -1419,13 +1441,6 @@
     "uk": "GPT"
   },
   {
-    "term": "Groq",
-    "partOfSpeech": "proper noun",
-    "definition": "AI inference provider that hosts open models such as Llama and GPT-OSS; one of the AI provider options. Brand name: do not translate.",
-    "translatable": false,
-    "uk": "Groq"
-  },
-  {
     "term": "gross",
     "partOfSpeech": "adjective",
     "definition": "Venture distribution or exit amount before the GP's carry is deducted; what remains after carry is the LP net amount.",
@@ -1547,6 +1562,15 @@
     "definition": "Bank connection status: the connection was deactivated (e.g. after repeated sign-in failures or while reconnecting) and does not sync. Opposite of Active.",
     "translatable": true,
     "uk": "неактивний"
+  },
+  {
+    "term": "included",
+    "partOfSpeech": "adjective",
+    "definition": "Plan sense: part of the user's MoneyMatter plan at no extra cost, as in \"MoneyMatter AI · included\", \"the included model\" and \"Included in the Plus plan\". Elsewhere (\"included in backups\", \"in balance totals\") it is ordinary wording.",
+    "translatable": true,
+    "uk": "входить у план",
+    "ukAvoid": ["включений"],
+    "ukNote": "«включений» also reads as \"switched on\", which clashes with the feature toggles around it. Build around the verb: «MoneyMatter AI, що входить у ваш план»; option label «MoneyMatter AI · входить у план». billing.planRequired.essential and .plus still say «Включено в план …»: align to «Входить у план …»."
   },
   {
     "term": "income",
@@ -1758,6 +1782,14 @@
     "ukNote": "Adverb after the plan name: «{plan} · довічно». Related 'for life' = назавжди."
   },
   {
+    "term": "Light",
+    "partOfSpeech": "adjective",
+    "definition": "The lowest of three model tiers in the \"Which model fits?\" guide: a small, fast, cheap model is enough (e.g. for categorization). Inserted as {tier} in \"{tier} model is enough\". Not the Light theme.",
+    "translatable": true,
+    "uk": "Легкий",
+    "ukNote": "Masculine, agreeing with the implied «рівень»: «Достатньо рівня «{tier}»». The Light theme is «Світла»."
+  },
+  {
     "term": "link",
     "partOfSpeech": "verb",
     "definition": "Connect records: a transaction to a portfolio, deal, loan, budget or recurring payment; two transactions as a transfer; an account to a bank; an imported value to an existing one. Not a web link.",
@@ -1786,14 +1818,14 @@
   {
     "term": "Llama",
     "partOfSpeech": "proper noun",
-    "definition": "Meta's family of open AI models, named in the Groq provider label and in the sample local model name llama3.2. Not the animal. Do not translate.",
+    "definition": "Meta's family of open AI models, used in the sample AI model names \"OpenRouter Llama\" and \"Local Llama\". Not the animal. Do not translate.",
     "translatable": false,
     "uk": "Llama"
   },
   {
     "term": "LM Studio",
     "partOfSpeech": "proper noun",
-    "definition": "Desktop app that runs AI models locally and serves them through an OpenAI-compatible API; users connect it as a custom AI endpoint. Brand name: do not translate.",
+    "definition": "Desktop app that runs AI models locally and serves them through an OpenAI-compatible API; one of the provider options when adding an AI model. Brand name: do not translate.",
     "translatable": false,
     "uk": "LM Studio"
   },
@@ -2040,7 +2072,7 @@
   {
     "term": "model",
     "partOfSpeech": "noun",
-    "definition": "The AI model (e.g. Gemini Flash, Claude Haiku) chosen to run an AI feature such as categorization or statement parsing, from a provider or a custom endpoint. Not a vehicle model.",
+    "definition": "The AI model (e.g. Gemini Flash, Claude Haiku) that runs an AI feature such as categorization or statement parsing: the model name saved in one of the user's AI models, or the one MoneyMatter AI uses. Not a vehicle model.",
     "translatable": true,
     "uk": "модель"
   },
@@ -2057,6 +2089,14 @@
     "definition": "Do not translate – product/brand name.",
     "translatable": false,
     "uk": "MoneyMatter"
+  },
+  {
+    "term": "MoneyMatter AI",
+    "partOfSpeech": "proper noun",
+    "definition": "The AI model included in the user's MoneyMatter plan, run on MoneyMatter's own API key. Features use it when the user picks it, or by default when they have no AI models of their own. Usage limits apply, and not every plan includes it. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "MoneyMatter AI",
+    "ukNote": "\"MoneyMatter AI · included\" = «MoneyMatter AI · входить у план» (see included)."
   },
   {
     "term": "Monobank",
@@ -2204,7 +2244,7 @@
   {
     "term": "Ollama",
     "partOfSpeech": "proper noun",
-    "definition": "Tool for running AI models locally; can serve as a custom AI endpoint. Brand name: do not translate.",
+    "definition": "Tool for running AI models locally; one of the provider options when adding an AI model. Brand name: do not translate.",
     "translatable": false,
     "uk": "Ollama"
   },
@@ -2216,9 +2256,17 @@
     "uk": "OpenAI"
   },
   {
+    "term": "OpenAI-compatible",
+    "partOfSpeech": "adjective",
+    "definition": "Describes an AI server that speaks OpenAI's API (e.g. Ollama, LM Studio, OpenRouter), so MoneyMatter can reach it at its base URL. The provider option \"Custom (OpenAI-compatible)\" adds any such server as an AI model.",
+    "translatable": true,
+    "uk": "сумісний з OpenAI",
+    "ukNote": "Place it after the noun: «сервер, сумісний з OpenAI». Provider option: «Власний (сумісний з OpenAI)»."
+  },
+  {
     "term": "OpenRouter",
     "partOfSpeech": "proper noun",
-    "definition": "Hosted gateway to many AI models; can serve as a custom AI endpoint. Brand name: do not translate.",
+    "definition": "Hosted gateway to many AI models; one of the provider options when adding an AI model. Brand name: do not translate.",
     "translatable": false,
     "uk": "OpenRouter"
   },
@@ -2756,7 +2804,7 @@
   {
     "term": "reconnect",
     "partOfSpeech": "verb",
-    "definition": "Restore a broken connection so syncing resumes: re-authorize an expired bank or AI connection, or retry a failed AI endpoint. \"Reconnect this account\" in unlink texts means relink.",
+    "definition": "Restore a broken connection so syncing resumes: re-authorize an expired bank or AI connection, or retest an AI model that needs attention. \"Reconnect this account\" in unlink texts means relink.",
     "translatable": true,
     "uk": "перепідключити",
     "ukAvoid": ["повторно підключити"],
@@ -3084,6 +3132,13 @@
     "ukNote": "Here: an account someone shared with you in MoneyMatter, not a bank joint account (the usual banking sense of спільний рахунок). Where that reading is possible, write «рахунок зі спільним доступом»."
   },
   {
+    "term": "shared pool",
+    "partOfSpeech": "noun",
+    "definition": "On plans below Plus, MoneyMatter AI requests from all such users draw on one shared usage quota, so limits may apply when overall demand is high. Upgrading to Plus takes the user off the shared pool.",
+    "translatable": true,
+    "uk": "спільний пул"
+  },
+  {
     "term": "shared resource",
     "partOfSpeech": "noun",
     "definition": "Generic name for an account, budget or household shared between users, used when its type isn't named. Not the uploaded file the server keeps during an import session.",
@@ -3137,6 +3192,14 @@
     "translatable": true,
     "uk": "пропущено",
     "ukNote": "Status label form; as an agreeing adjective: пропущений."
+  },
+  {
+    "term": "Smart",
+    "partOfSpeech": "adjective",
+    "definition": "The highest of three model tiers in the \"Which model fits?\" guide: the most capable and most expensive models. Inserted as {tier} in \"{tier} model is enough\". Not the user-chosen AI model names like \"Claude smart\" in examples.",
+    "translatable": true,
+    "uk": "Розумний",
+    "ukNote": "Masculine, agreeing with the implied «рівень»: «Достатньо рівня «{tier}»»."
   },
   {
     "term": "source account",
@@ -3626,7 +3689,7 @@
   {
     "term": "URL",
     "partOfSpeech": "noun",
-    "definition": "A web address: an MCP server URL, an AI endpoint's base URL, a transaction's external link, a bank redirect URL. Keep the acronym.",
+    "definition": "A web address: an MCP server URL, an AI model's base URL, a transaction's external link, a bank redirect URL. Keep the acronym.",
     "translatable": false,
     "uk": "URL",
     "ukNote": "«URL-адреса» where grammar needs a noun. A transaction's External URL field is shown as «Зовнішнє посилання»."
@@ -3720,13 +3783,6 @@
     "definition": "Environment variable a self-hosting admin sets to turn on brand logos. Code name: copy it exactly.",
     "translatable": false,
     "uk": "VITE_LOGO_DEV_TOKEN"
-  },
-  {
-    "term": "vLLM",
-    "partOfSpeech": "proper noun",
-    "definition": "Open-source server software for running AI models; it can act as an OpenAI-compatible custom AI endpoint. Keep as is.",
-    "translatable": false,
-    "uk": "vLLM"
   },
   {
     "term": "voided",

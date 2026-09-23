@@ -1,25 +1,10 @@
-import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_PROVIDER } from '@bt/shared/types';
+import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import UserSettings from '@models/user-settings.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
-import { getTestUserId, seedApiKey } from '@tests/helpers/user-settings';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import request from 'supertest';
-
-async function removeAllApiKeys({ userId }: { userId: number }) {
-  const settings = await UserSettings.findOne({ where: { userId } });
-  if (settings) {
-    settings.settings = {
-      ...settings.settings,
-      ai: {
-        ...(settings.settings.ai ?? { featureConfigs: [] }),
-        apiKeys: [],
-      },
-    };
-    await settings.save();
-  }
-}
 
 describe('AI Custom Instructions', () => {
   describe('Authentication', () => {
@@ -43,9 +28,12 @@ describe('AI Custom Instructions', () => {
   });
 
   describe('PUT /user/settings/ai/custom-instructions', () => {
+    useSelfHostWithoutServerAiKeys();
+
+    let connectionId: string;
+
     beforeEach(async () => {
-      const userId = await getTestUserId();
-      await seedApiKey({ userId, provider: AI_PROVIDER.openai });
+      connectionId = (await helpers.createFirstConnection()).id;
     });
 
     it('should save custom instructions and overwrite them with a new value', async () => {
@@ -93,10 +81,10 @@ describe('AI Custom Instructions', () => {
       expect(stored.instructions).toBe(maxLengthInstructions);
     });
 
-    it('should preserve stored instructions when the API key is removed, but refuse new ones', async () => {
+    it('should preserve stored instructions when the last AI model is removed, but refuse new ones', async () => {
       await helpers.setCustomInstructions({ instructions: 'My custom rules' });
 
-      await removeAllApiKeys({ userId: await getTestUserId() });
+      await helpers.deleteAiConnection({ id: connectionId, raw: true });
 
       const stored = await helpers.getCustomInstructions({ raw: true });
       expect(stored.instructions).toBe('My custom rules');

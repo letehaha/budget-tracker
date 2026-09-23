@@ -1,4 +1,5 @@
 import {
+  AI_FEATURE,
   AI_PROVIDER,
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
@@ -17,9 +18,13 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import * as helpers from '@tests/helpers';
+import { VALID_ANTHROPIC_API_KEY } from '@tests/mocks/anthropic/mock-api';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+import { randomUUID } from 'node:crypto';
 
 type Row = Record<string, unknown>;
+
+const LEGACY_ENDPOINT_BASE_URL = 'http://ollama.home.test/v1';
 
 // Tables whose restored copy legitimately differs from the dump: `user` and
 // `user-settings` are re-created rather than bulk-inserted (fresh ids/timestamps,
@@ -53,6 +58,11 @@ function readArchiveJson({ files, path }: { files: Map<string, Buffer>; path: st
 
 function writeArchiveJson({ files, path, value }: { files: Map<string, Buffer>; path: string; value: unknown }): void {
   files.set(path, Buffer.from(JSON.stringify(value)));
+}
+
+function archiveText({ buffer }: { buffer: Buffer }): string {
+  const { files } = helpers.parseBackupArchive({ buffer });
+  return [...files.values()].map((buf) => buf.toString('utf8')).join('\n');
 }
 
 async function getCurrentUserId(): Promise<number> {
@@ -793,24 +803,8 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       });
       const connectionId = connect.connectionId;
 
-      const aiKeyNeedle = `ai-secret-${Date.now()}`;
-      await helpers.patchUserSettings({
-        patch: {
-          ai: {
-            apiKeys: [
-              { provider: AI_PROVIDER.anthropic, keyEncrypted: aiKeyNeedle, createdAt: new Date().toISOString() },
-            ],
-          },
-        },
-        raw: true,
-      });
-
       const { buffer, base64 } = await exportArchive();
-      const archive = helpers.parseBackupArchive({ buffer });
-      const allText = [...archive.files.values()].map((buf) => buf.toString('utf8')).join('\n');
-      expect(allText).not.toContain(VALID_MONOBANK_TOKEN);
-      expect(allText).not.toContain(aiKeyNeedle);
-      expect(allText).not.toMatch(/"keyEncrypted"/);
+      expect(archiveText({ buffer })).not.toContain(VALID_MONOBANK_TOKEN);
 
       const restore = await helpers.restoreBackup({ fileContent: base64 });
       expect(restore.statusCode).toBe(200);
@@ -856,6 +850,129 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       })) as { connectionsNeedingReauth: Array<{ connectionId: string }> };
       expect(reauthCleared.connectionsNeedingReauth.some((c) => c.connectionId === connectionId)).toBe(false);
     }, 30000);
+  });
+
+  describe('Restored AI connections', () => {
+    it('come back flagged invalid with no key material, asking for the key again', async () => {
+      const created = await helpers.createAiConnection({
+        provider: AI_PROVIDER.anthropic,
+        name: 'Claude',
+        model: 'claude-sonnet-5',
+        apiKey: VALID_ANTHROPIC_API_KEY,
+        raw: true,
+      });
+
+      const { buffer, base64 } = await exportArchive();
+      const allText = archiveText({ buffer });
+      expect(allText).not.toContain(VALID_ANTHROPIC_API_KEY);
+      expect(allText).not.toMatch(/"keyEncrypted"/);
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      expect(await helpers.getAiConnections({ raw: true })).toEqual([
+        expect.objectContaining({
+          id: created.id,
+          provider: AI_PROVIDER.anthropic,
+          model: 'claude-sonnet-5',
+          hasApiKey: false,
+          status: 'invalid',
+          lastError: expect.any(String),
+          invalidatedAt: expect.any(String),
+        }),
+      ]);
+
+      const fixed = await helpers.updateAiConnection({ id: created.id, apiKey: VALID_ANTHROPIC_API_KEY, raw: true });
+      expect(fixed).toMatchObject({ hasApiKey: true, status: 'valid' });
+      expect(fixed.lastError).toBeUndefined();
+      expect(fixed.invalidatedAt).toBeUndefined();
+    });
+
+    it('converts a pre-connections archive (API keys, custom endpoints, old feature configs) without resetting settings', async () => {
+      // The settings row is created lazily; a user with legacy AI keys always had one.
+      await helpers.updateUserSettings({ settings: { locale: 'uk' } });
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const endpointId = randomUUID();
+      const endpointCiphertext = `legacy-endpoint-ciphertext-${Date.now()}`;
+      const apiKeyCiphertext = `legacy-api-key-ciphertext-${Date.now()}`;
+      const createdAt = new Date().toISOString();
+      const settingsRows = readArchiveJson({ files, path: 'data/user-settings.json' }) as Row[];
+      (settingsRows[0]!.settings as Row).ai = {
+        apiKeys: [{ provider: 'anthropic', keyEncrypted: apiKeyCiphertext, createdAt }],
+        defaultProvider: 'anthropic',
+        customEndpoints: [
+          {
+            id: endpointId,
+            name: 'Home Ollama',
+            baseUrl: LEGACY_ENDPOINT_BASE_URL,
+            defaultModel: 'llama3.2',
+            keyEncrypted: endpointCiphertext,
+            createdAt,
+            status: 'valid',
+            lastValidatedAt: createdAt,
+          },
+        ],
+        featureConfigs: [
+          // A model override on the endpoint becomes its own connection.
+          { feature: AI_FEATURE.categorization, modelId: 'custom/qwen2.5', customEndpointId: endpointId },
+          // The feature's server default with no Google key stays pinned to the server model.
+          { feature: AI_FEATURE.statementParsing, modelId: 'google/gemini-3.6-flash' },
+        ],
+      };
+      writeArchiveJson({ files, path: 'data/user-settings.json', value: settingsRows });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+      expect(status.summary?.warnings.some((w) => w.code === 'settings_reset')).toBe(false);
+
+      const connections = await helpers.getAiConnections({ raw: true });
+      expect(connections).toHaveLength(3);
+      for (const connection of connections) {
+        expect(connection).toMatchObject({
+          hasApiKey: false,
+          status: 'invalid',
+          lastError: expect.any(String),
+          invalidatedAt: expect.any(String),
+        });
+      }
+
+      const [endpoint, modelOverride, anthropicKey] = connections;
+      expect(endpoint).toMatchObject({
+        id: endpointId,
+        provider: AI_PROVIDER.custom,
+        baseUrl: LEGACY_ENDPOINT_BASE_URL,
+        model: 'llama3.2',
+      });
+      expect(modelOverride).toMatchObject({
+        provider: AI_PROVIDER.custom,
+        baseUrl: LEGACY_ENDPOINT_BASE_URL,
+        model: 'qwen2.5',
+      });
+      expect(anthropicKey!.provider).toBe(AI_PROVIDER.anthropic);
+
+      const after = await exportArchive();
+      const afterText = archiveText({ buffer: after.buffer });
+      expect(afterText).not.toContain(endpointCiphertext);
+      expect(afterText).not.toContain(apiKeyCiphertext);
+
+      const [settingsAfter] = helpers
+        .parseBackupArchive({ buffer: after.buffer })
+        .readData({ name: 'user-settings' }) as Array<{ settings: { ai: Row; locale?: string } }>;
+      expect(settingsAfter!.settings.locale).toBe('uk');
+      expect(settingsAfter!.settings.ai).not.toHaveProperty('apiKeys');
+      expect(settingsAfter!.settings.ai).not.toHaveProperty('customEndpoints');
+      expect(settingsAfter!.settings.ai.featureConfigs).toEqual([
+        { feature: AI_FEATURE.categorization, connectionId: modelOverride!.id },
+        { feature: AI_FEATURE.statementParsing, connectionId: null },
+      ]);
+    });
   });
 
   describe('Atomicity', () => {

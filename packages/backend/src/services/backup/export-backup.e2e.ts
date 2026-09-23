@@ -2,7 +2,10 @@ import { AI_PROVIDER, BACKUP_FORMAT_VERSION, BANK_PROVIDER_TYPE } from '@bt/shar
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import * as helpers from '@tests/helpers';
+import { VALID_ANTHROPIC_API_KEY } from '@tests/mocks/anthropic/mock-api';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
+
+const AI_CONNECTION_MODEL = 'claude-sonnet-5';
 
 describe('Data backup export (POST /user/backup)', () => {
   // The route is rate-limited (5 per 15 min per user) and the limiter runs in
@@ -24,21 +27,15 @@ describe('Data backup export (POST /user/backup)', () => {
         raw: true,
       });
 
-      // Seed an AI key entry directly into the settings JSONB (the network
-      // validation on the dedicated set-key endpoint can't run in tests). The
-      // ciphertext lives at settings.ai.apiKeys[].keyEncrypted and must be
-      // blanked to an empty array on export.
-      const aiKeyNeedle = `ai-secret-ciphertext-${Date.now()}`;
-      await helpers.patchUserSettings({
-        patch: {
-          ai: {
-            apiKeys: [
-              { provider: AI_PROVIDER.anthropic, keyEncrypted: aiKeyNeedle, createdAt: new Date().toISOString() },
-            ],
-          },
-        },
+      const aiConnection = await helpers.createAiConnection({
+        provider: AI_PROVIDER.anthropic,
+        name: 'Claude',
+        model: AI_CONNECTION_MODEL,
+        apiKey: VALID_ANTHROPIC_API_KEY,
         raw: true,
       });
+      const [storedConnection] = await helpers.readStoredConnections({ userId: await helpers.getTestUserId() });
+      const aiKeyCiphertext = storedConnection!.keyEncrypted!;
 
       const response = await helpers.exportBackup();
       expect(response.statusCode).toBe(200);
@@ -50,7 +47,8 @@ describe('Data backup export (POST /user/backup)', () => {
 
       // Neither raw secret nor the sensitive column/key names appear anywhere.
       expect(allText).not.toContain(VALID_MONOBANK_TOKEN);
-      expect(allText).not.toContain(aiKeyNeedle);
+      expect(allText).not.toContain(VALID_ANTHROPIC_API_KEY);
+      expect(allText).not.toContain(aiKeyCiphertext);
       expect(allText).not.toMatch(/"keyEncrypted"/);
 
       // The connection row is kept (accounts keep their linkage) but its
@@ -64,12 +62,20 @@ describe('Data backup export (POST /user/backup)', () => {
         expect(connection.credentials).toBeNull();
       }
 
-      // If the AI settings survived the round-trip, their apiKeys are emptied.
-      const settingsRows = archive.readData({ name: 'user-settings' }) as Array<Record<string, unknown>>;
-      for (const row of settingsRows) {
-        const settings = row.settings as { ai?: { apiKeys?: unknown[] } } | null;
-        if (settings?.ai?.apiKeys) expect(settings.ai.apiKeys).toEqual([]);
-      }
+      // The AI connection travels without its key, flagged so the user is asked to re-enter it.
+      const [settingsRow] = archive.readData({ name: 'user-settings' }) as Array<{
+        settings: { ai: { connections: Array<Record<string, unknown>> } };
+      }>;
+      expect(settingsRow!.settings.ai.connections).toEqual([
+        expect.objectContaining({
+          id: aiConnection.id,
+          provider: AI_PROVIDER.anthropic,
+          model: AI_CONNECTION_MODEL,
+          status: 'invalid',
+          lastError: expect.any(String),
+          invalidatedAt: expect.any(String),
+        }),
+      ]);
     });
   });
 

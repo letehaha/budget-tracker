@@ -1,3 +1,4 @@
+import { t } from '@i18n/index';
 import { ForbiddenError } from '@js/errors';
 import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
 
@@ -22,20 +23,17 @@ export const getCustomInstructions = withTransaction(
 /**
  * Set custom AI instructions for a user.
  * Pass empty string to clear instructions.
- * Requires the user to have at least one personal API key.
+ * Requires the user to have at least one AI connection of their own.
  */
 export const setCustomInstructions = withTransaction(
   async ({ userId, instructions }: { userId: number; instructions: string }): Promise<void> => {
     const [userSettings] = await getOrCreateUserSettings({ userId });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-    const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
+    const currentAiSettings = currentSettings.ai ?? {};
 
-    // Require at least one personal API key
-    if (!currentAiSettings.apiKeys || currentAiSettings.apiKeys.length === 0) {
-      throw new ForbiddenError({
-        message: 'A personal AI API key is required to use custom instructions.',
-      });
+    if (!currentAiSettings.connections?.length) {
+      throw new ForbiddenError({ message: t({ key: 'ai.customInstructionsNeedConnection' }) });
     }
 
     const trimmed = instructions.trim();

@@ -1,10 +1,9 @@
 import { AI_FEATURE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { getStoredAiSettings } from '@services/user-settings/ai-api-key';
-import { getFeatureConfig } from '@services/user-settings/ai-feature-settings';
+import { getStoredAiSettings } from '@services/user-settings/ai-connections';
 import { z } from 'zod';
 
-import { buildFeatureStatusPayload, resolveServerKeysAllowed } from './build-feature-status-payload';
+import { buildFeatureStatusPayload } from './build-feature-status-payload';
 
 const schema = z.object({
   params: z.object({
@@ -13,18 +12,9 @@ const schema = z.object({
 });
 
 export const getFeatureConfigController = createController(schema, async ({ user, params, req }) => {
-  const { id: userId } = user;
-  const { feature } = params;
-
-  const config = await getFeatureConfig({ userId, feature });
-  const aiSettings = await getStoredAiSettings({ userId });
+  const aiSettings = await getStoredAiSettings({ userId: user.id });
 
   return {
-    data: buildFeatureStatusPayload({
-      feature,
-      config,
-      aiSettings,
-      serverKeysAllowed: await resolveServerKeysAllowed({ req, userId }),
-    }),
+    data: await buildFeatureStatusPayload({ req, feature: params.feature, aiSettings }),
   };
 });

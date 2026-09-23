@@ -1,5 +1,5 @@
-import { AI_FEATURE, getModelNameFromModelId } from '@bt/shared/types';
-import { getDefaultModelForFeature } from '@services/ai/models-config';
+import { AI_FEATURE } from '@bt/shared/types';
+import { SERVER_MODELS } from '@services/ai/resolution-ladder';
 import { HttpResponse, http } from 'msw';
 
 // Gemini API uses a different URL pattern, with the model name baked into the
@@ -7,13 +7,44 @@ import { HttpResponse, http } from 'msw';
 // doesn't silently unmatch every handler here.
 export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/*';
 
+const GEMINI_MODELS_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
 export const VALID_GEMINI_API_KEY = 'test-valid-gemini-key-12345';
 export const INVALID_GEMINI_API_KEY = 'test-invalid-gemini-key';
 
+/** Chat models the default list handler reports; it also lists an embedding model the app must skip. */
+export const GEMINI_LISTED_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemma-4-31b-it'];
+
+function readApiKey({ request }: { request: Request }): string | null {
+  // The SDK sends the key as the `x-goog-api-key` header; the REST API also
+  // accepts a `?key=` query param, so honour both transports.
+  return request.headers.get('x-goog-api-key') ?? new URL(request.url).searchParams.get('key');
+}
+
+/** Gemini answers a bad key with a 400, not a 401. */
+function invalidKeyResponse() {
+  return HttpResponse.json(
+    {
+      error: {
+        code: 400,
+        message: 'API key not valid. Please pass a valid API key.',
+        status: 'INVALID_ARGUMENT',
+        details: [
+          {
+            '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+            reason: 'API_KEY_INVALID',
+            domain: 'googleapis.com',
+            metadata: { service: 'generativelanguage.googleapis.com' },
+          },
+        ],
+      },
+    },
+    { status: 400 },
+  );
+}
+
 /** Most callers of this mock exercise categorization; others pass `expectedModel`. */
-const DEFAULT_EXPECTED_MODEL = getModelNameFromModelId({
-  modelId: getDefaultModelForFeature({ feature: AI_FEATURE.categorization }),
-});
+const DEFAULT_EXPECTED_MODEL = SERVER_MODELS[AI_FEATURE.categorization].model;
 
 /**
  * Pulls the `<model>` segment out of `.../v1beta/models/<model>:generateContent`.
@@ -84,23 +115,8 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     const modelMismatch = rejectIfWrongModel({ request, expectedModel });
     if (modelMismatch) return modelMismatch;
 
-    const url = new URL(request.url);
-    // The SDK sends the key as the `x-goog-api-key` header; the REST API also
-    // accepts a `?key=` query param, so honour both transports.
-    const apiKey = request.headers.get('x-goog-api-key') ?? url.searchParams.get('key');
-
-    // Check for invalid API key
-    if (apiKey === INVALID_GEMINI_API_KEY) {
-      return HttpResponse.json(
-        {
-          error: {
-            code: 401,
-            message: 'API_KEY_INVALID',
-            status: 'UNAUTHENTICATED',
-          },
-        },
-        { status: 401 },
-      );
+    if (readApiKey({ request }) === INVALID_GEMINI_API_KEY) {
+      return invalidKeyResponse();
     }
 
     // Simulate failure if requested
@@ -147,3 +163,22 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     });
   });
 }
+
+const modelListHandler = http.get(GEMINI_MODELS_URL, ({ request }) => {
+  if (readApiKey({ request }) === INVALID_GEMINI_API_KEY) {
+    return invalidKeyResponse();
+  }
+
+  return HttpResponse.json({
+    models: [
+      ...GEMINI_LISTED_MODELS.map((id) => ({
+        name: `models/${id}`,
+        supportedGenerationMethods: ['generateContent', 'countTokens'],
+      })),
+      { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+    ],
+  });
+});
+
+/** Default handlers. `generateContent` stays opt-in through `createGeminiMock`, which pins the model. */
+export const geminiHandlers = [modelListHandler];

@@ -134,6 +134,15 @@ export const isEntitledSubscription = ({
   now?: number;
 }): boolean => ENTITLED_SUBSCRIPTION_STATUSES.includes(status) && new Date(currentPeriodEndsAt).getTime() > now;
 
+/** Early adopters and trials hold Plus features without paying for Plus. */
+export const hasPaidPlus = ({
+  entitlements,
+}: {
+  entitlements: Pick<Entitlements, 'plan' | 'subscriptions'>;
+}): boolean =>
+  entitlements.plan === PLANS.plus ||
+  entitlements.subscriptions.some((s) => s.tier === PLANS.plus && isEntitledSubscription(s));
+
 export type StripeEnvironment = 'test' | 'live';
 
 /**

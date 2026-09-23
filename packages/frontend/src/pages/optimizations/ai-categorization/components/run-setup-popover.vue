@@ -14,7 +14,9 @@ const featureStatus = computed(() => getFeatureStatus(AI_FEATURE.categorization)
 
 // "Not configured" is only true once the request has actually answered. A paused
 // or offline query has no answer yet, and must read as loading, not as an error.
-const hasSetupProblem = computed(() => featuresUnknown.value || (!isFeaturesPending.value && !featureStatus.value));
+const hasSetupProblem = computed(
+  () => featuresUnknown.value || (!isFeaturesPending.value && !featureStatus.value?.servedBy),
+);
 </script>
 
 <template>
@@ -89,11 +91,11 @@ const hasSetupProblem = computed(() => featuresUnknown.value || (!isFeaturesPend
           </div>
         </div>
 
-        <div v-if="featureStatus?.endpointName" class="flex items-start gap-3">
+        <div v-if="featureStatus?.connectionName" class="flex items-start gap-3">
           <ServerIcon class="text-muted-foreground mt-0.5 size-4 shrink-0" />
           <div class="min-w-0">
-            <dt class="text-muted-foreground text-xs">{{ $t('optimizations.aiCategorization.setup.endpoint') }}</dt>
-            <dd class="truncate font-medium">{{ featureStatus.endpointName }}</dd>
+            <dt class="text-muted-foreground text-xs">{{ $t('optimizations.aiCategorization.setup.connection') }}</dt>
+            <dd class="truncate font-medium">{{ featureStatus.connectionName }}</dd>
           </div>
         </div>
 

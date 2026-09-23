@@ -91,7 +91,7 @@ const RAW_CATEGORIES: RawCategory[] = [
     icon: 'sparkles',
     tasks: [
       { id: 'review-ai-features', route: ROUTES_NAMES.settingsAiFeatures },
-      { id: 'configure-ai', route: ROUTES_NAMES.settingsAiKeys },
+      { id: 'configure-ai', route: ROUTES_NAMES.settingsAiModels },
     ],
   },
   {

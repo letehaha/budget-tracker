@@ -1,46 +1,16 @@
 import { api } from '@/api/_api';
 import {
-  AIApiKeyInfo,
-  AICustomEndpointInfo,
-  AIKeyProvider,
+  AIConnectionInfo,
   AIFeatureStatus,
-  AIModelInfoWithRecommendation,
   AI_FEATURE,
+  CreateAIConnectionBody,
+  ListAIConnectionModelsBody,
+  ListAIConnectionModelsResponse,
+  SetAIFeatureConfigBody,
+  TestAIConnectionBody,
+  TestAIConnectionResponse,
+  UpdateAIConnectionBody,
 } from '@bt/shared/types';
-
-// ===== API Key Management =====
-
-export interface AiApiKeyStatusResponse {
-  hasApiKey: boolean;
-  providers: AIApiKeyInfo[];
-  defaultProvider?: AIKeyProvider;
-}
-
-export const getAiApiKeyStatus = async (): Promise<AiApiKeyStatusResponse> => {
-  return api.get('/user/settings/ai/api-keys');
-};
-
-export const setAiApiKey = async ({
-  provider,
-  apiKey,
-}: {
-  provider: AIKeyProvider;
-  apiKey: string;
-}): Promise<{ success: boolean }> => {
-  return api.put('/user/settings/ai/api-keys', { provider, apiKey });
-};
-
-export const deleteAiApiKey = async ({ provider }: { provider: AIKeyProvider }): Promise<{ success: boolean }> => {
-  return api.delete('/user/settings/ai/api-keys', { data: { provider } });
-};
-
-export const setDefaultAiProvider = async ({
-  provider,
-}: {
-  provider: AIKeyProvider;
-}): Promise<{ success: boolean }> => {
-  return api.put('/user/settings/ai/api-keys/default', { provider });
-};
 
 // ===== Feature Configuration =====
 
@@ -52,17 +22,12 @@ export const getAiFeaturesStatus = async (): Promise<AiFeaturesStatusResponse> =
   return api.get('/user/settings/ai/features');
 };
 
-/** `customEndpointId` is required for `custom/<model>` ids, ignored for catalog models. */
+/** `connectionId: null` picks the included server model. */
 export const setAiFeatureConfig = async ({
   feature,
-  modelId,
-  customEndpointId,
-}: {
-  feature: AI_FEATURE;
-  modelId: string;
-  customEndpointId?: string;
-}): Promise<AIFeatureStatus> => {
-  return api.put(`/user/settings/ai/features/${feature}`, { modelId, customEndpointId });
+  connectionId,
+}: SetAIFeatureConfigBody & { feature: AI_FEATURE }): Promise<AIFeatureStatus> => {
+  return api.put(`/user/settings/ai/features/${feature}`, { connectionId });
 };
 
 export const resetAiFeatureConfig = async ({ feature }: { feature: AI_FEATURE }): Promise<AIFeatureStatus> => {
@@ -87,85 +52,39 @@ export const setCustomInstructions = async ({
   return api.put('/user/settings/ai/custom-instructions', { instructions });
 };
 
-// ===== Available Models =====
+// ===== Connections =====
 
-export interface AvailableModelsResponse {
-  models: AIModelInfoWithRecommendation[];
-}
-
-export const getAvailableModels = async ({
-  provider,
-  feature,
-}: {
-  provider?: AIKeyProvider;
-  feature?: AI_FEATURE;
-} = {}): Promise<AvailableModelsResponse> => {
-  const params: Record<string, string> = {};
-  if (provider) params.provider = provider;
-  if (feature) params.feature = feature;
-  return api.get('/user/settings/ai/models', params);
+export const getAiConnections = async (): Promise<AIConnectionInfo[]> => {
+  return api.get('/user/settings/ai/connections');
 };
 
-// ===== Custom Endpoints =====
-
-interface TestCustomEndpointResponse {
-  isValid: boolean;
-  error?: string;
-}
-
-export const getCustomEndpoints = async (): Promise<AICustomEndpointInfo[]> => {
-  return api.get('/user/settings/ai/custom-endpoints');
-};
-
-export const createCustomEndpoint = async ({
-  name,
-  baseUrl,
-  defaultModel,
-  apiKey,
-}: {
-  name: string;
-  baseUrl: string;
-  defaultModel: string;
-  apiKey?: string | null;
-}): Promise<AICustomEndpointInfo> => {
-  return api.post('/user/settings/ai/custom-endpoints', { name, baseUrl, defaultModel, apiKey });
+export const createAiConnection = async (body: CreateAIConnectionBody): Promise<AIConnectionInfo> => {
+  return api.post('/user/settings/ai/connections', body);
 };
 
 /** Partial update. `apiKey` omitted keeps the stored key, `null` removes it, a string replaces it. */
-export const updateCustomEndpoint = async ({
+export const updateAiConnection = async ({
   id,
-  name,
-  baseUrl,
-  defaultModel,
-  apiKey,
-}: {
-  id: string;
-  name?: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  apiKey?: string | null;
-}): Promise<AICustomEndpointInfo> => {
-  return api.put(`/user/settings/ai/custom-endpoints/${id}`, { name, baseUrl, defaultModel, apiKey });
+  ...body
+}: UpdateAIConnectionBody & { id: string }): Promise<AIConnectionInfo> => {
+  return api.put(`/user/settings/ai/connections/${id}`, body);
 };
 
-export const deleteCustomEndpoint = async ({ id }: { id: string }): Promise<{ success: boolean }> => {
-  return api.delete(`/user/settings/ai/custom-endpoints/${id}`);
+export const deleteAiConnection = async ({ id }: { id: string }): Promise<{ success: boolean }> => {
+  return api.delete(`/user/settings/ai/connections/${id}`);
 };
 
-type TestCustomEndpointPayload =
-  | {
-      /** Omitted fields fall back to this endpoint's stored values, including its key. */
-      endpointId: string;
-      baseUrl?: string;
-      defaultModel?: string;
-      apiKey?: string;
-    }
-  | {
-      baseUrl: string;
-      defaultModel: string;
-      apiKey?: string;
-    };
+/** Returns the reordered list. */
+export const setDefaultAiConnection = async ({ id }: { id: string }): Promise<AIConnectionInfo[]> => {
+  return api.post(`/user/settings/ai/connections/${id}/default`);
+};
 
-export const testCustomEndpoint = async (payload: TestCustomEndpointPayload): Promise<TestCustomEndpointResponse> => {
-  return api.post('/user/settings/ai/custom-endpoints/test', payload);
+export const testAiConnection = async (body: TestAIConnectionBody): Promise<TestAIConnectionResponse> => {
+  return api.post('/user/settings/ai/connections/test', body);
+};
+
+export const listAiConnectionModels = async (
+  body: ListAIConnectionModelsBody,
+): Promise<ListAIConnectionModelsResponse> => {
+  return api.post('/user/settings/ai/connections/models', body);
 };

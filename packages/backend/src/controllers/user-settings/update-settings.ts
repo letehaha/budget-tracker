@@ -3,12 +3,9 @@ import { ZodSettingsSchema } from '@models/user-settings.model';
 import * as userSettingsService from '@services/user-settings/update-settings';
 import { z } from 'zod';
 
-/**
- * Key material is omitted from the body because `GET /user/settings` redacts it, so a client
- * echoing back the settings it read must not be rejected over fields it never received.
- */
+/** Service-owned AI slices are dropped unvalidated: the service strips them anyway. */
 const ZodUpdateSettingsBodySchema = ZodSettingsSchema.extend({
-  ai: ZodSettingsSchema.shape.ai.unwrap().omit({ apiKeys: true, customEndpoints: true }).optional(),
+  ai: ZodSettingsSchema.shape.ai.unwrap().omit({ connections: true, featureConfigs: true }).optional(),
 });
 
 const schema = z.object({

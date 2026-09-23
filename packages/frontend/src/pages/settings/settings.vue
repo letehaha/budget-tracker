@@ -3,7 +3,9 @@
     ref="containerRef"
     :class="
       cn(
-        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col gap-6 p-4 sm:flex-row md:px-6',
+        'flex min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))] flex-col p-4 sm:flex-row',
+        isTransitionReady && 'transition-all duration-200',
+        isIconOnly ? 'gap-2 md:pr-6 md:pl-2' : 'gap-6 md:px-6',
         isMobileView
           ? 'min-h-[calc(100dvh-var(--header-height)-var(--bottom-navbar-height))]'
           : 'min-h-[calc(100dvh-var(--header-height))]',
@@ -15,33 +17,61 @@
     <nav
       v-if="!isOnChildRoute || !isCompactLayout"
       :class="[
-        'border-border bg-card/50 w-full shrink-0 rounded-lg border p-2 backdrop-blur-sm',
-        !isCompactLayout && 'lg:w-52',
+        'border-border bg-card/50 shrink-0 rounded-lg border p-2 backdrop-blur-sm',
+        isTransitionReady && 'transition-all duration-200',
+        isCompactLayout ? 'w-full' : isCollapsed ? 'w-14' : 'w-full lg:w-52',
       ]"
     >
-      <div class="sticky top-(--header-height) flex flex-col gap-4">
-        <div v-for="group in groups" :key="group.key" class="flex flex-col gap-1">
-          <div class="text-muted-foreground px-3 pt-1 text-[11px] font-semibold tracking-wider uppercase">
+      <div class="sticky top-(--header-height) flex flex-col gap-4 overflow-hidden">
+        <button
+          v-if="!isCompactLayout"
+          :class="
+            cn(
+              'text-muted-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+              'hover:bg-accent hover:text-foreground',
+            )
+          "
+          @click="isCollapsed = !isCollapsed"
+        >
+          <PanelLeftCloseIcon v-if="!isCollapsed" class="size-4 shrink-0" />
+          <PanelLeftOpenIcon v-else class="size-4 shrink-0" />
+          <span
+            :class="['whitespace-nowrap transition-opacity duration-200', isCollapsed ? 'opacity-0' : 'opacity-100']"
+          >
+            {{ $t('settings.navigation.collapse') }}
+          </span>
+        </button>
+
+        <div v-for="(group, groupIndex) in groups" :key="group.key" class="flex flex-col gap-1">
+          <div
+            v-if="!isIconOnly"
+            class="text-muted-foreground px-3 pt-1 text-[11px] font-semibold tracking-wider uppercase"
+          >
             {{ group.label }}
           </div>
+          <div v-else-if="groupIndex > 0" class="border-border mx-1 mb-1 border-t" />
           <ul class="flex flex-col gap-1">
             <li v-for="tab in group.tabs" :key="tab.name">
-              <router-link
-                :to="tab.to"
-                :class="
-                  cn(
-                    'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
-                    'hover:bg-accent hover:text-foreground',
-                    '[&.router-link-active]:bg-accent [&.router-link-active]:text-foreground',
-                    isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
-                  )
-                "
-              >
-                <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
-                {{ tab.label }}
-                <NewBadge v-if="tab.badgeSince" :since="tab.badgeSince" :ttl-days="tab.badgeTtlDays" />
-                <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
-              </router-link>
+              <DesktopOnlyTooltip :content="tab.label" :disabled="!isIconOnly" side="right">
+                <router-link
+                  :to="tab.to"
+                  :class="
+                    cn(
+                      'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                      'hover:bg-accent hover:text-foreground',
+                      '[&.router-link-active]:bg-accent [&.router-link-active]:text-foreground',
+                      isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+                    )
+                  "
+                >
+                  <component :is="tab.icon" :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+                  <span :class="['transition-opacity duration-200', isIconOnly ? 'opacity-0' : 'opacity-100']">
+                    {{ tab.label }}
+                  </span>
+                  <NewBadge v-if="tab.badgeSince && !isIconOnly" :since="tab.badgeSince" :ttl-days="tab.badgeTtlDays" />
+                  <ChevronRightIcon v-if="isCompactLayout" class="text-muted-foreground ml-auto size-4" />
+                </router-link>
+              </DesktopOnlyTooltip>
             </li>
           </ul>
         </div>
@@ -63,11 +93,13 @@
 <script setup lang="ts">
 import BackLink from '@/components/common/back-link.vue';
 import NewBadge from '@/components/common/new-badge.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useAfterMountTransition } from '@/composable/use-after-mount-transition';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
-import { useElementSize } from '@vueuse/core';
+import { useElementSize, useLocalStorage } from '@vueuse/core';
 import {
   CalendarClockIcon,
   ChevronRightIcon,
@@ -78,7 +110,8 @@ import {
   LanguagesIcon,
   LayersIcon,
   PaletteIcon,
-  PlugIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   SettingsIcon,
   ShieldIcon,
   SparklesIcon,
@@ -121,6 +154,9 @@ const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
 });
 
 const isCompactLayout = computed(() => containerWidth.value < 920);
+const isCollapsed = useLocalStorage('settings-sidebar-collapsed', false);
+const isIconOnly = computed(() => isCollapsed.value && !isCompactLayout.value);
+const isTransitionReady = useAfterMountTransition();
 const showAdminTab = ref(user.value?.isAdmin ?? false);
 
 const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.settings);
@@ -222,13 +258,6 @@ const workspaceTabs = computed<Tab[]>(() => {
       label: t('settings.navigation.ai'),
       to: { name: ROUTES_NAMES.settingsAi },
       icon: SparklesIcon,
-    },
-    {
-      name: 'ai-integrations',
-      label: t('settings.navigation.aiIntegrations'),
-      to: { name: ROUTES_NAMES.settingsAiIntegrations },
-      icon: PlugIcon,
-      badgeSince: '2026-04-01',
     },
     {
       name: 'shared-with-me',

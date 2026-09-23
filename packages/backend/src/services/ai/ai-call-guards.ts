@@ -6,11 +6,11 @@ import { AI_PROVIDER } from '@bt/shared/types';
  */
 const CUSTOM_ENDPOINT_CALL_TIMEOUT_MS = 5 * 60 * 1000;
 
-/** Ceiling for one call to a catalog provider, covering the SDK's internal retry backoff. */
-const CATALOG_CALL_TIMEOUT_MS = 10 * 60 * 1000;
+/** Ceiling for one call to a native provider, covering the SDK's internal retry backoff. */
+const NATIVE_CALL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** Matches the `ai` SDK's own default. */
-const CATALOG_MAX_RETRIES = 2;
+const NATIVE_MAX_RETRIES = 2;
 
 /**
  * Per-call safety limits for `generateText`/`generateObject`. The signal is fresh per call,
@@ -27,5 +27,5 @@ export function aiCallGuards({ provider }: { provider: AI_PROVIDER }): {
     return { abortSignal: AbortSignal.timeout(CUSTOM_ENDPOINT_CALL_TIMEOUT_MS), maxRetries: 0 };
   }
 
-  return { abortSignal: AbortSignal.timeout(CATALOG_CALL_TIMEOUT_MS), maxRetries: CATALOG_MAX_RETRIES };
+  return { abortSignal: AbortSignal.timeout(NATIVE_CALL_TIMEOUT_MS), maxRetries: NATIVE_MAX_RETRIES };
 }

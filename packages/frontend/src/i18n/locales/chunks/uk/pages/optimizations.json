@@ -63,7 +63,7 @@
         "title": "Налаштування запуску",
         "model": "Модель",
         "notConfigured": "Не налаштовано",
-        "endpoint": "Ендпоінт",
+        "connection": "AI-модель",
         "limits": "Обмеження",
         "limitsSharedKey": "3 запуски на годину",
         "limitsOwnCredentials": "Без обмежень — працює на вашому власному ключі",

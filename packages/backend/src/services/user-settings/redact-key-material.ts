@@ -1,13 +1,8 @@
-import { type SettingsSchema } from '@models/user-settings.model';
+import { type SettingsSchema, type StoredAiSettings, type StoredConnection } from '@models/user-settings.model';
 import omit from 'lodash/omit';
 
-type StoredAiSettings = NonNullable<SettingsSchema['ai']>;
-type RedactedAiApiKey = Omit<StoredAiSettings['apiKeys'][number], 'keyEncrypted'>;
-type RedactedAiCustomEndpoint = Omit<NonNullable<StoredAiSettings['customEndpoints']>[number], 'keyEncrypted'>;
-
-type RedactedAiSettings = Omit<StoredAiSettings, 'apiKeys' | 'customEndpoints'> & {
-  apiKeys?: RedactedAiApiKey[];
-  customEndpoints?: RedactedAiCustomEndpoint[];
+type RedactedAiSettings = Omit<StoredAiSettings, 'connections'> & {
+  connections?: Omit<StoredConnection, 'keyEncrypted'>[];
 };
 
 /** Settings without any stored ciphertext, the shape the settings endpoints return. */
@@ -26,10 +21,9 @@ export const redactKeyMaterial = ({ settings }: { settings: SettingsSchema }): R
   return {
     ...rest,
     ai: {
-      ...omit(ai, ['apiKeys', 'customEndpoints']),
-      ...(ai.apiKeys ? { apiKeys: ai.apiKeys.map((key) => omit(key, ['keyEncrypted'])) } : {}),
-      ...(ai.customEndpoints
-        ? { customEndpoints: ai.customEndpoints.map((endpoint) => omit(endpoint, ['keyEncrypted'])) }
+      ...omit(ai, 'connections', 'apiKeys', 'customEndpoints'),
+      ...(ai.connections
+        ? { connections: ai.connections.map((connection) => omit(connection, ['keyEncrypted'])) }
         : {}),
     },
   };

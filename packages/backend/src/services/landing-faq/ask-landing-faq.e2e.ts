@@ -1,12 +1,10 @@
-import { getModelNameFromModelId } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { redisClient } from '@root/redis-client';
 import * as helpers from '@tests/helpers';
 import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 
-import { LANDING_FAQ_MODEL_ID } from './ask-landing-faq.service';
+import { LANDING_FAQ_MODEL } from './ask-landing-faq.service';
 
-const expectedModel = getModelNameFromModelId({ modelId: LANDING_FAQ_MODEL_ID });
 const QUESTION = 'Can I self-host it?';
 
 const modelReply = ({ answer, status = 'answered' }: { answer: string; status?: string }) =>
@@ -38,7 +36,10 @@ describe('Landing FAQ assistant', () => {
   describe('POST /landing/faq/ask', () => {
     it('returns the model answer', async () => {
       global.mswMockServer.use(
-        createGeminiMock({ rawText: modelReply({ answer: '  Yes, with Docker Compose.  ' }), expectedModel }),
+        createGeminiMock({
+          rawText: modelReply({ answer: '  Yes, with Docker Compose.  ' }),
+          expectedModel: LANDING_FAQ_MODEL,
+        }),
       );
 
       const result = await helpers.askLandingFaq({ question: QUESTION, raw: true });
@@ -48,7 +49,10 @@ describe('Landing FAQ assistant', () => {
 
     it.each(['unknown', 'off_topic'])('passes the %s status through', async (status) => {
       global.mswMockServer.use(
-        createGeminiMock({ rawText: modelReply({ answer: "I don't know.", status }), expectedModel }),
+        createGeminiMock({
+          rawText: modelReply({ answer: "I don't know.", status }),
+          expectedModel: LANDING_FAQ_MODEL,
+        }),
       );
 
       const result = await helpers.askLandingFaq({ question: QUESTION, raw: true });
@@ -58,7 +62,10 @@ describe('Landing FAQ assistant', () => {
 
     it('returns 503 when the model reply does not match the answer schema', async () => {
       global.mswMockServer.use(
-        createGeminiMock({ rawText: modelReply({ answer: 'Yes.', status: 'maybe' }), expectedModel }),
+        createGeminiMock({
+          rawText: modelReply({ answer: 'Yes.', status: 'maybe' }),
+          expectedModel: LANDING_FAQ_MODEL,
+        }),
       );
 
       const res = await helpers.askLandingFaq({ question: QUESTION });
@@ -75,7 +82,9 @@ describe('Landing FAQ assistant', () => {
     });
 
     it('returns 503 when the provider fails', async () => {
-      global.mswMockServer.use(createGeminiMock({ shouldFail: true, errorStatus: 400, expectedModel }));
+      global.mswMockServer.use(
+        createGeminiMock({ shouldFail: true, errorStatus: 400, expectedModel: LANDING_FAQ_MODEL }),
+      );
 
       const res = await helpers.askLandingFaq({ question: QUESTION });
 
@@ -84,7 +93,11 @@ describe('Landing FAQ assistant', () => {
 
     it('returns 503 instead of an empty answer when the model emits no visible text', async () => {
       global.mswMockServer.use(
-        createGeminiMock({ rawText: modelReply({ answer: '   ' }), finishReason: 'MAX_TOKENS', expectedModel }),
+        createGeminiMock({
+          rawText: modelReply({ answer: '   ' }),
+          finishReason: 'MAX_TOKENS',
+          expectedModel: LANDING_FAQ_MODEL,
+        }),
       );
 
       const res = await helpers.askLandingFaq({ question: QUESTION });
@@ -105,7 +118,9 @@ describe('Landing FAQ assistant', () => {
     });
 
     it('returns 429 after 10 questions from one IP, without counting rejected bodies', async () => {
-      global.mswMockServer.use(createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel }));
+      global.mswMockServer.use(
+        createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel: LANDING_FAQ_MODEL }),
+      );
 
       const rejected = await helpers.askLandingFaq({ question: 'hi' });
       expect(rejected.statusCode).toBe(422);
@@ -122,7 +137,9 @@ describe('Landing FAQ assistant', () => {
     });
 
     it('limits each visitor behind the reverse proxy separately and ignores forged forwarded addresses', async () => {
-      global.mswMockServer.use(createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel }));
+      global.mswMockServer.use(
+        createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel: LANDING_FAQ_MODEL }),
+      );
 
       for (let i = 0; i < 10; i++) {
         const res = await helpers.askLandingFaq({
@@ -146,7 +163,9 @@ describe('Landing FAQ assistant', () => {
     });
 
     it('returns 429 once the daily budget shared by all visitors is spent', async () => {
-      global.mswMockServer.use(createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel }));
+      global.mswMockServer.use(
+        createGeminiMock({ rawText: modelReply({ answer: 'Answer.' }), expectedModel: LANDING_FAQ_MODEL }),
+      );
       await redisClient.set('rate_limit:landing-faq:global', '1000', 'EX', 60);
 
       const limited = await helpers.askLandingFaq({ question: QUESTION });

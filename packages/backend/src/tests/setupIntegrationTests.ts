@@ -473,7 +473,9 @@ beforeEach(async () => {
   }
 }, 20_000); // Timeout for test setup (truncate + create user + sign-in)
 
-afterAll(async () => {
+global.closeE2eResources = closeAllE2eResources;
+
+async function closeAllE2eResources() {
   try {
     // Flush debounced categorization buffers before closing queues
     await flushAllPendingCategorizationBuffers();
@@ -515,4 +517,4 @@ afterAll(async () => {
   } catch (err) {
     console.log('afterAll', err);
   }
-});
+}

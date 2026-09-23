@@ -14,25 +14,19 @@ import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exch
 import { exportDataController } from '@controllers/data-export/export-data.controller';
 import { getConnectedAppsController, revokeConnectedAppController } from '@controllers/mcp/connected-apps.controller';
 import {
-  deleteAiApiKey,
-  deleteAllAiApiKeys,
-  getAiApiKeyStatus,
-  setAiApiKeyController,
-  setDefaultAiProviderController,
-} from '@controllers/user-settings/ai-api-key';
-import {
-  createCustomEndpointController,
-  deleteCustomEndpointController,
-  getCustomEndpointsController,
-  testCustomEndpointController,
-  updateCustomEndpointController,
-} from '@controllers/user-settings/ai-custom-endpoint';
+  createConnectionController,
+  deleteConnectionController,
+  getConnectionsController,
+  listConnectionModelsController,
+  setDefaultConnectionController,
+  testConnectionController,
+  updateConnectionController,
+} from '@controllers/user-settings/ai-connections';
 import {
   getCustomInstructionsController,
   setCustomInstructionsController,
 } from '@controllers/user-settings/ai-custom-instructions';
 import {
-  getAvailableModelsController,
   getFeatureConfigController,
   getFeaturesStatus,
   resetFeatureConfigController,
@@ -60,8 +54,8 @@ import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { requireFeature } from '@middlewares/entitlements';
 import {
-  aiCustomEndpointTestRateLimit,
-  aiCustomModelProbeRateLimit,
+  aiConnectionModelsRateLimit,
+  aiConnectionProbeRateLimit,
   backupRateLimit,
   backupRestoreRateLimit,
   dataExportRateLimit,
@@ -215,71 +209,52 @@ router.put(
   updateOnboarding.handler,
 );
 
-// AI API Key management
+// AI connections (the user's own models)
 router.get(
-  '/settings/ai/api-keys',
+  '/settings/ai/connections',
   authenticateSession,
-  validateEndpoint(getAiApiKeyStatus.schema),
-  getAiApiKeyStatus.handler,
-);
-router.put(
-  '/settings/ai/api-keys',
-  authenticateSession,
-  validateEndpoint(setAiApiKeyController.schema),
-  setAiApiKeyController.handler,
-);
-router.put(
-  '/settings/ai/api-keys/default',
-  authenticateSession,
-  validateEndpoint(setDefaultAiProviderController.schema),
-  setDefaultAiProviderController.handler,
-);
-router.delete(
-  '/settings/ai/api-keys',
-  authenticateSession,
-  validateEndpoint(deleteAiApiKey.schema),
-  deleteAiApiKey.handler,
-);
-router.delete(
-  '/settings/ai/api-keys/all',
-  authenticateSession,
-  validateEndpoint(deleteAllAiApiKeys.schema),
-  deleteAllAiApiKeys.handler,
-);
-
-// AI Custom OpenAI-compatible endpoints
-router.get(
-  '/settings/ai/custom-endpoints',
-  authenticateSession,
-  validateEndpoint(getCustomEndpointsController.schema),
-  getCustomEndpointsController.handler,
+  validateEndpoint(getConnectionsController.schema),
+  getConnectionsController.handler,
 );
 router.post(
-  '/settings/ai/custom-endpoints',
+  '/settings/ai/connections',
   authenticateSession,
-  aiCustomEndpointTestRateLimit,
-  validateEndpoint(createCustomEndpointController.schema),
-  createCustomEndpointController.handler,
+  aiConnectionProbeRateLimit,
+  validateEndpoint(createConnectionController.schema),
+  createConnectionController.handler,
 );
 router.post(
-  '/settings/ai/custom-endpoints/test',
+  '/settings/ai/connections/test',
   authenticateSession,
-  aiCustomEndpointTestRateLimit,
-  validateEndpoint(testCustomEndpointController.schema),
-  testCustomEndpointController.handler,
+  aiConnectionProbeRateLimit,
+  validateEndpoint(testConnectionController.schema),
+  testConnectionController.handler,
+);
+router.post(
+  '/settings/ai/connections/models',
+  authenticateSession,
+  aiConnectionModelsRateLimit,
+  validateEndpoint(listConnectionModelsController.schema),
+  listConnectionModelsController.handler,
 );
 router.put(
-  '/settings/ai/custom-endpoints/:id',
+  '/settings/ai/connections/:id',
   authenticateSession,
-  aiCustomEndpointTestRateLimit,
-  validateEndpoint(updateCustomEndpointController.schema),
-  updateCustomEndpointController.handler,
+  aiConnectionProbeRateLimit,
+  validateEndpoint(updateConnectionController.schema),
+  updateConnectionController.handler,
 );
 router.delete(
-  '/settings/ai/custom-endpoints/:id',
+  '/settings/ai/connections/:id',
   authenticateSession,
-  validateEndpoint(deleteCustomEndpointController.schema),
-  deleteCustomEndpointController.handler,
+  validateEndpoint(deleteConnectionController.schema),
+  deleteConnectionController.handler,
+);
+router.post(
+  '/settings/ai/connections/:id/default',
+  authenticateSession,
+  validateEndpoint(setDefaultConnectionController.schema),
+  setDefaultConnectionController.handler,
 );
 
 // AI Feature configuration
@@ -298,7 +273,6 @@ router.get(
 router.put(
   '/settings/ai/features/:feature',
   authenticateSession,
-  aiCustomModelProbeRateLimit,
   validateEndpoint(setFeatureConfigController.schema),
   setFeatureConfigController.handler,
 );
@@ -349,14 +323,6 @@ router.post(
   blockDemoUsers,
   validateEndpoint(triggerCategorizationController.schema),
   triggerCategorizationController.handler,
-);
-
-// AI Models
-router.get(
-  '/settings/ai/models',
-  authenticateSession,
-  validateEndpoint(getAvailableModelsController.schema),
-  getAvailableModelsController.handler,
 );
 
 // MCP Connected Apps

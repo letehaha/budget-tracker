@@ -1,191 +1,67 @@
-import {
-  AIFeatureConfig,
-  AI_CUSTOM_MODEL_NAME_MAX_LENGTH,
-  AI_FEATURE,
-  getModelNameFromModelId,
-  isCustomModelId,
-} from '@bt/shared/types';
+import { AIFeatureConfig, AI_FEATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
-import { ValidationError } from '@js/errors';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
+import { NotFoundError, ValidationError } from '@js/errors';
+import { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
 
-import { validateCustomEndpoint } from '../ai/custom-endpoint-validation';
-import { resolveLiveModelId } from '../ai/models-config';
+import { getServerModel } from '../ai/resolution-ladder';
 import { withTransaction } from '../common/with-transaction';
-import { assertStoredKeyReadable, getCustomEndpointById } from './ai-custom-endpoint';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
-// Walks each config through `resolveLiveModelId`. `changed` lets callers skip
-// the DB write when no entry was rewritten.
-function upgradeFeatureConfigs({ featureConfigs }: { featureConfigs: AIFeatureConfig[] }): {
-  upgraded: AIFeatureConfig[];
-  changed: boolean;
-} {
-  let changed = false;
-  const upgraded = featureConfigs.map((config) => {
-    const liveModelId = resolveLiveModelId({ modelId: config.modelId, feature: config.feature });
-    if (liveModelId === config.modelId) return config;
-    changed = true;
-    return { ...config, modelId: liveModelId };
-  });
-  return { upgraded, changed };
-}
-
-// Get feature config for one AI feature, null if unset. Retired model IDs are
-// silently upgraded via `RETIRED_MODELS` and persisted on first read.
-export const getFeatureConfig = withTransaction(
-  async ({ userId, feature }: { userId: number; feature: AI_FEATURE }): Promise<AIFeatureConfig | null> => {
-    const userSettings = await UserSettings.findOne({ where: { userId } });
-
-    const featureConfigs = userSettings?.settings?.ai?.featureConfigs ?? [];
-    if (!userSettings || featureConfigs.length === 0) return null;
-
-    const { upgraded, changed } = upgradeFeatureConfigs({ featureConfigs });
-
-    if (changed) {
-      const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-      const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
-      userSettings.settings = {
-        ...currentSettings,
-        ai: { ...currentAiSettings, featureConfigs: upgraded },
-      };
-      await userSettings.save();
-    }
-
-    return upgraded.find((c) => c.feature === feature) ?? null;
-  },
-);
-
-// All feature configs for a user. Retired model IDs are silently upgraded
-// via `RETIRED_MODELS` and persisted on first read.
-export const getAllFeatureConfigs = withTransaction(
-  async ({ userId }: { userId: number }): Promise<AIFeatureConfig[]> => {
-    const userSettings = await UserSettings.findOne({ where: { userId } });
-
-    const featureConfigs = userSettings?.settings?.ai?.featureConfigs ?? [];
-    if (!userSettings || featureConfigs.length === 0) return featureConfigs;
-
-    const { upgraded, changed } = upgradeFeatureConfigs({ featureConfigs });
-
-    if (changed) {
-      const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-      const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
-      userSettings.settings = {
-        ...currentSettings,
-        ai: { ...currentAiSettings, featureConfigs: upgraded },
-      };
-      await userSettings.save();
-    }
-
-    return upgraded;
-  },
-);
-
 /**
- * Validates a `custom/*` pick before storing. The live probe is the point: without it a typo
- * in the model name saves cleanly and then fails on every AI call, where model-not-found is
- * indistinguishable from any other server error.
+ * `config: null` clears the feature's pick. The connection is checked against the locked row,
+ * so a concurrent delete can't leave a dangling pick.
  */
-async function assertCustomModelIsServed({
-  userId,
-  modelId,
-  customEndpointId,
-}: {
-  userId: number;
-  modelId: string;
-  customEndpointId?: string;
-}): Promise<void> {
-  const modelName = getModelNameFromModelId({ modelId });
-
-  if (modelName.length === 0 || modelName.length > AI_CUSTOM_MODEL_NAME_MAX_LENGTH) {
-    throw new ValidationError({ message: t({ key: 'ai.customModelNameInvalidLength' }) });
-  }
-
-  if (!customEndpointId) {
-    throw new ValidationError({ message: t({ key: 'ai.customEndpointIdRequired' }) });
-  }
-
-  const endpoint = await getCustomEndpointById({ userId, endpointId: customEndpointId });
-
-  if (!endpoint) {
-    throw new ValidationError({ message: t({ key: 'ai.customEndpointNotFound' }) });
-  }
-
-  assertStoredKeyReadable({ hasApiKey: endpoint.hasApiKey, apiKey: endpoint.apiKey });
-
-  const validation = await validateCustomEndpoint({
-    baseUrl: endpoint.baseUrl,
-    modelName,
-    apiKey: endpoint.apiKey,
-  });
-
-  if (!validation.isValid) {
-    throw new ValidationError({ message: validation.error ?? t({ key: 'ai.customEndpointValidationFailed' }) });
-  }
-}
-
 const storeFeatureConfig = withTransaction(
   async ({
     userId,
     feature,
-    modelId,
-    customEndpointId,
+    config,
   }: {
     userId: number;
     feature: AI_FEATURE;
-    modelId: string | null;
-    customEndpointId?: string;
-  }): Promise<AIFeatureConfig | null> => {
+    config: AIFeatureConfig | null;
+  }): Promise<void> => {
     const [userSettings] = await getOrCreateUserSettings({ userId, lock: true });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
-    const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
-    let featureConfigs = [...(currentAiSettings.featureConfigs ?? [])];
+    const currentAiSettings = currentSettings.ai ?? {};
 
-    featureConfigs = featureConfigs.filter((c) => c.feature !== feature);
-
-    let newConfig: AIFeatureConfig | null = null;
-
-    if (modelId) {
-      const liveModelId = resolveLiveModelId({ modelId, feature });
-      newConfig = isCustomModelId({ modelId })
-        ? { feature, modelId: liveModelId, customEndpointId }
-        : { feature, modelId: liveModelId };
-      featureConfigs.push(newConfig);
+    if (config?.connectionId && !currentAiSettings.connections?.some(({ id }) => id === config.connectionId)) {
+      throw new NotFoundError({ message: t({ key: 'ai.connectionNotFound' }) });
     }
+
+    const featureConfigs = (currentAiSettings.featureConfigs ?? []).filter(
+      (candidate) => candidate.feature !== feature,
+    );
 
     userSettings.settings = {
       ...currentSettings,
-      ai: {
-        ...currentAiSettings,
-        featureConfigs,
-      },
+      ai: { ...currentAiSettings, featureConfigs: config ? [...featureConfigs, config] : featureConfigs },
     };
 
     await userSettings.save();
-
-    return newConfig;
   },
 );
 
-/**
- * Pass null modelId to clear, so the feature falls back to its default. A `custom/*` pick is
- * probed before the transaction opens so the live LLM call does not pin a database connection.
- */
+/** `connectionId: null` pins the included server model, which the user has to be able to use. */
 export const setFeatureConfig = async ({
   userId,
   feature,
-  modelId,
-  customEndpointId,
+  connectionId,
+  serverKeysAllowed,
 }: {
   userId: number;
   feature: AI_FEATURE;
-  modelId: string | null;
-  customEndpointId?: string;
-}): Promise<AIFeatureConfig | null> => {
-  if (modelId && isCustomModelId({ modelId })) {
-    await assertCustomModelIsServed({ userId, modelId, customEndpointId });
+  connectionId: string | null;
+  serverKeysAllowed: boolean;
+}): Promise<void> => {
+  if (connectionId === null && !getServerModel({ feature, serverKeysAllowed })) {
+    throw new ValidationError({ message: t({ key: 'ai.serverModelUnavailable' }) });
   }
 
-  return storeFeatureConfig({ userId, feature, modelId, customEndpointId });
+  await storeFeatureConfig({ userId, feature, config: { feature, connectionId } });
 };
+
+/** The feature goes back to automatic: the default connection, else the server model. */
+export const clearFeatureConfig = ({ userId, feature }: { userId: number; feature: AI_FEATURE }): Promise<void> =>
+  storeFeatureConfig({ userId, feature, config: null });

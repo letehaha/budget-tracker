@@ -249,6 +249,15 @@ describe('isAuthError', () => {
     expect(isAuthError({ error: buildApiCallError({ statusCode }) })).toBe(true);
   });
 
+  it('returns true for the 400 Gemini answers a bad key with', () => {
+    const responseBody = JSON.stringify({ error: { code: 400, details: [{ reason: 'API_KEY_INVALID' }] } });
+    expect(isAuthError({ error: buildApiCallError({ statusCode: 400, responseBody }) })).toBe(true);
+  });
+
+  it('returns false for an unrelated 400', () => {
+    expect(isAuthError({ error: buildApiCallError({ statusCode: 400, message: 'max_tokens too large' }) })).toBe(false);
+  });
+
   it('ignores auth-sounding text when the SDK carries a non-auth status', () => {
     expect(isAuthError({ error: buildApiCallError({ statusCode: 429, message: 'invalid api key' }) })).toBe(false);
   });
@@ -286,6 +295,16 @@ describe('classifyAiCallFailure', () => {
     const error = buildApiCallError({ statusCode: 404, responseBody: JSON.stringify({ error: 'no such model' }) });
 
     expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'model-not-found', httpStatus: 404 });
+  });
+
+  it("reads OpenRouter's 404 for input the model can't take as unsupported-request, not model-not-found", () => {
+    const error = buildApiCallError({
+      statusCode: 404,
+      message: 'No endpoints found that support image input',
+      responseBody: JSON.stringify({ error: { message: 'No endpoints found that support image input', code: 404 } }),
+    });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'unsupported-request', httpStatus: 404 });
   });
 
   it('reads a JSON 401 as auth', () => {

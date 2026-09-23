@@ -160,8 +160,9 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
   into transactions, and parsing investment transactions. Categorization runs after a bank sync
   and on request; the parsers run only when you use them.
 - AI runs on our key (Plus) or on your own API key (Essential and self-hosted): OpenAI, Anthropic,
-  Google Gemini, Groq, or any OpenAI-compatible endpoint, including local models through Ollama or
-  LM Studio. AI costs nothing extra from MoneyMatter; with your own key you pay that provider.
+  Google Gemini, or any OpenAI-compatible server such as Groq, OpenRouter, or local models through
+  Ollama or LM Studio. AI costs nothing extra from MoneyMatter; with your own key you pay that
+  provider.
 - What AI sees: for categorization, the transaction amount, currency, date, account name, note,
   payee and your category names. For parsing, the text or image you submit.
 - Without a key on Essential or self-hosted, AI stays off. There is no single off switch on Plus.
@@ -169,8 +170,8 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
   tags, payees, budgets, analytics, investments, subscriptions, automation rules and venture
   deals. You pick one of three access levels when connecting it: read, write, or write and
   delete. It signs in through OAuth (no API tokens) and access can be revoked in settings.
-- Connect it from Settings > AI Integrations, with guided setup for Claude and ChatGPT. It works
-  on self-hosted too.
+- Connect it from Settings > AI > Connectors (MCP), with guided setup for Claude and ChatGPT. It
+  works on self-hosted too.
 - Not supported: a public REST API, an SDK, webhooks.
 
 ## Security and privacy

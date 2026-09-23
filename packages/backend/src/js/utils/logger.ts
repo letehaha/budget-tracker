@@ -43,12 +43,18 @@ if (isGrafanaConfigured && GRAFANA_LOKI_HOST && GRAFANA_LOKI_AUTH && GRAFANA_LOK
 
 const showLogsInTests = process.env.NODE_ENV === 'test' ? process.env.SHOW_LOGS_IN_TESTS === 'true' : true;
 
+// Error message/stack are non-enumerable, so a plain stringify of a logged Error yields `{}`.
+const serializeErrors = (_key: string, value: unknown) => {
+  if (value instanceof Error) return { ...value, message: value.message, stack: value.stack };
+  return typeof value === 'bigint' ? value.toString() : value;
+};
+
 const createWinstonLogger = () => {
   const formats = [
     format.errors({ stack: true }),
     format.timestamp(),
     isGrafanaConfigured
-      ? format.json() // Loki requires JSON format
+      ? format.json({ replacer: serializeErrors }) // Loki requires JSON format
       : format.printf(({ timestamp, level, message, requestId, sessionId, ...meta }) => {
           // requestId and sessionId are stamped on every log call, so they stay
           // out of the console line; the rest of the metadata is appended as JSON.
@@ -56,11 +62,7 @@ const createWinstonLogger = () => {
           if (Object.keys(meta).length === 0) return base;
 
           try {
-            // Error message/stack are non-enumerable, so a plain stringify of a
-            // logged Error yields `{}`.
-            const serialized = JSON.stringify(meta, (_key, value) =>
-              value instanceof Error ? { ...value, message: value.message, stack: value.stack } : value,
-            );
+            const serialized = JSON.stringify(meta, serializeErrors);
 
             return `${base} ${serialized.length > 2000 ? `${serialized.slice(0, 2000)}…[truncated]` : serialized}`;
           } catch {

@@ -1,24 +1,21 @@
 import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import {
-  createFirstEndpoint,
+  createAiConnection,
+  createFirstConnection,
   errorMessage,
   getTestUserId,
-  readStoredEndpoints,
-  seedApiKey,
+  readStoredConnections,
   setAiFeatureConfig,
 } from '@tests/helpers/user-settings';
+import { VALID_ANTHROPIC_API_KEY } from '@tests/mocks/anthropic/mock-api';
 import { CUSTOM_ENDPOINT_MODEL, getCustomEndpointOfflineMock } from '@tests/mocks/openai-compatible/mock-api';
 
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
-/** Catalog default for investment parsing, so a seeded Google key is enough to reach it. */
-const CATALOG_MODEL_ID = 'google/gemini-3.6-flash';
-
-/** Server keys let the ladder answer without user credentials, so every case starts without them. */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const CATALOG_MODEL = 'claude-haiku-4-5';
 
 const TRADES_CSV = [
   'date,symbol,side,quantity,price',
@@ -32,45 +29,13 @@ function tradesBase64(): string {
 }
 
 describe('Investment transactions parser cost estimation', () => {
-  let selfHostFlagBeforeTest: string | undefined;
-  const serverKeysBeforeTest = new Map<string, string | undefined>();
-
-  beforeEach(() => {
-    selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
-
-    // The mock endpoint's host never resolves, so the outbound guard has to be off to save it.
-    process.env.IS_SELF_HOST = 'true';
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      serverKeysBeforeTest.set(envVar, process.env[envVar]);
-      delete process.env[envVar];
-    }
-  });
-
-  afterEach(() => {
-    if (selfHostFlagBeforeTest === undefined) {
-      delete process.env.IS_SELF_HOST;
-    } else {
-      process.env.IS_SELF_HOST = selfHostFlagBeforeTest;
-    }
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      const keyBeforeTest = serverKeysBeforeTest.get(envVar);
-
-      if (keyBeforeTest === undefined) {
-        delete process.env[envVar];
-      } else {
-        process.env[envVar] = keyBeforeTest;
-      }
-    }
-  });
+  useSelfHostWithoutServerAiKeys();
 
   it('estimates against the custom model the feature is configured with', async () => {
-    const endpoint = await createFirstEndpoint();
+    const connection = await createFirstConnection();
     await setAiFeatureConfig({
       feature: AI_FEATURE.investmentTransactionsParsing,
-      modelId: CUSTOM_MODEL_ID,
-      customEndpointId: endpoint.id,
+      connectionId: connection.id,
       raw: true,
     });
 
@@ -87,16 +52,21 @@ describe('Investment transactions parser cost estimation', () => {
     expect(estimate.estimatedCostUsd).toBeNull();
   });
 
-  it('prices a catalog model from the catalog', async () => {
-    const userId = await getTestUserId();
-    await seedApiKey({ userId, provider: AI_PROVIDER.google });
+  it('prices a native connection running a catalog model from the catalog', async () => {
+    await createAiConnection({
+      provider: AI_PROVIDER.anthropic,
+      name: 'Claude fast',
+      model: CATALOG_MODEL,
+      apiKey: VALID_ANTHROPIC_API_KEY,
+      raw: true,
+    });
 
     const estimate = await helpers.investmentImportEstimateCost({
       payload: { fileBase64: tradesBase64() },
       raw: true,
     });
 
-    expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
+    expect(estimate.modelId).toBe(`${AI_PROVIDER.anthropic}/${CATALOG_MODEL}`);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
   });
 });
@@ -110,7 +80,7 @@ describe('Investment transactions AI extraction against a dead endpoint', () => 
 
   it('names the endpoint and flags it when the server is gone', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    await createFirstConnection();
     const portfolio = await helpers.createPortfolio({
       payload: helpers.buildPortfolioPayload({ name: 'AI import' }),
       raw: true,
@@ -124,7 +94,7 @@ describe('Investment transactions AI extraction against a dead endpoint', () => 
     expect(errorMessage({ response })).toMatch(/did not respond/i);
     expect(errorMessage({ response })).not.toContain(CUSTOM_ENDPOINT_MODEL);
 
-    const [stored] = await readStoredEndpoints({ userId });
+    const [stored] = await readStoredConnections({ userId });
     expect(stored?.status).toBe('invalid');
     expect(stored?.lastError).toMatch(/did not respond/i);
   });

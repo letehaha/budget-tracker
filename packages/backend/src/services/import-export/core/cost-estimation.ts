@@ -1,10 +1,9 @@
 import { AI_FEATURE } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import { describeMissingAiConfiguration, resolveAIConfiguration } from '@services/ai';
-import { getModelCostProfile } from '@services/ai/models-config';
+import { type ModelProfile, getModelProfile } from '@services/ai/model-catalog';
 
 type AIConfiguration = NonNullable<Awaited<ReturnType<typeof resolveAIConfiguration>>>;
-type ModelCostProfile = NonNullable<ReturnType<typeof getModelCostProfile>>;
 
 interface EstimationPreludeError {
   code: 'NO_AI_CONFIGURED';
@@ -12,7 +11,7 @@ interface EstimationPreludeError {
 }
 
 type EstimationPrelude =
-  | { ok: true; aiConfig: AIConfiguration; modelProfile: ModelCostProfile }
+  | { ok: true; aiConfig: AIConfiguration; modelProfile: ModelProfile }
   | { ok: false; error: EstimationPreludeError };
 
 export async function resolveEstimationPrelude({
@@ -41,25 +40,7 @@ export async function resolveEstimationPrelude({
     };
   }
 
-  const modelProfile = getModelCostProfile({ modelId: aiConfig.modelId });
-
-  if (!modelProfile) {
-    logger.info('Cost estimation prelude failed', {
-      code: 'NO_AI_CONFIGURED',
-      reason: 'model-not-in-catalog',
-      userId,
-      feature,
-      modelId: aiConfig.modelId,
-    });
-
-    return {
-      ok: false,
-      error: {
-        code: 'NO_AI_CONFIGURED',
-        message: `Model ${aiConfig.modelId} not found in configuration`,
-      },
-    };
-  }
+  const modelProfile = await getModelProfile(aiConfig);
 
   return { ok: true, aiConfig, modelProfile };
 }
@@ -69,18 +50,17 @@ type TokenLimitVerdict =
   | { exceeded: true; maxInputTokens: number; contextWindow: number; modelName: string };
 
 /**
- * A custom endpoint declares no input limit, so the check always passes for it. Catalog
- * models get a third of the context window, leaving room for the system prompt and the
- * model's output.
+ * A model with no known context window passes. Known ones get a third of it, leaving room for
+ * the system prompt and the model's output.
  */
 export function resolveTokenLimit({
   modelProfile,
   estimatedInputTokens,
 }: {
-  modelProfile: ModelCostProfile;
+  modelProfile: ModelProfile;
   estimatedInputTokens: number;
 }): TokenLimitVerdict {
-  if (modelProfile.isCustom) return { exceeded: false };
+  if (modelProfile.contextWindow === null) return { exceeded: false };
 
   const maxInputTokens = Math.floor(modelProfile.contextWindow / 3);
 
@@ -94,4 +74,25 @@ export function resolveTokenLimit({
   }
 
   return { exceeded: false };
+}
+
+/**
+ * Null means "unknown", never "free": a genuinely free model declares an explicit zero
+ * price and still computes to 0.
+ */
+export function estimateModelCostUsd({
+  profile,
+  inputTokens,
+  outputTokens,
+}: {
+  profile: ModelProfile;
+  inputTokens: number;
+  outputTokens: number;
+}): number | null {
+  if (!profile.pricing) return null;
+
+  const inputCost = (inputTokens / 1_000_000) * profile.pricing.inputPerMillion;
+  const outputCost = (outputTokens / 1_000_000) * profile.pricing.outputPerMillion;
+
+  return inputCost + outputCost;
 }

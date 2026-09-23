@@ -1,3 +1,5 @@
+import type { AI_PROVIDER } from '@bt/shared/types';
+
 import { trackEvent } from '../index';
 
 /**
@@ -14,7 +16,7 @@ export function trackAiCategorization({
   userId: string | number;
   categorizedCount: number;
   failedCount: number;
-  provider: string;
+  provider: AI_PROVIDER;
   usingUserKey: boolean;
   sessionId?: string | null;
 }): void {
