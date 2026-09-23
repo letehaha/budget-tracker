@@ -2,12 +2,12 @@
   "accounts": {
     "title": "Рахунки",
     "createAccount": "Створити рахунок",
-    "createVehicle": "Додати транспорт",
+    "createVehicle": "Додати транспортний засіб",
     "actionsMenu": "Дії з рахунком",
     "sections": {
       "archived": "Архівовані",
       "manual": "Ручні рахунки",
-      "sharedWithMe": "Поділено зі мною",
+      "sharedWithMe": "Поділилися зі мною",
       "vehicles": "Транспорт",
       "bankConnections": "Банківські підключення"
     },
@@ -24,7 +24,7 @@
       "vehicles": "Транспорт",
       "projected": "Прогноз {amount} · {count} запланований запис до {date} | Прогноз {amount} · {count} заплановані записи до {date} | Прогноз {amount} · {count} запланованих записів до {date}"
     },
-    "sharedBy": "Поділено з {handle}",
+    "sharedBy": "Ділиться: {handle}",
     "viaHousehold": "Через сім'ю {handle}",
     "connect": "Підключити",
     "connectBank": "Підключити банк",

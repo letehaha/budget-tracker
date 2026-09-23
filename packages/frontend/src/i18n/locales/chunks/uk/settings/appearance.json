@@ -15,7 +15,7 @@
       "header": {
         "title": "Заголовок",
         "description": "Виберіть, які дії заголовка видимі.",
-        "supportButton": "Кнопка підтримки"
+        "supportButton": "Кнопка «Підтримати»"
       },
       "currency": {
         "title": "Символи валют",

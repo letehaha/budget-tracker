@@ -49,7 +49,7 @@
         "execute": {
           "starting": "Початок імпортування…",
           "progressCount": "{processed} / {total}",
-          "statusQueued": "В черзі",
+          "statusQueued": "У черзі",
           "statusRunning": "Імпортування…",
           "statusCompleted": "Готово",
           "statusFailed": "Помилка",

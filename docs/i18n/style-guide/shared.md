@@ -95,7 +95,7 @@ Unsure? Comment on the string, or pick the reading the key suggests.
 - MoneyMatter, support@moneymatter.app.
 - Monobank, Enable Banking, Lunch Flow, SimpleFIN, Walutomat, Stripe, YNAB, Wallet (BudgetBakers), Microsoft Money ("your Money file"), OFX, QFX, AngelList, YC, OpenStreetMap, Crowdin, Excel, S&P 500. A brand never becomes a phrase.
 - Claude, ChatGPT, Gemini, OpenAI, Anthropic, Google, Groq, OpenRouter, LM Studio, vLLM, Ollama, MCP, Docker, GitHub, API, URL, CSV, PDF, JSON, OAuth, ID, env vars (ALLOWED_ORIGINS), API key values, code names ("refundedByTxIds").
-- Currency codes, tickers, TVPI, DPI, IRR, NAV, SPV, GP/LP, P&L, ETF, HELOC.
+- Currency codes, tickers, TVPI, DPI, IRR, NAV, SPV, GP/LP, carry, P&L, ETF, HELOC.
 - Other products' UI labels ("Register", "Remote MCP server URL"): English, inside your quotes.
 
 Translate with care:

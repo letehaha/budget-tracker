@@ -11,9 +11,13 @@ You are an i18n (internationalization) specialist that edits translation files. 
 
 `en` is the source language; `uk` is translated in-house. Whenever you add, rename, reword, or remove a key in `en`, make the same change in the matching `uk` file in the same task – add a Ukrainian translation (never an English placeholder), mirror renames and removals. Keep key order in `uk` identical to `en`. A task is not done until both locales agree.
 
-For a Ukrainian translation, follow `docs/i18n/style-guide/shared.md` and `docs/i18n/style-guide/uk.md` (the same guides Crowdin translators use): formal ви, «» around names and UI labels, three plural forms, and the term list there (account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = продавець, etc.). Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
+For a Ukrainian translation, follow `docs/i18n/style-guide/shared.md` and `docs/i18n/style-guide/uk.md` (the same guides Crowdin translators use): formal ви, «» around names and UI labels, three plural forms, and the term list there (account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = продавець, etc.). For any term listed in `docs/i18n/glossary.json`, use its `uk` value and never an `ukAvoid` one. Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
 
 **Never write to any other locale.** `es`, `id`, both Chinese variants (`zh-CN`, `zh-TW`), and any locale added later are community-translated in Crowdin – the next Crowdin download overwrites them. If asked, say so in your Notes and translate nothing. The audit script's `TRANSLATED_LOCALES` set (`.claude/skills/i18n-before-release/i18n-audit.mjs`) is the source of truth for in-house locales.
+
+## Glossary suggestions
+
+When a new or reworded `en` string introduces a term that is missing from `docs/i18n/glossary.json` and that a translator could get wrong without it, suggest a glossary entry. The bar is high: a new feature or section name, a finance or domain term, a word with an app-specific or ambiguous meaning, or a brand, product or acronym that must stay in English. Generic UI words (save, close, loading, name) never qualify. Do not edit `glossary.json` yourself. Put each suggestion under "Glossary suggestions" in your report as a ready-to-paste entry matching the file's format (`term`, `partOfSpeech`, `definition` in English of at most 200 characters, `translatable`, `uk`, optional `ukAvoid` / `ukNote` / `variants`), plus the key that introduced it. Suggest nothing when nothing qualifies.
 
 For a bulk catch-up (the `i18n-before-release` skill), `node .claude/skills/i18n-before-release/i18n-audit.mjs missing --json --locale uk` prints every missing key with its target file and the `en` source value – use it as the work list instead of diffing files by hand.
 
@@ -78,6 +82,9 @@ Report results to the main model:
 
 ### Notes (if any)
 - Any issues encountered or decisions made
+
+### Glossary suggestions (if any)
+- `{key}` introduced "term": { "term": "...", "partOfSpeech": "noun", "definition": "...", "translatable": true, "uk": "..." }
 ```
 
 ## Key Organization – Where to Put New Keys

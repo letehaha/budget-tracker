@@ -47,8 +47,8 @@
             "createNewForUnmatched": "Створити нові для незіставлених",
             "reset": "Скинути",
             "tooltips": {
-              "mapExactMatchesAccounts": "Пов'язує кожен рахунок, назва якого точно збігається з наявним рахунком.",
-              "mapExactMatchesCategories": "Пов'язує кожну категорію, назва якої точно збігається з наявною категорією.",
+              "mapExactMatchesAccounts": "Зіставляє кожен рахунок, назва якого точно збігається з наявним рахунком.",
+              "mapExactMatchesCategories": "Зіставляє кожну категорію, назва якої точно збігається з наявною категорією.",
               "createNewForUnmatched": "Встановлює для кожного невирішеного рядка дію «Створити новий».",
               "reset": "Очищає всі вибори і виконує зіставлення заново."
             }
@@ -70,7 +70,7 @@
           "warnings": {
             "accountTypeUnsupported": "{count} рахунків пропущено",
             "orphanRowSkipped": "{count} транзакцій пропущено",
-            "transferCounterpartNotImported": "{count} частин переказу імпортовано як операції поза гаманцем",
+            "transferCounterpartNotImported": "Сторін переказу імпортовано як транзакції поза гаманцем: {count}",
             "rowLimitReached": "{count} транзакцій понад ліміт відхилено",
             "accountCurrencyDefaulted": "{count} рахунків не мали валюти у файлі, тому було прийнято USD — перевірте валюту на кроці рахунків, перш ніж продовжити",
             "rowMissingDate": "{count} транзакцій без розпізнаваної дати пропущено",
@@ -94,7 +94,7 @@
           "progressCount": "{processed} з {total}",
           "failed": "Помилка імпорту.",
           "partialImportNote": "Деякі транзакції вже могли бути імпортовані.",
-          "statusQueued": "В черзі",
+          "statusQueued": "У черзі",
           "statusRunning": "Імпортування",
           "statusCompleted": "Завершено",
           "statusFailed": "Помилка"
@@ -109,7 +109,7 @@
           "allFailedTitle": "Нічого не імпортовано",
           "allFailedDescription": "Жодної транзакції не вдалося створити. Перегляньте помилки нижче.",
           "accountsCreated": "Рахунків створено",
-          "accountsLinked": "Рахунків прив'язано",
+          "accountsLinked": "Рахунків зіставлено",
           "accountsSkipped": "Рахунків пропущено",
           "categoriesCreated": "Категорій створено",
           "payeesCreated": "Отримувачів створено",

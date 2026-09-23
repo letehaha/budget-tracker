@@ -12,7 +12,7 @@
       "transfer": "Переказ",
       "edit": "Редагувати",
       "delete": "Видалити",
-      "exchangeCurrency": "Обмін валют"
+      "exchangeCurrency": "Обміняти валюту"
     },
     "balance": {
       "totalValue": "Загальна вартість",
@@ -26,27 +26,27 @@
       }
     },
     "cashBalances": {
-      "title": "Грошові залишки",
-      "emptyState": "Немає грошових залишків",
+      "title": "Грошові баланси",
+      "emptyState": "Немає грошових балансів",
       "tabs": {
         "balances": "Баланси",
         "cashTransactions": "Транзакції",
         "buysSells": "Купівлі та продажі"
       },
       "cashTransactions": {
-        "addButton": "Додати грошову операцію",
-        "emptyState": "Немає грошових операцій",
+        "addButton": "Додати грошову транзакцію",
+        "emptyState": "Немає грошових транзакцій",
         "deposit": "Поповнення",
         "withdrawal": "Зняття",
         "transferIn": "Переказ на",
         "transferOut": "Переказ з",
         "exchange": "Обмін валют",
-        "deleteConfirm": "Видалити цю грошову операцію?",
-        "linkedTransactionNote": "Цей переказ має пов'язану транзакцію рахунку. Що ви хочете з нею зробити?",
+        "deleteConfirm": "Видалити цю грошову транзакцію?",
+        "linkedTransactionNote": "Цей переказ має прив'язану транзакцію рахунку. Що ви хочете з нею зробити?",
         "keepLinkedTransaction": "Залишити транзакцію рахунку. Деталі оригінальної транзакції будуть відновлені.",
-        "deleteLinkedTransaction": "Також видалити пов'язану транзакцію рахунку",
+        "deleteLinkedTransaction": "Також видалити прив'язану транзакцію рахунку",
         "adjustmentBadge": "Коригування",
-        "noCashBadge": "Без впливу на готівку",
+        "noCashBadge": "Без впливу на кошти",
         "markedAsAdjustment": "Позначено як коригування балансу",
         "markedAsContribution": "Позначено як реальний внесок",
         "adjustmentError": "Не вдалося оновити цей переказ",
@@ -54,21 +54,21 @@
         "emptyStateDescription": "Тут з'являтимуться поповнення, зняття та перекази цього портфеля.",
         "edit": "Редагувати",
         "editDialog": {
-          "title": "Редагувати грошову операцію",
+          "title": "Редагувати грошову транзакцію",
           "description": "Змініть, як ця транзакція враховується у звітах.",
           "save": "Зберегти зміни"
         }
       },
       "buysSells": {
-        "emptyState": "Немає операцій купівлі/продажу",
+        "emptyState": "Немає транзакцій купівлі/продажу",
         "shares": "од."
       }
     },
     "holdings": {
       "title": "Активи",
-      "subtitle": "{count} символів",
-      "filterPlaceholder": "Фільтрувати за символом або назвою...",
-      "addButton": "Додати символ",
+      "subtitle": "Тікерів: {count}",
+      "filterPlaceholder": "Фільтрувати за тікером або назвою...",
+      "addButton": "Додати тікер",
       "importButton": "Імпортувати транзакції",
       "importButtonShort": "Імпорт"
     },
@@ -76,15 +76,15 @@
       "loadError": "Не вдалося завантажити активи",
       "empty": "Активів ще немає",
       "noFilterResults": "Нічого не знайдено",
-      "noFilterResultsDescription": "Жоден актив не відповідає пошуку. Спробуйте інший символ або назву.",
+      "noFilterResultsDescription": "Жоден актив не відповідає пошуку. Спробуйте інший тікер або назву.",
       "clearFilterButton": "Скинути пошук",
       "headers": {
-        "symbol": "Символ",
+        "symbol": "Тікер",
         "name": "Назва",
         "shares": "Кількість",
         "price": "Ціна",
-        "avgCostPerShare": "СВ за одиницю",
-        "totalCost": "Загальна вартість",
+        "avgCostPerShare": "Сер. ціна за одиницю",
+        "totalCost": "Базова вартість",
         "marketValue": "Ринкова вартість",
         "unrealizedGain": "Нереалізований прибуток",
         "realizedGain": "Реалізований прибуток"
@@ -120,23 +120,23 @@
       "headers": {
         "date": "Дата",
         "type": "Тип",
-        "note": "Нотатка",
+        "note": "Примітка",
         "quantity": "Кількість",
         "price": "Ціна",
         "fees": "Комісії",
         "amount": "Сума",
         "refAmount": "Базова сума",
         "refFees": "Базові комісії",
-        "settlementAmount": "Готівка",
-        "settlementCurrency": "Валюта готівки",
-        "settlementFees": "Комісії готівки",
-        "settlementRate": "Курс FX",
+        "settlementAmount": "Сума розрахунку",
+        "settlementCurrency": "Валюта розрахунку",
+        "settlementFees": "Комісії розрахунку",
+        "settlementRate": "Курс обміну",
         "createdAt": "Додано"
       },
       "categories": {
         "buy": "Купівля",
         "sell": "Продаж",
-        "dividend": "Дивіденди",
+        "dividend": "Дивіденд",
         "transfer": "Переказ",
         "tax": "Податок",
         "fee": "Комісія",
@@ -144,9 +144,9 @@
         "other": "Інше"
       },
       "headerTooltips": {
-        "amount": "Загальна сума операції у валюті торгівлі цінним папером.",
-        "refAmount": "Загальна сума операції, конвертована у базову валюту.",
-        "settlementAmount": "Фактично сплачена або отримана готівка на рахунку у валюті розрахунку."
+        "amount": "Загальна сума транзакції у валюті торгівлі цінним папером.",
+        "refAmount": "Загальна сума транзакції, конвертована у базову валюту.",
+        "settlementAmount": "Фактично сплачена або отримана сума на рахунку у валюті розрахунку."
       },
       "deleteTransaction": {
         "tooltip": "Видалити транзакцію"

@@ -1,0 +1,3870 @@
+[
+  {
+    "term": ".mny",
+    "partOfSpeech": "noun",
+    "definition": "The file extension of Microsoft Money data files, which MoneyMatter can import. Copy it exactly, with the dot.",
+    "translatable": false,
+    "uk": ".mny"
+  },
+  {
+    "term": "AC/share",
+    "partOfSpeech": "noun",
+    "definition": "Holdings-table column: average cost per share or unit (crypto too), i.e. cost basis divided by quantity held. Abbreviated for a narrow column; use a short form readers recognise.",
+    "translatable": true,
+    "uk": "сер. ціна за одиницю",
+    "ukAvoid": ["СВ за одиницю"],
+    "ukNote": "If the column is too narrow: «Сер. ціна» (next to the «Ціна» column)."
+  },
+  {
+    "term": "account",
+    "partOfSpeech": "noun",
+    "definition": "A bank, cash, credit, loan or investment account holding money – not a user login account.",
+    "translatable": true,
+    "uk": "рахунок"
+  },
+  {
+    "term": "account",
+    "partOfSpeech": "noun",
+    "definition": "A user's login account: on MoneyMatter (\"Delete your account\") or at another service (Google, SimpleFIN Bridge). Not a financial account holding money; use a different word if your language has one.",
+    "translatable": true,
+    "uk": "обліковий запис",
+    "ukAvoid": ["акаунт", "рахунок"]
+  },
+  {
+    "term": "account category",
+    "partOfSpeech": "noun",
+    "definition": "The kind of financial account: cash, current account, credit card, savings, loan, investment, crypto, vehicle, etc. Not a transaction category.",
+    "translatable": true,
+    "uk": "категорія рахунку"
+  },
+  {
+    "term": "account currency",
+    "partOfSpeech": "noun",
+    "definition": "The currency an account is kept in; its transactions' main amounts are in this currency. Not the base currency (used for totals) and not a transaction's original (foreign) currency.",
+    "translatable": true,
+    "uk": "валюта рахунку",
+    "variants": ["account's currency"]
+  },
+  {
+    "term": "account group",
+    "partOfSpeech": "noun",
+    "definition": "A user-made folder of accounts that organizes the accounts list and sidebar; bank connections can create one. Never affects syncing. Not a transaction group.",
+    "translatable": true,
+    "uk": "група рахунків",
+    "ukNote": "Standalone «група» where the context is clear.",
+    "variants": ["accounts group"]
+  },
+  {
+    "term": "action",
+    "partOfSpeech": "noun",
+    "definition": "In automations: a change applied to each matching transaction (set category, set payee, add tags, set note). Elsewhere generic: menus, \"This action can't be undone\".",
+    "translatable": true,
+    "uk": "дія"
+  },
+  {
+    "term": "active",
+    "partOfSpeech": "adjective",
+    "definition": "Status: in use now, e.g. a bank connection whose access hasn't expired, a running recurring payment or a paid-up plan.",
+    "translatable": true,
+    "uk": "активний",
+    "ukNote": "Agree with the noun it describes; standalone group label «Активні». With a bare count, write «Активних: {count}»."
+  },
+  {
+    "term": "activity check",
+    "partOfSpeech": "noun",
+    "definition": "A tag reminder type: notifies the user when there are transactions with that tag, checked on the chosen schedule. Not a security or login check.",
+    "translatable": true,
+    "uk": "перевірка активності"
+  },
+  {
+    "term": "adjust balance",
+    "partOfSpeech": "verb",
+    "definition": "Set a manually tracked account's balance to its real value; MoneyMatter records the difference as a balance adjustment transaction.",
+    "translatable": true,
+    "uk": "коригувати баланс"
+  },
+  {
+    "term": "admin",
+    "partOfSpeech": "noun",
+    "definition": "The person who runs a MoneyMatter server (instance); also the admin-only Settings section with system tools such as price sync.",
+    "translatable": true,
+    "uk": "адміністратор",
+    "ukNote": "Section title «Панель адміністратора»."
+  },
+  {
+    "term": "AI",
+    "partOfSpeech": "noun",
+    "definition": "Artificial intelligence: MoneyMatter's AI features (categorization, reading statements and invoices) and the AI assistants that connect to it.",
+    "translatable": true,
+    "uk": "AI",
+    "ukAvoid": ["ШІ"],
+    "ukNote": "Latin script everywhere. As a leading modifier it takes a hyphen: «AI-категоризація», «AI-помічник», «AI-інтеграції»."
+  },
+  {
+    "term": "AI assistant",
+    "partOfSpeech": "noun",
+    "definition": "An AI chat app, such as Claude or ChatGPT, that the user connects to MoneyMatter to ask about their data. The landing-page help chatbot is also called 'the assistant'.",
+    "translatable": true,
+    "uk": "AI-помічник",
+    "ukNote": "The landing-page help chatbot: just «помічник».",
+    "variants": ["assistant"]
+  },
+  {
+    "term": "AI categorization",
+    "partOfSpeech": "noun",
+    "definition": "The feature where AI picks categories for uncategorized transactions: automatically after a bank sync or run by hand from Optimizations. Its feature-list name is \"Transaction Categorization\".",
+    "translatable": true,
+    "uk": "AI-категоризація",
+    "ukAvoid": ["AI категоризація", "AI Категоризація", "ШІ-категоризація", "категоризація ШІ"],
+    "ukNote": "Hyphenated compound in sentence case. The feature-list name 'Transaction Categorization' (common.aiFeatures.categorization.name) = «Категоризація транзакцій»."
+  },
+  {
+    "term": "AI integrations",
+    "partOfSpeech": "noun",
+    "definition": "The Settings section for connecting AI assistants such as Claude or ChatGPT to your MoneyMatter data (MCP server, connected apps). Not a bank integration.",
+    "translatable": true,
+    "uk": "AI-інтеграції",
+    "ukAvoid": ["AI інтеграції", "AI Інтеграції", "інтеграції ШІ"],
+    "ukNote": "Follows the AI decision. oauth.authorize.footer must quote the exact Settings label."
+  },
+  {
+    "term": "airdrop",
+    "partOfSpeech": "noun",
+    "definition": "Free crypto tokens received without buying them; recorded as an investment transaction with price 0.",
+    "translatable": true,
+    "uk": "аірдроп"
+  },
+  {
+    "term": "alias",
+    "partOfSpeech": "noun",
+    "definition": "Another name, often raw bank or merchant text, linked to a payee so different spellings resolve to the same payee. Not a person's nickname.",
+    "translatable": true,
+    "uk": "альтернативна назва",
+    "ukAvoid": ["псевдонім"]
+  },
+  {
+    "term": "ALLOWED_ORIGINS",
+    "partOfSpeech": "noun",
+    "definition": "Environment variable a self-hosting admin sets to list the web addresses allowed to reach the server. Code name: copy it exactly.",
+    "translatable": false,
+    "uk": "ALLOWED_ORIGINS"
+  },
+  {
+    "term": "amortization schedule",
+    "partOfSpeech": "noun",
+    "definition": "A loan's planned repayment timeline from its original principal, rate and term (\"Original schedule\"), used to estimate interest. Not depreciation or a recurring payment's schedule.",
+    "translatable": true,
+    "uk": "графік погашення",
+    "ukAvoid": ["графік амортизації", "первоначальний графік"],
+    "ukNote": "'Original schedule' = «Початковий графік» («первоначальний» is a Russianism). амортизація stays for vehicle depreciation; a recurring payment's schedule is «розклад».",
+    "variants": ["original schedule"]
+  },
+  {
+    "term": "amount threshold",
+    "partOfSpeech": "noun",
+    "definition": "A tag reminder type: notifies the user once spending on that tag goes over a set amount; also that amount itself.",
+    "translatable": true,
+    "uk": "порогова сума"
+  },
+  {
+    "term": "analytics",
+    "partOfSpeech": "noun",
+    "definition": "Name of the app section (sidebar item) that holds the reports, such as Cash Flow and Net Worth History; in prose, those reports in general.",
+    "translatable": true,
+    "uk": "аналітика"
+  },
+  {
+    "term": "AngelList",
+    "partOfSpeech": "proper noun",
+    "definition": "Startup-investing platform where syndicates raise venture deals (SPVs); given as an example venture platform. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "AngelList"
+  },
+  {
+    "term": "Anthropic",
+    "partOfSpeech": "proper noun",
+    "definition": "The AI company that makes Claude; one of the AI providers a user can add an API key for. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Anthropic"
+  },
+  {
+    "term": "API",
+    "partOfSpeech": "noun",
+    "definition": "Application programming interface: the technical access point MoneyMatter uses to reach a bank, data provider or AI service ('API credentials'). Keep the acronym.",
+    "translatable": false,
+    "uk": "API"
+  },
+  {
+    "term": "API key",
+    "partOfSpeech": "noun",
+    "definition": "A secret key the user enters so MoneyMatter can use an outside service's API for them: an AI provider (Anthropic, OpenAI...) or a bank data provider.",
+    "translatable": true,
+    "uk": "API-ключ",
+    "ukAvoid": ["API ключ", "ключ API"],
+    "ukNote": "Same hyphen for Monobank's 'API token': «API-токен»."
+  },
+  {
+    "term": "API token",
+    "partOfSpeech": "noun",
+    "definition": "Monobank's personal read-only access token, which the user copies from Monobank and pastes in to connect. Not an API key and not SimpleFIN's setup token.",
+    "translatable": true,
+    "uk": "API-токен",
+    "ukAvoid": ["API токен"],
+    "ukNote": "Hyphen as in «API-ключ» (see the API key decision)."
+  },
+  {
+    "term": "app",
+    "partOfSpeech": "noun",
+    "definition": "A software application: MoneyMatter itself, an AI assistant or other program connected to your data, or another finance app you import from.",
+    "translatable": true,
+    "uk": "застосунок",
+    "ukAvoid": ["додаток"]
+  },
+  {
+    "term": "application",
+    "partOfSpeech": "noun",
+    "definition": "A software app: the one the user registers in the Enable Banking portal (with an Application ID and private key), or a third-party app asking for OAuth access. Not a request or form.",
+    "translatable": true,
+    "uk": "застосунок",
+    "ukAvoid": ["додаток"],
+    "ukNote": "MoneyMatter's own label and prose use «ID застосунку». Enable Banking's bold lead-in labels ('Application name:', 'Application ID:') are copied bare; «» only when its label is quoted inside a sentence («Create Application»)."
+  },
+  {
+    "term": "apply to past transactions",
+    "partOfSpeech": "verb",
+    "definition": "Run an automation rule on existing matching transactions, after reviewing the matches, instead of only on new ones.",
+    "translatable": true,
+    "uk": "застосувати до минулих транзакцій"
+  },
+  {
+    "term": "APR",
+    "partOfSpeech": "noun",
+    "definition": "Annual percentage rate: the yearly interest rate on a loan, shown per loan and as an average. Use your language's usual term for an annual interest rate.",
+    "translatable": true,
+    "uk": "річна ставка"
+  },
+  {
+    "term": "archive",
+    "partOfSpeech": "verb",
+    "definition": "Hide an account, loan or budget from active lists, pickers and the sidebar while keeping its history; can be undone. Archiving an account also stops its bank sync.",
+    "translatable": true,
+    "uk": "архівувати"
+  },
+  {
+    "term": "archived",
+    "partOfSpeech": "adjective",
+    "definition": "Status of an account, loan or budget that was archived: hidden from active lists and pickers but kept with all its history. Not deleted.",
+    "translatable": true,
+    "uk": "архівований",
+    "ukNote": "Badge «Архівовано»; section title «Архівовані»."
+  },
+  {
+    "term": "ASPSP",
+    "partOfSpeech": "noun",
+    "definition": "Open-banking acronym for the bank that holds the account; a field label on Enable Banking's own setup page, quoted as-is. Keep the acronym.",
+    "translatable": false,
+    "uk": "ASPSP"
+  },
+  {
+    "term": "asset",
+    "partOfSpeech": "noun",
+    "definition": "Anything of positive value the user owns (money in accounts, investments, crypto, vehicles) that counts toward net worth. Opposite of liability. Not one portfolio holding.",
+    "translatable": true,
+    "uk": "актив",
+    "ukNote": "Usually plural «активи» in net-worth labels. «актив» also translates holding (a security in a portfolio); context separates them."
+  },
+  {
+    "term": "asset class",
+    "partOfSpeech": "noun",
+    "definition": "The kind of security, stocks or crypto, used to match symbols to securities in an investment import and to filter symbol search.",
+    "translatable": true,
+    "uk": "клас активу"
+  },
+  {
+    "term": "attachment",
+    "partOfSpeech": "noun",
+    "definition": "A file (receipt, invoice, photo, PDF) attached to a transaction.",
+    "translatable": true,
+    "uk": "вкладення",
+    "ukAvoid": ["прикріплений файл"]
+  },
+  {
+    "term": "auto-matched",
+    "partOfSpeech": "adjective",
+    "definition": "Import review status: MoneyMatter linked this row (e.g. an account or category from the file) to an existing item on its own.",
+    "translatable": true,
+    "uk": "автоматично зіставлено",
+    "ukAvoid": ["автоматично відібрано"]
+  },
+  {
+    "term": "auto-record",
+    "partOfSpeech": "noun",
+    "definition": "A recurring-payment option that creates the transaction automatically on each due date, instead of matching an imported one.",
+    "translatable": true,
+    "uk": "автозапис",
+    "ukAvoid": ["автоматичне записування"]
+  },
+  {
+    "term": "automation",
+    "partOfSpeech": "noun",
+    "definition": "A user-defined rule that automatically edits or categorizes transactions when conditions match.",
+    "translatable": true,
+    "uk": "автоматизація",
+    "ukNote": "Automation screens also call one automation a rule: «правило»."
+  },
+  {
+    "term": "backfill",
+    "partOfSpeech": "noun",
+    "definition": "Imported transactions older than an account's latest existing transaction; they fill in past history without changing its current balance.",
+    "translatable": true,
+    "uk": "дозавантаження історії",
+    "ukAvoid": ["довантаження"],
+    "ukNote": "Column label: «Дозавантажені рядки».",
+    "variants": ["back-filled"]
+  },
+  {
+    "term": "backup",
+    "partOfSpeech": "noun",
+    "definition": "A downloadable zip file with all of the user's MoneyMatter data that can be restored later. Not a \"backup login method\" (a spare way to sign in).",
+    "translatable": true,
+    "uk": "резервна копія",
+    "ukNote": "The process/tab «Backup & restore»: «Резервне копіювання та відновлення»."
+  },
+  {
+    "term": "balance",
+    "partOfSpeech": "noun",
+    "definition": "The amount of money in an account or portfolio at a point in time; can be negative. For a loan see outstanding balance. Not a balance-sheet or equilibrium word.",
+    "translatable": true,
+    "uk": "баланс",
+    "ukNote": "An account or portfolio balance is always «баланс», never «залишок». A loan's balance: «залишок боргу» (see outstanding balance)."
+  },
+  {
+    "term": "balance adjustment",
+    "partOfSpeech": "noun",
+    "definition": "A transaction that corrects an account's or portfolio's cash balance to its real value; not real income, spending or a contribution. A loan's correction is an edit of its outstanding balance.",
+    "translatable": true,
+    "uk": "коригування балансу",
+    "ukAvoid": ["коригуюча транзакція"],
+    "ukNote": "Short badge «Коригування»; attributive «коригувальна транзакція». A loan's correction: «коригування залишку боргу».",
+    "variants": ["adjustment", "balance correction"]
+  },
+  {
+    "term": "balance anchor",
+    "partOfSpeech": "noun",
+    "definition": "The date and amount a loan's outstanding balance is fixed at. Payments dated earlier are kept as history and don't reduce the balance.",
+    "translatable": true,
+    "uk": "дата фіксації залишку боргу",
+    "ukAvoid": ["знімок балансу", "точка відліку балансу"],
+    "ukNote": "Label «Balance as of»: «Залишок станом на».",
+    "variants": ["balance snapshot", "balance as of"]
+  },
+  {
+    "term": "balance trend",
+    "partOfSpeech": "noun",
+    "definition": "Name of the dashboard widget and chart showing total balance over time, with spike markers and a projection of planned entries.",
+    "translatable": true,
+    "uk": "тренд балансу"
+  },
+  {
+    "term": "bank connection",
+    "partOfSpeech": "noun",
+    "definition": "A user's link to a bank or data provider (Monobank, Enable Banking, Lunch Flow, SimpleFIN, Walutomat) that accounts sync through. Not a network or MCP (AI assistant) connection.",
+    "translatable": true,
+    "uk": "банківське підключення",
+    "ukAvoid": ["з'єднання"],
+    "ukNote": "Standalone «підключення» where the context is clear; a network connection stays «з'єднання» (uk.md §5).",
+    "variants": ["data connection"]
+  },
+  {
+    "term": "bank transfer",
+    "partOfSpeech": "noun",
+    "definition": "Payment type (next to card, cash, mobile payment): the transaction was made by bank transfer, incoming or outgoing. A method label, not MoneyMatter's transfer between the user's own accounts.",
+    "translatable": true,
+    "uk": "банківський переказ",
+    "variants": ["Bank Transfer"]
+  },
+  {
+    "term": "banker's rounding",
+    "partOfSpeech": "noun",
+    "definition": "Round-half-to-even rounding (IEEE 754) used for currency conversions: a half goes to the nearest even digit. Use your language's standard name for it.",
+    "translatable": true,
+    "uk": "банківське округлення"
+  },
+  {
+    "term": "base amount",
+    "partOfSpeech": "noun",
+    "definition": "A transaction's amount converted into the user's base currency, used for totals, statistics and budget limits. Also called \"ref amount\". Not the original (foreign-currency) amount.",
+    "translatable": true,
+    "uk": "базова сума",
+    "ukAvoid": ["референтна сума"],
+    "variants": ["ref amount", "reference amount"]
+  },
+  {
+    "term": "base currency",
+    "partOfSpeech": "noun",
+    "definition": "The single reference currency all of a user's amounts are converted to and totalled in.",
+    "translatable": true,
+    "uk": "базова валюта",
+    "ukAvoid": ["основна валюта", "валюта обліку"],
+    "variants": ["reference currency"]
+  },
+  {
+    "term": "beta",
+    "partOfSpeech": "adjective",
+    "definition": "Badge on a feature or integration that works but is still being tested (e.g. Enable Banking). Not the finance 'beta' (volatility measure).",
+    "translatable": true,
+    "uk": "бета"
+  },
+  {
+    "term": "BIC",
+    "partOfSpeech": "noun",
+    "definition": "Bank Identifier Code (SWIFT code), shown next to each bank in the Enable Banking bank list. Usually kept as the Latin acronym.",
+    "translatable": true,
+    "uk": "BIC"
+  },
+  {
+    "term": "bill",
+    "partOfSpeech": "noun",
+    "definition": "One of the three recurring payment types, next to Subscription and Installment: a regular bill such as utilities or rent. Not a bank account and not an invoice.",
+    "translatable": true,
+    "uk": "рахунок",
+    "ukNote": "uk.md §5: where it could be read as account, write «рахунок до сплати». Standalone titles use «Рахунки до сплати» (dashboard.widgets.subscriptions.titleBills). «Рахунок/Рахунки» only for type chips, options and filters next to Підписки/Розстрочки. 'Subscriptions & Bills' = «Підписки та рахунки»."
+  },
+  {
+    "term": "billing cycle",
+    "partOfSpeech": "noun",
+    "definition": "The period between two expected payments of a recurring payment, matching its frequency (e.g. monthly).",
+    "translatable": true,
+    "uk": "платіжний цикл",
+    "ukAvoid": ["розрахунковий цикл"]
+  },
+  {
+    "term": "billing portal",
+    "partOfSpeech": "noun",
+    "definition": "The Stripe-hosted page, opened with \"Manage billing\", where users switch plan or billing period, update their payment method, see invoices, or cancel or renew their plan.",
+    "translatable": true,
+    "uk": "портал оплати",
+    "ukNote": "Button 'Manage billing' = «Керувати оплатою»."
+  },
+  {
+    "term": "biweekly",
+    "partOfSpeech": "adjective",
+    "definition": "Every two weeks, not twice a week. A recurring-payment frequency and a Cash Flow chart grouping ('Bi-weekly').",
+    "translatable": true,
+    "uk": "раз на два тижні",
+    "ukAvoid": ["двотижнево"],
+    "variants": ["bi-weekly"]
+  },
+  {
+    "term": "board",
+    "partOfSpeech": "noun",
+    "definition": "The public feedback board (an external site) where users post feature requests, vote on ideas and see what is planned. Not the dashboard.",
+    "translatable": true,
+    "uk": "дошка",
+    "ukAvoid": ["дошка фіч"],
+    "ukNote": "'feature board' = «дошка пропозицій» (locative: «на нашій дошці пропозицій»), never «дошка фіч».",
+    "variants": ["feature board", "public board"]
+  },
+  {
+    "term": "bonus",
+    "partOfSpeech": "noun",
+    "definition": "Account category for balances of bonus or loyalty points, such as rewards or cashback points. Not a salary bonus.",
+    "translatable": true,
+    "uk": "бонусний",
+    "ukNote": "Adjective agreeing with «рахунок», like the other account categories (Страховий, Інвестиційний)."
+  },
+  {
+    "term": "book",
+    "partOfSpeech": "verb",
+    "definition": "Said of a bank: to post a transaction to the account, which ends its pending state (\"booked transactions\"). Never \"reserve\"; only the noun \"booking\" in order fields means a reservation.",
+    "translatable": true,
+    "uk": "провести",
+    "ukAvoid": ["забронювати"],
+    "ukNote": "«Банк ще не провів цю транзакцію»; a pending bank transaction is «в обробці». 'Booking' as a reservation = «бронювання»."
+  },
+  {
+    "term": "book",
+    "partOfSpeech": "verb",
+    "definition": "To record a recurring payment as a real transaction in an account, done by MoneyMatter on the due date or when the user marks it paid. Never \"reserve\".",
+    "translatable": true,
+    "uk": "записати",
+    "ukAvoid": ["забронювати", "зафіксувати"],
+    "ukNote": "Same verb as record payment and auto-record (записати, «Автозапис»); see the record payment decision."
+  },
+  {
+    "term": "broker",
+    "partOfSpeech": "noun",
+    "definition": "The brokerage firm that holds the user's investments; its statements and CSV exports can be imported into a portfolio.",
+    "translatable": true,
+    "uk": "брокер"
+  },
+  {
+    "term": "budget",
+    "partOfSpeech": "noun",
+    "definition": "A user-created tracker of spending against an optional limit; it holds transactions added by hand or matched by category.",
+    "translatable": true,
+    "uk": "бюджет"
+  },
+  {
+    "term": "budget limit",
+    "partOfSpeech": "noun",
+    "definition": "The optional spending cap set for a budget; spending is shown against it as a percentage.",
+    "translatable": true,
+    "uk": "ліміт бюджету",
+    "ukAvoid": ["обмеження видатків"],
+    "ukNote": "Standalone 'Limit' = «Ліміт»."
+  },
+  {
+    "term": "BudgetBakers",
+    "partOfSpeech": "proper noun",
+    "definition": "Company that makes the Wallet budgeting app; MoneyMatter imports its exports ('Wallet (BudgetBakers)'). Brand name: do not translate.",
+    "translatable": false,
+    "uk": "BudgetBakers"
+  },
+  {
+    "term": "bulk editing",
+    "partOfSpeech": "noun",
+    "definition": "Changing category, payee, tags or note on many selected transactions at once.",
+    "translatable": true,
+    "uk": "масове редагування",
+    "variants": ["bulk edit"]
+  },
+  {
+    "term": "buy",
+    "partOfSpeech": "noun",
+    "definition": "Investment transaction type: a purchase of units of a security. Used as a type label, so a noun form fits best.",
+    "translatable": true,
+    "uk": "купівля",
+    "ukAvoid": ["покупка"]
+  },
+  {
+    "term": "Cancel",
+    "partOfSpeech": "verb",
+    "definition": "Button label that dismisses a dialog or stops an action without saving. Also withdraws a sent invitation or ends the MoneyMatter plan; use your usual verb per sense. Not the Cancel investment type.",
+    "translatable": true,
+    "uk": "Скасувати"
+  },
+  {
+    "term": "Cancel",
+    "partOfSpeech": "noun",
+    "definition": "Investment transaction type for a cancelled or reversed trade, next to Buy, Sell, Dividend and Fee. A noun label (a cancellation), not the Cancel button.",
+    "translatable": true,
+    "uk": "скасування"
+  },
+  {
+    "term": "candidate",
+    "partOfSpeech": "noun",
+    "definition": "A possible recurring payment that MoneyMatter detects in the user's transactions (Discover); it can be added, linked or dismissed. Not a person.",
+    "translatable": true,
+    "uk": "кандидат"
+  },
+  {
+    "term": "canonical name",
+    "partOfSpeech": "noun",
+    "definition": "A payee's primary name, shown everywhere in the app. Its aliases are other merchant texts that map to the same payee.",
+    "translatable": true,
+    "uk": "канонічна назва",
+    "ukAvoid": ["канонічне ім'я"]
+  },
+  {
+    "term": "capital call",
+    "partOfSpeech": "noun",
+    "definition": "Venture event type: the fund or syndicate asks the investor to pay in part of the capital they committed.",
+    "translatable": true,
+    "uk": "запит капіталу"
+  },
+  {
+    "term": "carry",
+    "partOfSpeech": "noun",
+    "definition": "Carried interest: the share of a venture deal's profit the GP (deal lead) takes above the hurdle, usually a percentage. Venture jargon: do not translate.",
+    "translatable": false,
+    "uk": "carry",
+    "ukNote": "Kept in Latin script. Lowercase «carry» mid-phrase, capital only at the start of a label or sentence: «Carry %», «GP carry», «Перевизначити автоматичний carry»."
+  },
+  {
+    "term": "cash",
+    "partOfSpeech": "noun",
+    "definition": "Physical money (notes and coins): an account category and a transaction payment type. Not a portfolio's cash balance and not a trade's cash leg.",
+    "translatable": true,
+    "uk": "готівка"
+  },
+  {
+    "term": "cash",
+    "partOfSpeech": "noun",
+    "definition": "Money not invested in securities: a portfolio's uninvested money per currency (\"Cash Balances\"), or savings kept as money. Not physical banknotes.",
+    "translatable": true,
+    "uk": "кошти",
+    "ukAvoid": ["готівка"],
+    "ukNote": "Compounds use грошовий: cash balance = «грошовий баланс», cash transaction = «грошова транзакція»."
+  },
+  {
+    "term": "cash",
+    "partOfSpeech": "noun",
+    "definition": "Portfolio transaction columns (\"Cash\", \"Cash fees\"): the money actually paid or received for a trade, in its settlement currency. Not banknotes and not the portfolio's cash balance.",
+    "translatable": true,
+    "uk": "сума розрахунку",
+    "ukAvoid": ["готівка"],
+    "variants": ["Cash fees"]
+  },
+  {
+    "term": "cash balance",
+    "partOfSpeech": "noun",
+    "definition": "The uninvested money a portfolio holds in each currency, changed by deposits, withdrawals, trades and currency exchanges.",
+    "translatable": true,
+    "uk": "грошовий баланс",
+    "ukAvoid": ["грошові залишки"]
+  },
+  {
+    "term": "cash flow",
+    "partOfSpeech": "noun",
+    "definition": "Money moving in and out: income minus expenses over a period (Cash Flow report and widget), or the money movement recorded for a venture event.",
+    "translatable": true,
+    "uk": "грошовий потік",
+    "ukAvoid": ["рух коштів"]
+  },
+  {
+    "term": "cash transaction",
+    "partOfSpeech": "noun",
+    "definition": "A portfolio transaction that changes only its cash balance: deposit, withdrawal, transfer or currency exchange. Not a buy or sell, and not a payment in banknotes.",
+    "translatable": true,
+    "uk": "грошова транзакція",
+    "ukAvoid": ["грошова операція"]
+  },
+  {
+    "term": "categorization",
+    "partOfSpeech": "noun",
+    "definition": "Assigning categories to transactions, automatically by AI, an automation or a payee's default category, or by hand. For the AI feature name see AI categorization.",
+    "translatable": true,
+    "uk": "категоризація",
+    "ukNote": "The AI feature name is «AI-категоризація» (see AI categorization). Uncategorized = «без категорії» / «некатегоризований».",
+    "variants": ["categorize"]
+  },
+  {
+    "term": "category",
+    "partOfSpeech": "noun",
+    "definition": "A label used to classify transactions by type of spending or income, e.g. Groceries.",
+    "translatable": true,
+    "uk": "категорія"
+  },
+  {
+    "term": "category breakdown",
+    "partOfSpeech": "noun",
+    "definition": "A report section listing spending or income per category for the selected period. \"Breakdown\" means split by category, not a failure.",
+    "translatable": true,
+    "uk": "розбивка за категоріями"
+  },
+  {
+    "term": "category budget",
+    "partOfSpeech": "noun",
+    "definition": "A budget type that automatically tracks every transaction in the chosen categories, as opposed to a manual budget with hand-picked transactions.",
+    "translatable": true,
+    "uk": "бюджет за категоріями",
+    "ukAvoid": ["бюджет на основі категорій"],
+    "ukNote": "Type label 'Category-based' = «За категоріями».",
+    "variants": ["category-based budget"]
+  },
+  {
+    "term": "charge",
+    "partOfSpeech": "noun",
+    "definition": "Money taken from the user: a recurring payment, a MoneyMatter plan payment (\"No further charges\") or an amount charged in another currency. Not an electric charge or the \"Charges, Fees\" category.",
+    "translatable": true,
+    "uk": "списання",
+    "ukNote": "Verb 'charged' (from the user's account) = списано; a fee charged by a fund or syndicate = стягує. 'No charge' = «Безкоштовно»; seeded category 'Charges, Fees' = «Збори, комісії».",
+    "variants": ["charges"]
+  },
+  {
+    "term": "charge",
+    "partOfSpeech": "noun",
+    "definition": "Seeded expense subcategory \"Charges, Fees\" under Financial expenses: bank and service fees. Use a natural local category name. Not a payment; \"No charge\" means free.",
+    "translatable": true,
+    "uk": "збір",
+    "variants": ["charges"]
+  },
+  {
+    "term": "ChatGPT",
+    "partOfSpeech": "proper noun",
+    "definition": "OpenAI's AI chat assistant, one of the apps users can connect to MoneyMatter. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "ChatGPT"
+  },
+  {
+    "term": "checkout",
+    "partOfSpeech": "noun",
+    "definition": "The Stripe-hosted payment page where the user enters payment details to start a paid MoneyMatter plan; local currency and tax are shown there. Plan changes happen in the billing portal.",
+    "translatable": true,
+    "uk": "сторінка оплати",
+    "ukNote": "«сторінка оплати» where the page is opened or shown; settings.planBilling.checkoutFailed = «Не вдалося відкрити сторінку оплати». A discount 'applied at checkout': «під час оформлення оплати»."
+  },
+  {
+    "term": "Claude",
+    "partOfSpeech": "proper noun",
+    "definition": "Anthropic's AI assistant and model family (e.g. Haiku, Sonnet); users can connect it to MoneyMatter or pick its models for AI features. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Claude"
+  },
+  {
+    "term": "closed position",
+    "partOfSpeech": "noun",
+    "definition": "A holding whose units have all been sold, listed separately from open holdings in a portfolio.",
+    "translatable": true,
+    "uk": "закрита позиція"
+  },
+  {
+    "term": "COINGECKO_API_KEY",
+    "partOfSpeech": "noun",
+    "definition": "Environment variable a self-hosting admin sets to turn on crypto search. Code name: copy it exactly.",
+    "translatable": false,
+    "uk": "COINGECKO_API_KEY"
+  },
+  {
+    "term": "collection",
+    "partOfSpeech": "noun",
+    "definition": "Seeded Investments subcategory for collectibles such as art, coins or stamps. Not debt collection.",
+    "translatable": true,
+    "uk": "колекція",
+    "variants": ["collections"]
+  },
+  {
+    "term": "completed",
+    "partOfSpeech": "adjective",
+    "definition": "Status of an installment plan whose scheduled payments are all paid. Also used for a finished import or sync.",
+    "translatable": true,
+    "uk": "завершено",
+    "ukNote": "Status label form; as an adjective agreeing with a noun: завершений."
+  },
+  {
+    "term": "condition",
+    "partOfSpeech": "noun",
+    "definition": "One rule an automation checks on a transaction (field, operator, value); the automation acts only when its conditions match.",
+    "translatable": true,
+    "uk": "умова"
+  },
+  {
+    "term": "confirmed",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a planned transaction once the real transaction happened, recorded by the user or matched from the bank. Opposite of planned or unconfirmed.",
+    "translatable": true,
+    "uk": "підтверджено",
+    "ukNote": "Status label form; as an adjective: підтверджений; the confirm action = підтвердити. «Не підтверджено» / «непідтверджені» only for planned transactions. A bank transaction not yet booked (Pending) is «в обробці» (see pending); fix transactions.pending.label «Непідтверджено»."
+  },
+  {
+    "term": "connect",
+    "partOfSpeech": "verb",
+    "definition": "To link MoneyMatter to an outside service: mainly a bank or data provider so accounts sync, also an AI assistant, AI server or sign-in method. \"Connect the currency\" means adding it to your list.",
+    "translatable": true,
+    "uk": "підключити",
+    "ukNote": "reconnect = перепідключити. 'Connect refunds' (link sense) = прив'язати."
+  },
+  {
+    "term": "connection",
+    "partOfSpeech": "noun",
+    "definition": "A link between MoneyMatter and a bank or data provider through which accounts and transactions sync. Not a network or internet connection.",
+    "translatable": true,
+    "uk": "підключення",
+    "ukNote": "uk.md §5: bank connection = банківське підключення, never з'єднання; a network connection stays з'єднання («Перевірте з'єднання»)."
+  },
+  {
+    "term": "connection validity",
+    "partOfSpeech": "noun",
+    "definition": "Name used inside instructions for the part of a bank connection page that shows how long its authorization (consent) stays valid, with a Reconnect button. Translate it the same way in all 3 strings.",
+    "translatable": true,
+    "uk": "термін дії підключення"
+  },
+  {
+    "term": "connector",
+    "partOfSpeech": "noun",
+    "definition": "The integration a user adds in an AI assistant's settings (e.g. Claude, ChatGPT) to reach MoneyMatter's MCP server. Not a bank connection. The assistant's own button labels stay in English.",
+    "translatable": true,
+    "uk": "конектор",
+    "ukNote": "Claude's and ChatGPT's own UI labels («Connectors», «Add connector», «Add custom connector», «Add») stay in English inside «» (shared.md §10); fix settings.aiIntegrations.actions.addConnector, addCustomConnector, add. In prose: «конектор»."
+  },
+  {
+    "term": "consent",
+    "partOfSpeech": "noun",
+    "definition": "The permission the user gives at their bank for MoneyMatter to read their accounts through an open-banking provider; it expires and is renewed by reconnecting.",
+    "translatable": true,
+    "uk": "згода"
+  },
+  {
+    "term": "context",
+    "partOfSpeech": "noun",
+    "definition": "AI model info label ('Context:'): the model's context window, the most text (in tokens) it can take in at once. Not general 'context'.",
+    "translatable": true,
+    "uk": "контекст"
+  },
+  {
+    "term": "contribution",
+    "partOfSpeech": "noun",
+    "definition": "Money the user moves from an account into an investment portfolio (Investment Contributions report). In budget sharing, \"contribute\" means adding one's own transactions. Not a donation.",
+    "translatable": true,
+    "uk": "внесок",
+    "ukNote": "Budget-sharing 'contribute' = додавати (прив'язувати) свої транзакції, never внесок; fix pages.budgetDetails.sharing.description. 'Contribute on Crowdin' = «Долучитися на Crowdin»."
+  },
+  {
+    "term": "cost basis",
+    "partOfSpeech": "noun",
+    "definition": "The total amount paid to acquire a holding or venture stake, used to calculate gains and returns.",
+    "translatable": true,
+    "uk": "базова вартість"
+  },
+  {
+    "term": "credentials",
+    "partOfSpeech": "noun",
+    "definition": "The secret details that let MoneyMatter access a provider's API: API key, token, application ID or private key. Not the user's MoneyMatter login.",
+    "translatable": true,
+    "uk": "облікові дані",
+    "variants": ["API credentials"]
+  },
+  {
+    "term": "credit card",
+    "partOfSpeech": "noun",
+    "definition": "A card that borrows against a credit limit: an account category and a transaction payment type. Not a debit card.",
+    "translatable": true,
+    "uk": "кредитна картка"
+  },
+  {
+    "term": "credit limit",
+    "partOfSpeech": "noun",
+    "definition": "The maximum a credit account (e.g. a credit card) lets the user borrow; it can optionally be subtracted from balances in statistics.",
+    "translatable": true,
+    "uk": "кредитний ліміт"
+  },
+  {
+    "term": "credit utilization",
+    "partOfSpeech": "noun",
+    "definition": "The share of the user's total credit limits currently in use across accounts, shown in a dashboard widget.",
+    "translatable": true,
+    "uk": "використання кредитного ліміту",
+    "ukAvoid": ["використання кредиту"]
+  },
+  {
+    "term": "Crowdin",
+    "partOfSpeech": "proper noun",
+    "definition": "Online platform where community volunteers translate MoneyMatter. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Crowdin"
+  },
+  {
+    "term": "crypto",
+    "partOfSpeech": "noun",
+    "definition": "Cryptocurrency: an asset class in portfolios and symbol search, and an account category. Use your usual word for cryptocurrency.",
+    "translatable": true,
+    "uk": "криптовалюта",
+    "ukAvoid": ["крипто"]
+  },
+  {
+    "term": "CSV",
+    "partOfSpeech": "noun",
+    "definition": "Comma-separated values: a plain-text table file format used for imports and exports. Keep the acronym.",
+    "translatable": false,
+    "uk": "CSV"
+  },
+  {
+    "term": "currency",
+    "partOfSpeech": "noun",
+    "definition": "A unit of money (e.g. USD, EUR) an account, transaction or price is denominated in.",
+    "translatable": true,
+    "uk": "валюта"
+  },
+  {
+    "term": "currency exchange",
+    "partOfSpeech": "noun",
+    "definition": "Converting a portfolio's cash from one currency to another: the \"Exchange Currency\" action and a cash transaction type. Not a stock or crypto exchange.",
+    "translatable": true,
+    "uk": "обмін валют",
+    "ukNote": "The button 'Exchange Currency' (portfolioDetail.actions.exchangeCurrency) = «Обміняти валюту» (uk.md §1 infinitive); the noun (dialog title, cash-transaction type) stays «Обмін валют». Failure toast: «Не вдалося обміняти валюту».",
+    "variants": ["exchange currency"]
+  },
+  {
+    "term": "currency symbol",
+    "partOfSpeech": "noun",
+    "definition": "The short sign shown for a currency (e.g. $, €, ₴) instead of its three-letter code. Not a ticker symbol.",
+    "translatable": true,
+    "uk": "символ валюти"
+  },
+  {
+    "term": "current account",
+    "partOfSpeech": "noun",
+    "definition": "Account category for an everyday bank account used for payments and card spending (a checking account). 'Current' does not mean 'present-day'.",
+    "translatable": true,
+    "uk": "поточний рахунок"
+  },
+  {
+    "term": "custom endpoint",
+    "partOfSpeech": "noun",
+    "definition": "A user-added OpenAI-compatible AI server (base URL, model name, optional API key) used instead of a built-in provider. In two server errors a bare \"endpoint\" means an API route instead.",
+    "translatable": true,
+    "uk": "власний ендпоінт",
+    "ukNote": "Short form «ендпоінт» where the English drops 'custom'.",
+    "variants": ["endpoint"]
+  },
+  {
+    "term": "custom exchange rate",
+    "partOfSpeech": "noun",
+    "definition": "An exchange rate the user sets by hand in Settings → Currencies, overriding the live market rate; shown alone as the badge \"Custom\". Not the \"Custom rate\" vehicle depreciation preset.",
+    "translatable": true,
+    "uk": "власний курс",
+    "ukNote": "Badge 'Custom' = «Власний»; 'Live' = «Автоматичний». The vehicle depreciation preset 'Custom rate' = «Власна ставка»."
+  },
+  {
+    "term": "custom instructions",
+    "partOfSpeech": "noun",
+    "definition": "Free-text notes the user writes to guide how AI categorizes their transactions (e.g. which merchant goes to which category). Needs the user's own AI key or endpoint.",
+    "translatable": true,
+    "uk": "власні інструкції"
+  },
+  {
+    "term": "customer",
+    "partOfSpeech": "noun",
+    "definition": "On an invoice, the party the invoice is billed to (the buyer). Not the merchant who issued it; the app matches it against a transaction's payee.",
+    "translatable": true,
+    "uk": "клієнт"
+  },
+  {
+    "term": "danger zone",
+    "partOfSpeech": "noun",
+    "definition": "Section that groups destructive, hard-to-undo actions: in Settings (wipe all data, delete the MoneyMatter login) and on a financial account's page (delete or unlink it).",
+    "translatable": true,
+    "uk": "небезпечна зона"
+  },
+  {
+    "term": "dashboard",
+    "partOfSpeech": "noun",
+    "definition": "MoneyMatter's home page, with widgets summarizing accounts, balances and spending. Not a third-party provider's dashboard (e.g. Walutomat's).",
+    "translatable": true,
+    "uk": "головна сторінка",
+    "ukAvoid": ["панель керування"],
+    "ukNote": "Sidebar item: «Головна». A provider's dashboard (Walutomat, Enable Banking, Bridge) = панель."
+  },
+  {
+    "term": "deal",
+    "partOfSpeech": "noun",
+    "definition": "One venture investment (e.g. a stake via an SPV or fund) tracked with its own terms, events and metrics. Not a trade, discount or bargain.",
+    "translatable": true,
+    "uk": "угода",
+    "ukNote": "venture deal = венчурна угода (uk.md §5)."
+  },
+  {
+    "term": "debt",
+    "partOfSpeech": "noun",
+    "definition": "Money the user owes. In the Net Worth report, debt types are loans, credit cards and overdrafts, and what is owed on them counts as liabilities.",
+    "translatable": true,
+    "uk": "борг"
+  },
+  {
+    "term": "default category",
+    "partOfSpeech": "noun",
+    "definition": "A preset category: the user's fallback for transactions nothing else categorized (AI categorization targets these), or the category set on a payee, which in \"enforce\" mode always wins over AI.",
+    "translatable": true,
+    "uk": "категорія за замовчуванням",
+    "ukAvoid": ["категорія за умовчанням", "стандартна категорія", "типова категорія"]
+  },
+  {
+    "term": "default tag",
+    "partOfSpeech": "noun",
+    "definition": "Tags set on a payee that MoneyMatter adds automatically to new transactions linked to that payee. Not the starter tags seeded for new users.",
+    "translatable": true,
+    "uk": "тег за замовчуванням",
+    "ukAvoid": ["тег за умовчанням"],
+    "ukNote": "Follows the default category decision (за замовчуванням). The payee field 'Auto-apply tags' = «Автоматично застосовувати теги».",
+    "variants": ["auto-apply tag"]
+  },
+  {
+    "term": "deficit",
+    "partOfSpeech": "noun",
+    "definition": "In the Cash Flow chart, the part of spending and portfolio contributions that income didn't cover, so it came out of existing account balances.",
+    "translatable": true,
+    "uk": "дефіцит"
+  },
+  {
+    "term": "Delete",
+    "partOfSpeech": "verb",
+    "definition": "Button label that removes an item such as a transaction or account. Some items (portfolios, venture deals and platforms) go to the trash first and can be restored.",
+    "translatable": true,
+    "uk": "Видалити"
+  },
+  {
+    "term": "delimiter",
+    "partOfSpeech": "noun",
+    "definition": "The character that separates columns in a CSV file (comma, semicolon, tab). MoneyMatter detects it and shows it in the column-mapping step of an import.",
+    "translatable": true,
+    "uk": "роздільник",
+    "ukAvoid": ["розділювач"]
+  },
+  {
+    "term": "demo",
+    "partOfSpeech": "noun",
+    "definition": "Try-before-signup mode: a temporary session with sample data and no real account. Not the free trial of a paid plan.",
+    "translatable": true,
+    "uk": "демо",
+    "ukNote": "demo mode = демо-режим."
+  },
+  {
+    "term": "deposit",
+    "partOfSpeech": "noun",
+    "definition": "Cash added to a portfolio's cash balance from outside; a cash-transaction type, opposite of withdrawal. In recurring-payment text, incoming money (income). Not a bank savings deposit.",
+    "translatable": true,
+    "uk": "поповнення",
+    "ukAvoid": ["внесення"],
+    "ukNote": "Recurring-payments sense ('scheduled deposit') = дохід."
+  },
+  {
+    "term": "depreciation",
+    "partOfSpeech": "noun",
+    "definition": "The modeled loss of a vehicle's value over time, from a preset curve or a custom annual rate. Not loan amortization (paying a loan down), and its rate is not a loan interest rate.",
+    "translatable": true,
+    "uk": "амортизація",
+    "ukNote": "Loan 'amortization (schedule/formula)' is a different concept: «графік погашення» / «формула погашення», not амортизація."
+  },
+  {
+    "term": "destination account",
+    "partOfSpeech": "noun",
+    "definition": "The account, portfolio or loan that receives the money in a transfer. Opposite of source account. Lunch Flow's 'API Destinations' is its own UI label: keep it in English.",
+    "translatable": true,
+    "uk": "цільовий рахунок",
+    "ukAvoid": ["рахунок призначення", "призначення"],
+    "ukNote": "destination portfolio = цільовий портфель; source account = вихідний рахунок. Form label 'To account' = «На рахунок». Standalone 'destination' = цільовий рахунок, never призначення, which reads as payment purpose.",
+    "variants": ["destination portfolio", "destination"]
+  },
+  {
+    "term": "dimension",
+    "partOfSpeech": "noun",
+    "definition": "In the pivot report: what the totals (expenses or income) are broken down by: category, payee, tag… The measure is the value added up. Not a physical size.",
+    "translatable": true,
+    "uk": "вимір",
+    "ukAvoid": ["вимірювання"]
+  },
+  {
+    "term": "direct",
+    "partOfSpeech": "adjective",
+    "definition": "Option for a portfolio cash deposit or withdrawal: record the cash straight on the portfolio, with no account on the other side. The other option is Transfer.",
+    "translatable": true,
+    "uk": "прямий"
+  },
+  {
+    "term": "disabled",
+    "partOfSpeech": "adjective",
+    "definition": "Status of an item or setting the user switched off, e.g. an automation or live exchange-rate updates. Not \"Paused\" (on hold, or an automation paused because something it used was deleted).",
+    "translatable": true,
+    "uk": "вимкнений",
+    "ukNote": "Status label: «Вимкнено»; filter and plural text: вимкнені. 'Paused' = призупинено."
+  },
+  {
+    "term": "disconnect",
+    "partOfSpeech": "verb",
+    "definition": "End a connection: a bank integration, an OAuth login, a connected AI app or a currency added to the user's list. Detaching one account from its bank connection is also called disconnect (= unlink).",
+    "translatable": true,
+    "uk": "відключити",
+    "ukAvoid": ["від'єднати"],
+    "ukNote": "Detaching one account from its bank connection (= unlink): «відв'язати»."
+  },
+  {
+    "term": "discover",
+    "partOfSpeech": "verb",
+    "definition": "Button and panel ('Discover Subscriptions') that scans transaction history for likely recurring payments and lists them as candidates to add or dismiss.",
+    "translatable": true,
+    "uk": "знайти",
+    "ukNote": "Panel title 'Discover Subscriptions' = «Пошук регулярних платежів»; other strings refer to the button as the «Знайти» section.",
+    "variants": ["Discover Subscriptions"]
+  },
+  {
+    "term": "dismiss",
+    "partOfSpeech": "verb",
+    "definition": "Reject a suggestion MoneyMatter found, such as a detected recurring-payment candidate or a transfer match, so it is not offered again. Not just closing a window.",
+    "translatable": true,
+    "uk": "відхилити"
+  },
+  {
+    "term": "dismiss",
+    "partOfSpeech": "verb",
+    "definition": "Close a status screen or overlay (import delete, base currency change, backup restore) while the job may still run. Nothing is cancelled or rejected.",
+    "translatable": true,
+    "uk": "закрити"
+  },
+  {
+    "term": "dismiss",
+    "partOfSpeech": "verb",
+    "definition": "Hide the dashboard Quick Start guide for good ('Dismiss permanently'). Nothing is deleted or rejected.",
+    "translatable": true,
+    "uk": "приховати"
+  },
+  {
+    "term": "display currency",
+    "partOfSpeech": "noun",
+    "definition": "The currency one portfolio's value and stats are shown in, converted at the current exchange rate. A per-portfolio view setting; not the base currency.",
+    "translatable": true,
+    "uk": "валюта відображення"
+  },
+  {
+    "term": "distribution",
+    "partOfSpeech": "noun",
+    "definition": "Venture event: cash returned to the investor from a deal, e.g. proceeds of a partial exit; carry is deducted from it. Not a statistical distribution or an allocation.",
+    "translatable": true,
+    "uk": "виплата",
+    "ukAvoid": ["розподіл"]
+  },
+  {
+    "term": "dividend",
+    "partOfSpeech": "noun",
+    "definition": "A cash payment from a held security (stock or ETF) paid out to the investor; also an investment transaction type.",
+    "translatable": true,
+    "uk": "дивіденд",
+    "ukNote": "Type labels are singular like their siblings (Купівля, Продаж, Комісія, Податок): «Дивіденд»."
+  },
+  {
+    "term": "Docker",
+    "partOfSpeech": "proper noun",
+    "definition": "Container software. The app mentions it for a self-hosted MoneyMatter that runs in Docker next to a local AI model server. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Docker"
+  },
+  {
+    "term": "DPI",
+    "partOfSpeech": "noun",
+    "definition": "Distributions to paid-in capital: a venture ratio of cash returned to the investor divided by the capital paid in. Keep the acronym.",
+    "translatable": false,
+    "uk": "DPI"
+  },
+  {
+    "term": "due date",
+    "partOfSpeech": "noun",
+    "definition": "Date a recurring payment is due; reminders, 'due this week' and auto-recording use it. Not the date actually paid. In the shared date picker ('Due date' header) it just means Date.",
+    "translatable": true,
+    "uk": "термін оплати",
+    "ukAvoid": ["дата платежу", "дата платіжного розкладу"],
+    "ukNote": "'on the due date' reads naturally as «у день оплати». In the shared date picker (common.dateSelector.dueDate) just «Дата». A loan's length is «строк» (see term).",
+    "variants": ["payment schedule date", "next due"]
+  },
+  {
+    "term": "Early Adopter",
+    "partOfSpeech": "proper noun",
+    "definition": "Name of MoneyMatter's lifetime plan for early users, listed with Essential, Plus and Premium. A plan name: one form everywhere, never an ordinary phrase.",
+    "translatable": true,
+    "uk": "Early Adopter",
+    "ukNote": "Plan names stay in Latin script (uk.md §5): «план Early Adopter». The status badge is a separate entry (early adopter)."
+  },
+  {
+    "term": "early adopter",
+    "partOfSpeech": "noun",
+    "definition": "Status badge on the plan and billing page for users on a lifetime plan granted to early supporters. Describes the user; the plan name is a separate entry.",
+    "translatable": true,
+    "uk": "ранній прихильник"
+  },
+  {
+    "term": "Enable Banking",
+    "partOfSpeech": "proper noun",
+    "definition": "Do not translate – product/brand name (open banking connectivity provider). \"EnableBanking\" is the same name.",
+    "translatable": false,
+    "uk": "Enable Banking",
+    "ukAvoid": ["EnableBanking"],
+    "variants": ["EnableBanking"]
+  },
+  {
+    "term": "entry",
+    "partOfSpeech": "noun",
+    "definition": "A single transaction as a record ('This entry is the refund'); a planned entry is a scheduled one not yet recorded. In import mapping, an existing account, category or tag. Not an entry fee.",
+    "translatable": true,
+    "uk": "запис",
+    "variants": ["planned entry"]
+  },
+  {
+    "term": "entry fee",
+    "partOfSpeech": "noun",
+    "definition": "One-time fee paid to a venture platform or syndicate lead when joining a deal, usually a percentage of the principal. Not a ledger entry.",
+    "translatable": true,
+    "uk": "вхідна комісія"
+  },
+  {
+    "term": "Essential",
+    "partOfSpeech": "proper noun",
+    "definition": "Name of MoneyMatter's entry paid plan, next to Plus and Premium ('Included in the Essential plan'); one form everywhere. 'Essential expenses' (a seeded tag) is the ordinary adjective.",
+    "translatable": true,
+    "uk": "Essential",
+    "ukNote": "Kept in Latin script: «план Essential» (uk.md §5). The seeded tag 'Essential expenses' = «Необхідні витрати»."
+  },
+  {
+    "term": "ETF",
+    "partOfSpeech": "noun",
+    "definition": "Exchange-traded fund: a fund that trades on a stock exchange like a single stock. One of the security types a portfolio can hold. Keep the acronym.",
+    "translatable": false,
+    "uk": "ETF"
+  },
+  {
+    "term": "Excel",
+    "partOfSpeech": "proper noun",
+    "definition": "Microsoft's spreadsheet app. Here it names the .xlsx file option in data export. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Excel"
+  },
+  {
+    "term": "exchange",
+    "partOfSpeech": "noun",
+    "definition": "Converting cash from one currency to another inside a portfolio, recorded as its own transaction. Not a transfer, and not a stock or crypto exchange.",
+    "translatable": true,
+    "uk": "обмін",
+    "ukNote": "Button: «Обміняти»; feature and type label: «Обмін валют»."
+  },
+  {
+    "term": "exchange",
+    "partOfSpeech": "noun",
+    "definition": "A stock or crypto trading platform (e.g. Binance) whose transaction-history export can be imported into a portfolio. Not the currency-exchange action or an exchange rate.",
+    "translatable": true,
+    "uk": "біржа"
+  },
+  {
+    "term": "exchange rate",
+    "partOfSpeech": "noun",
+    "definition": "The ratio used to convert an amount from one currency into another.",
+    "translatable": true,
+    "uk": "курс обміну",
+    "ukAvoid": ["обмінний курс", "курс FX"],
+    "ukNote": "Bare «курс» is fine where context is clear (курс 1:1, курс на {date}). The 'FX rate' column header = «Курс обміну», or bare «Курс» where space is tight; 'FX' is not a do-not-translate item.",
+    "variants": ["FX rate"]
+  },
+  {
+    "term": "exclude",
+    "partOfSpeech": "verb",
+    "definition": "Leave chosen categories or transaction types out of one widget, filter or report. Nothing is deleted or archived, and it can be undone.",
+    "translatable": true,
+    "uk": "виключити"
+  },
+  {
+    "term": "exclude from statistics",
+    "partOfSpeech": "verb",
+    "definition": "Per-account or per-loan setting that leaves it out of totals, net worth, charts and reports while it stays active and visible. Not archiving.",
+    "translatable": true,
+    "uk": "виключити зі статистики",
+    "variants": ["exclude from stats"]
+  },
+  {
+    "term": "exit",
+    "partOfSpeech": "noun",
+    "definition": "Venture event: a full or partial sale of the stake in a deal that returns value to the investor. Not leaving a screen or mode.",
+    "translatable": true,
+    "uk": "вихід",
+    "ukNote": "Partial exit = частковий вихід; Fully exited = повністю закритий; Expected exit = очікуваний вихід."
+  },
+  {
+    "term": "expected",
+    "partOfSpeech": "adjective",
+    "definition": "Badge on an upcoming planned transaction: money the user expects to move on that date, not yet recorded. Also 'Expected amount' of a recurring payment. Not a bill that is due.",
+    "translatable": true,
+    "uk": "очікуваний",
+    "ukNote": "Standalone status badge: «Очікується» (records.upcomingSection.expectedBadge)."
+  },
+  {
+    "term": "expense",
+    "partOfSpeech": "noun",
+    "definition": "A transaction that decreases available funds (spending) – opposite of income.",
+    "translatable": true,
+    "uk": "витрата",
+    "ukAvoid": ["видатки"]
+  },
+  {
+    "term": "expired",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a bank connection whose consent or session has ended, so syncing stops until the user reconnects; 'Expiring soon' warns ahead. Also used for login sessions and invitations.",
+    "translatable": true,
+    "uk": "закінчився",
+    "ukNote": "Standalone status label: «Закінчився» (agrees with рахунок / термін дії); Expiring soon = «Скоро закінчиться». In sentences: «Термін дії … сплив»; expiring: «Термін дії … спливає через …». Session sense: «сесія закінчилася»."
+  },
+  {
+    "term": "export",
+    "partOfSpeech": "noun",
+    "definition": "A file of data saved out of an app: MoneyMatter's own data export in Settings, or a bank's or other app's export file that the user imports.",
+    "translatable": true,
+    "uk": "експорт"
+  },
+  {
+    "term": "external account",
+    "partOfSpeech": "noun",
+    "definition": "The account as a connected bank or provider reports it, linked to a MoneyMatter account. Its synced transactions can't be deleted by hand and some fields are read-only. Not a manual account.",
+    "translatable": true,
+    "uk": "зовнішній рахунок"
+  },
+  {
+    "term": "external reference",
+    "partOfSpeech": "noun",
+    "definition": "Optional transaction field for the user's own outside reference, such as an order, invoice or booking number. Not the External ID a provider assigns, and not the external link (URL) field.",
+    "translatable": true,
+    "uk": "зовнішній номер"
+  },
+  {
+    "term": "extract",
+    "partOfSpeech": "verb",
+    "definition": "AI reads an uploaded file or pasted text and pulls out transactions (dates, amounts, buys and sells) for the user to review before import.",
+    "translatable": true,
+    "uk": "вилучити",
+    "ukAvoid": ["витягти", "видобувати"]
+  },
+  {
+    "term": "fee",
+    "partOfSpeech": "noun",
+    "definition": "A cost charged for a transaction, service or investment trade, e.g. a commission; also an investment transaction type.",
+    "translatable": true,
+    "uk": "комісія"
+  },
+  {
+    "term": "fee payment",
+    "partOfSpeech": "noun",
+    "definition": "Venture event type recording a fee charged against a deal, e.g. a management fee.",
+    "translatable": true,
+    "uk": "оплата комісії"
+  },
+  {
+    "term": "focus mode",
+    "partOfSpeech": "noun",
+    "definition": "Full-screen view of the transactions table that hides the rest of the interface.",
+    "translatable": true,
+    "uk": "режим фокусу"
+  },
+  {
+    "term": "frequency",
+    "partOfSpeech": "noun",
+    "definition": "How often a recurring payment or a tag reminder repeats, from daily or weekly up to annual.",
+    "translatable": true,
+    "uk": "частота"
+  },
+  {
+    "term": "fully exited",
+    "partOfSpeech": "adjective",
+    "definition": "Venture deal status: the whole stake has been exited and the capital returned, so the deal is closed. Compare 'Partial exit'.",
+    "translatable": true,
+    "uk": "повністю закритий",
+    "ukNote": "Status label «Повністю закритий», next to «Частковий вихід»."
+  },
+  {
+    "term": "function calling",
+    "partOfSpeech": "noun",
+    "definition": "AI model capability badge 'Functions': function calling, i.e. the model can call tools or functions. Not app features.",
+    "translatable": true,
+    "uk": "виклик функцій",
+    "ukAvoid": ["функції"],
+    "variants": ["function"]
+  },
+  {
+    "term": "fund",
+    "partOfSpeech": "noun",
+    "definition": "In Venture: a pooled investment fund run by a fund manager or GP; 'fund deals' are investments made through one. Not 'funds' meaning money ('Transfer funds').",
+    "translatable": true,
+    "uk": "фонд",
+    "ukNote": "funds meaning money ('Transfer funds') = кошти."
+  },
+  {
+    "term": "GAAP",
+    "partOfSpeech": "noun",
+    "definition": "Generally Accepted Accounting Principles, the US accounting standards, cited next to IFRS. Keep the acronym unless your language has an established one.",
+    "translatable": true,
+    "uk": "GAAP"
+  },
+  {
+    "term": "Gemini",
+    "partOfSpeech": "proper noun",
+    "definition": "Google's family of AI models, offered as an AI provider option. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Gemini"
+  },
+  {
+    "term": "Gemma",
+    "partOfSpeech": "proper noun",
+    "definition": "Google's family of open AI models, suggested as a low-cost model for AI categorization. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Gemma",
+    "variants": ["Gemma 4"]
+  },
+  {
+    "term": "general",
+    "partOfSpeech": "adjective",
+    "definition": "Settings section that controls how financial data is calculated and shown app-wide (transfers, pending transactions, savings, defaults). The usual 'General' settings tab.",
+    "translatable": true,
+    "uk": "загальні",
+    "ukAvoid": ["статистика"],
+    "ukNote": "Settings nav item and page title: «Загальні»."
+  },
+  {
+    "term": "general",
+    "partOfSpeech": "adjective",
+    "definition": "Catch-all account type for accounts that fit no other type (listed with Cash, Current account, Credit card, Saving account). Not 'Current account'; describes the account.",
+    "translatable": true,
+    "uk": "загальний"
+  },
+  {
+    "term": "GitHub",
+    "partOfSpeech": "proper noun",
+    "definition": "Code-hosting site where MoneyMatter publishes its releases ('View on GitHub'). Brand name: do not translate.",
+    "translatable": false,
+    "uk": "GitHub"
+  },
+  {
+    "term": "Google",
+    "partOfSpeech": "proper noun",
+    "definition": "Used as a sign-in method ('Sign in with Google') and as an AI provider (Gemini models). Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Google",
+    "ukNote": "Sign in with Google = «увійти через Google»; Google sign-in = «вхід через Google»."
+  },
+  {
+    "term": "GP",
+    "partOfSpeech": "noun",
+    "definition": "General partner: the syndicate lead or fund manager who runs a venture deal and takes carry; the investors are LPs (limited partners). Keep the acronym.",
+    "translatable": false,
+    "uk": "GP",
+    "ukNote": "Spelled out once in hints as «генеральний партнер (GP)»."
+  },
+  {
+    "term": "GPT",
+    "partOfSpeech": "proper noun",
+    "definition": "OpenAI's family of AI models, named in AI provider labels and model hints ('OpenAI (GPT)', 'GPT-OSS'). Do not translate model names such as Llama, Gemma or Claude Haiku either.",
+    "translatable": false,
+    "uk": "GPT"
+  },
+  {
+    "term": "Groq",
+    "partOfSpeech": "proper noun",
+    "definition": "AI inference provider that hosts open models such as Llama and GPT-OSS; one of the AI provider options. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Groq"
+  },
+  {
+    "term": "gross",
+    "partOfSpeech": "adjective",
+    "definition": "Venture distribution or exit amount before the GP's carry is deducted; what remains after carry is the LP net amount.",
+    "translatable": true,
+    "uk": "брутто"
+  },
+  {
+    "term": "Grown",
+    "partOfSpeech": "adjective",
+    "definition": "Net Worth Drivers label for net-worth change from the market (price moves plus dividends, minus fees), paired with \"Saved\". A past-participle label, not the noun \"growth\"; prose reuses the label.",
+    "translatable": true,
+    "uk": "Зросло",
+    "ukNote": "Quote it in prose as «Зросло», next to «Заощаджено». 'Grown total' = «Загальне зростання»; growth (noun) = зростання."
+  },
+  {
+    "term": "growth crossover",
+    "partOfSpeech": "noun",
+    "definition": "Target in the Net Worth Drivers report: the portfolio size at which market growth, not the user's own saving, adds most of the monthly gain.",
+    "translatable": true,
+    "uk": "точка перетину зростання"
+  },
+  {
+    "term": "HELOC",
+    "partOfSpeech": "noun",
+    "definition": "Home equity line of credit: a loan type, a revolving credit line secured by a home. Keep the acronym.",
+    "translatable": false,
+    "uk": "HELOC"
+  },
+  {
+    "term": "hidden",
+    "partOfSpeech": "adjective",
+    "definition": "Badge on a portfolio the user turned off, and the name shown for a transfer's other account when the user can't see it. Not deleted or archived.",
+    "translatable": true,
+    "uk": "прихований"
+  },
+  {
+    "term": "holding",
+    "partOfSpeech": "noun",
+    "definition": "A specific security owned within a portfolio (a position), with quantity and cost basis.",
+    "translatable": true,
+    "uk": "актив"
+  },
+  {
+    "term": "household",
+    "partOfSpeech": "noun",
+    "definition": "One user's sharing circle: people the owner invites get access to every account the owner has, now and added later. Access is one-way; a user can also join other people's households.",
+    "translatable": true,
+    "uk": "сім'я",
+    "ukAvoid": ["домогосподарство"]
+  },
+  {
+    "term": "hurdle",
+    "partOfSpeech": "noun",
+    "definition": "Minimum return investors (LPs) must earn on a venture deal before the GP starts taking carry, set as a percentage. A finance term, not an obstacle.",
+    "translatable": true,
+    "uk": "hurdle",
+    "ukAvoid": ["перешкода"],
+    "ukNote": "Kept in Latin script like carry, GP, LP."
+  },
+  {
+    "term": "ID",
+    "partOfSpeech": "noun",
+    "definition": "Identifier of a record, as in \"External ID\", \"Batch ID\", \"Connection ID\" or \"Application ID\". Keep \"ID\".",
+    "translatable": false,
+    "uk": "ID"
+  },
+  {
+    "term": "idle",
+    "partOfSpeech": "adjective",
+    "definition": "Bank sync status: no sync is running or queued right now. Not an error, and not an inactive (disabled) connection.",
+    "translatable": true,
+    "uk": "очікування",
+    "ukNote": "Not «У черзі» (Queued) and not «Неактивний» (Inactive connection)."
+  },
+  {
+    "term": "IFRS",
+    "partOfSpeech": "noun",
+    "definition": "International Financial Reporting Standards, cited as recommending the rounding method used for currency conversion. Use your language's established acronym if it has one.",
+    "translatable": true,
+    "uk": "МСФЗ",
+    "ukAvoid": ["IFRS"],
+    "ukNote": "Established uk acronym (Міжнародні стандарти фінансової звітності). GAAP stays in Latin: «МСФЗ/GAAP»."
+  },
+  {
+    "term": "ignored name",
+    "partOfSpeech": "noun",
+    "definition": "Raw merchant text the user has blocked from automatically creating or matching a payee. It can still be linked to a payee by hand. Not a hidden or deleted payee.",
+    "translatable": true,
+    "uk": "проігнорована назва",
+    "variants": ["ignored merchant name"]
+  },
+  {
+    "term": "import",
+    "partOfSpeech": "noun",
+    "definition": "Bringing accounts, transactions, categories and tags into MoneyMatter from a file (CSV, OFX, QFX, statement), another app's export or a bank connection. Also a verb.",
+    "translatable": true,
+    "uk": "імпорт",
+    "ukNote": "Verb: імпортувати."
+  },
+  {
+    "term": "import batch",
+    "partOfSpeech": "noun",
+    "definition": "Everything created by one import run, with a batch ID so it can be found or deleted as one unit. In \"YC batch\" it means a startup-accelerator cohort instead.",
+    "translatable": true,
+    "uk": "пакет імпорту",
+    "ukNote": "Standalone «пакет»; Batch ID = «ID пакета».",
+    "variants": ["batch", "batch ID"]
+  },
+  {
+    "term": "import history",
+    "partOfSpeech": "noun",
+    "definition": "Page listing past imports (import batches): what accounts and transactions each one created, with an option to delete an import.",
+    "translatable": true,
+    "uk": "історія імпорту"
+  },
+  {
+    "term": "inactive",
+    "partOfSpeech": "adjective",
+    "definition": "Bank connection status: the connection was deactivated (e.g. after repeated sign-in failures or while reconnecting) and does not sync. Opposite of Active.",
+    "translatable": true,
+    "uk": "неактивний"
+  },
+  {
+    "term": "income",
+    "partOfSpeech": "noun",
+    "definition": "A transaction that increases available funds (earnings) – opposite of expense. Not an investment return or yield.",
+    "translatable": true,
+    "uk": "дохід",
+    "ukAvoid": ["надходження"],
+    "ukNote": "Investment return = дохідність, never дохід."
+  },
+  {
+    "term": "inflation",
+    "partOfSpeech": "noun",
+    "definition": "The yearly rise in prices. The investment calculator uses it to show real (inflation-adjusted) values next to nominal ones.",
+    "translatable": true,
+    "uk": "інфляція"
+  },
+  {
+    "term": "initial balance",
+    "partOfSpeech": "noun",
+    "definition": "The balance an account starts with when it is created or imported, before any recorded transactions. Also the starting amount in the investment projection.",
+    "translatable": true,
+    "uk": "початковий баланс",
+    "ukNote": "A loan's opening balance is debt still owed: «початковий залишок боргу» (dialogs.loanPayment.preAnchorHint), not початковий баланс.",
+    "variants": ["starting balance"]
+  },
+  {
+    "term": "initial investment",
+    "partOfSpeech": "noun",
+    "definition": "Venture event type that records the first capital the user puts into a deal, next to capital call, distribution and exit.",
+    "translatable": true,
+    "uk": "початкова інвестиція"
+  },
+  {
+    "term": "installment",
+    "partOfSpeech": "noun",
+    "definition": "One of three recurring-payment types, next to Subscription and Bill: a purchase paid off in a fixed number of scheduled payments. Also one of those payments.",
+    "translatable": true,
+    "uk": "розстрочка",
+    "ukNote": "One payment of it: платіж ('Number of installments' = «Кількість платежів»)."
+  },
+  {
+    "term": "instance",
+    "partOfSpeech": "noun",
+    "definition": "One running MoneyMatter server installation, such as a self-hosted one, with its own administrator and settings. Not 'for instance'.",
+    "translatable": true,
+    "uk": "сервер",
+    "ukAvoid": ["екземпляр"]
+  },
+  {
+    "term": "integration",
+    "partOfSpeech": "noun",
+    "definition": "A connection to an external bank or provider used to import accounts and transactions.",
+    "translatable": true,
+    "uk": "інтеграція"
+  },
+  {
+    "term": "interest",
+    "partOfSpeech": "noun",
+    "definition": "Cost of borrowing: money charged on a loan's outstanding balance ('Interest paid', 'Interest left'). Seeded categories also use it for interest earned. Not curiosity or a stake.",
+    "translatable": true,
+    "uk": "відсотки",
+    "ukNote": "Plural noun in this sense: відсотки, відсотків."
+  },
+  {
+    "term": "interest rate",
+    "partOfSpeech": "noun",
+    "definition": "A loan's yearly interest rate as a percentage, entered as 'Interest rate (APR %)'. Closely related to APR.",
+    "translatable": true,
+    "uk": "процентна ставка"
+  },
+  {
+    "term": "invalid",
+    "partOfSpeech": "adjective",
+    "definition": "Fails validation or is not accepted: a password, file, amount, date, ID, imported row, API key, token or bank credential; also a key's status badge. Not a person with a disability.",
+    "translatable": true,
+    "uk": "недійсний",
+    "ukAvoid": ["невірний"],
+    "ukNote": "Key, token, credential, connection or row status = недійсний. Wrong user input (password, amount, date or file format) = неправильний, like 'Incorrect password' = «Неправильний пароль»."
+  },
+  {
+    "term": "investment contributions",
+    "partOfSpeech": "noun",
+    "definition": "Report of the money the user moved into portfolios over time; one contribution is one such transfer. Balance corrections don't count. Nav label: Contributions.",
+    "translatable": true,
+    "uk": "інвестиційні внески",
+    "ukNote": "Report name, plural. Nav label: «Внески»; one contribution = внесок.",
+    "variants": ["Contributions"]
+  },
+  {
+    "term": "investment projection",
+    "partOfSpeech": "noun",
+    "definition": "Analytics tool that projects how a portfolio could grow from a starting balance and monthly contributions over a chosen number of years.",
+    "translatable": true,
+    "uk": "інвестиційний прогноз",
+    "ukAvoid": ["інвестиційний калькулятор"]
+  },
+  {
+    "term": "investment transaction",
+    "partOfSpeech": "noun",
+    "definition": "A buy, sell, dividend, fee, tax or other record on a holding in a portfolio. Not a regular account transaction.",
+    "translatable": true,
+    "uk": "інвестиційна транзакція"
+  },
+  {
+    "term": "investments",
+    "partOfSpeech": "noun",
+    "definition": "App section with the user's portfolios of stocks, ETFs, crypto and other securities. Not the Venture section for private deals, which needs a different word.",
+    "translatable": true,
+    "uk": "інвестиції",
+    "ukNote": "Section name, plural. Venture section = Венчур, never Інвестиції."
+  },
+  {
+    "term": "invitation",
+    "partOfSpeech": "noun",
+    "definition": "A request, usually sent by email, for another person to get shared access to an account, budget or household. It can be pending, accepted, declined, resent or cancelled.",
+    "translatable": true,
+    "uk": "запрошення",
+    "ukNote": "Verb invite = запросити.",
+    "variants": ["invite"]
+  },
+  {
+    "term": "invite link",
+    "partOfSpeech": "noun",
+    "definition": "Shareable link that invites another person to join the user's household or shared accounts and budgets.",
+    "translatable": true,
+    "uk": "посилання-запрошення"
+  },
+  {
+    "term": "invoice",
+    "partOfSpeech": "noun",
+    "definition": "A document requesting payment (PDF or image), issued to or by the user, that is attached to a transaction. A receipt is a different word. Not a recurring Bill, not a financial account.",
+    "translatable": true,
+    "uk": "інвойс",
+    "ukAvoid": ["рахунок"],
+    "ukNote": "Receipt = чек. Seeded category names (defaultCategories.*) may use a natural local name."
+  },
+  {
+    "term": "invoice matching",
+    "partOfSpeech": "noun",
+    "definition": "AI feature that reads an uploaded invoice or receipt (total, date, merchant) and finds the transaction it belongs to. Started with \"Attach invoice\".",
+    "translatable": true,
+    "uk": "зіставлення інвойсів"
+  },
+  {
+    "term": "IRR",
+    "partOfSpeech": "noun",
+    "definition": "Internal rate of return: the annualized return of a venture deal, taking the timing of its cash flows into account. Keep the acronym.",
+    "translatable": false,
+    "uk": "IRR"
+  },
+  {
+    "term": "ISO",
+    "partOfSpeech": "proper noun",
+    "definition": "International Organization for Standardization. Here only in 'ISO date format' (ISO 8601): year first, YYYY-MM-DD. Keep the acronym.",
+    "translatable": true,
+    "uk": "ISO"
+  },
+  {
+    "term": "JPEG",
+    "partOfSpeech": "noun",
+    "definition": "Image file format accepted for transaction attachments and invoices, listed with PNG, WebP and PDF. Keep as is.",
+    "translatable": false,
+    "uk": "JPEG"
+  },
+  {
+    "term": "JSON",
+    "partOfSpeech": "noun",
+    "definition": "Data file format, offered for data export and, next to CSV, for admin price uploads. Keep as is.",
+    "translatable": false,
+    "uk": "JSON"
+  },
+  {
+    "term": "leave",
+    "partOfSpeech": "verb",
+    "definition": "Give up your own access to a household you joined, or to an account or budget someone shared with you. Not \"leave blank\" and not time off.",
+    "translatable": true,
+    "uk": "вийти",
+    "ukAvoid": ["покинути"],
+    "ukNote": "Leave share? = «Вийти зі спільного доступу?»; leaving a household = вийти із сім'ї, never «залишити». Different senses: Leave blank = «залишити порожнім», Leave feedback = «Залишити відгук»."
+  },
+  {
+    "term": "ledger",
+    "partOfSpeech": "noun",
+    "definition": "The user's full record of transactions in MoneyMatter; used to say an imported row is already recorded. Not a separate accounting book.",
+    "translatable": true,
+    "uk": "облік"
+  },
+  {
+    "term": "lender",
+    "partOfSpeech": "noun",
+    "definition": "The bank or institution a loan was taken from.",
+    "translatable": true,
+    "uk": "кредитор"
+  },
+  {
+    "term": "liability",
+    "partOfSpeech": "noun",
+    "definition": "Money the user owes (loans, credit balances), subtracted from assets to get net worth. Usually plural. Not legal responsibility.",
+    "translatable": true,
+    "uk": "зобов'язання"
+  },
+  {
+    "term": "lifetime",
+    "partOfSpeech": "adjective",
+    "definition": "Shown after a plan name (\"{plan} · lifetime\") when the plan is granted for life (Early Adopter): no renewal, no card on file. Not a purchase option or billing cycle.",
+    "translatable": true,
+    "uk": "довічно",
+    "ukNote": "Adverb after the plan name: «{plan} · довічно». Related 'for life' = назавжди."
+  },
+  {
+    "term": "link",
+    "partOfSpeech": "verb",
+    "definition": "Connect records: a transaction to a portfolio, deal, loan, budget or recurring payment; two transactions as a transfer; an account to a bank; an imported value to an existing one. Not a web link.",
+    "translatable": true,
+    "uk": "прив'язати",
+    "ukAvoid": ["пов'язати", "зв'язати"],
+    "ukNote": "Noun: прив'язка; linked: прив'язаний; opposite: відв'язати. A web link = посилання. In import wizards, linking an imported account, category or tag to an existing one is the map action: 'Link to existing' = «Зіставити з наявним»."
+  },
+  {
+    "term": "link refund",
+    "partOfSpeech": "verb",
+    "definition": "Mark an income or expense as the refund of an earlier transaction so statistics net them out. Opposite: Unlink refund.",
+    "translatable": true,
+    "uk": "прив'язати повернення",
+    "ukAvoid": ["зв'язок повернення"],
+    "ukNote": "Noun (refund link): прив'язка повернення; opposite: відв'язати повернення."
+  },
+  {
+    "term": "live",
+    "partOfSpeech": "adjective",
+    "definition": "Of an exchange rate: updated automatically from market data, as opposed to a custom rate the user sets. Not a live broadcast.",
+    "translatable": true,
+    "uk": "автоматичний",
+    "ukNote": "Live update = автоматичне оновлення. Live (market) rates = актуальні ринкові курси."
+  },
+  {
+    "term": "Llama",
+    "partOfSpeech": "proper noun",
+    "definition": "Meta's family of open AI models, named in the Groq provider label and in the sample local model name llama3.2. Not the animal. Do not translate.",
+    "translatable": false,
+    "uk": "Llama"
+  },
+  {
+    "term": "LM Studio",
+    "partOfSpeech": "proper noun",
+    "definition": "Desktop app that runs AI models locally and serves them through an OpenAI-compatible API; users connect it as a custom AI endpoint. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "LM Studio"
+  },
+  {
+    "term": "loan",
+    "partOfSpeech": "noun",
+    "definition": "A borrowed sum tracked with its own balance, payments and payoff schedule.",
+    "translatable": true,
+    "uk": "кредит",
+    "ukAvoid": ["позика"],
+    "ukNote": "Loan types use кредит: Студентський кредит (loans.types.student), like Автокредит, Споживчий кредит."
+  },
+  {
+    "term": "loan payment",
+    "partOfSpeech": "noun",
+    "definition": "An expense or transfer that pays down a loan and reduces its outstanding balance, recorded on the loan's page or linked to it.",
+    "translatable": true,
+    "uk": "платіж за кредитом",
+    "ukAvoid": ["платіж за позикою", "платежі по кредитам"]
+  },
+  {
+    "term": "loan type",
+    "partOfSpeech": "noun",
+    "definition": "The kind of loan: Mortgage, Vehicle (auto loan), Student, Personal (consumer loan), Business, Medical, HELOC, Other. The type names appear alone as labels.",
+    "translatable": true,
+    "uk": "тип кредиту",
+    "ukNote": "Type labels use кредит: Автокредит, Споживчий кредит, Бізнес-кредит, Медичний кредит, Іпотека. Student loan = студентський кредит; loans.types.student «Студентська позика», loans.dialog.createDescription and loans.empty.description break loan = кредит."
+  },
+  {
+    "term": "location",
+    "partOfSpeech": "noun",
+    "definition": "Optional place attached to a transaction, taken from the device or picked on an OpenStreetMap map; a payee can have a default location.",
+    "translatable": true,
+    "uk": "місцезнаходження",
+    "ukNote": "A point picked on the map: «місце» («Виберіть місце», «Відкрити місце на карті»)."
+  },
+  {
+    "term": "login method",
+    "partOfSpeech": "noun",
+    "definition": "A way to sign in to MoneyMatter: password, a linked OAuth account (e.g. Google) or a passkey. Managed in Security settings.",
+    "translatable": true,
+    "uk": "спосіб входу"
+  },
+  {
+    "term": "LP",
+    "partOfSpeech": "noun",
+    "definition": "Limited partner: an investor who puts capital into a venture fund or syndicate but does not manage it; usually the user. Opposite of GP. Keep the acronym.",
+    "translatable": false,
+    "uk": "LP",
+    "ukNote": "Prose may gloss it once: «інвестори (LP)». For 'LP net' see LP net."
+  },
+  {
+    "term": "LP net",
+    "partOfSpeech": "noun",
+    "definition": "Amount paid to the investor (LP) from a venture event after the GP's carry is taken off the gross amount. Keep \"LP\" as is; \"net\" may be translated.",
+    "translatable": true,
+    "uk": "LP нетто",
+    "ukAvoid": ["LP net сума"],
+    "ukNote": "Pairs with Gross = «Брутто» in the same event table. Label 'LP net amount' = «Сума нетто LP» (like «Сума брутто»). LP stays in Latin script."
+  },
+  {
+    "term": "Lunch Flow",
+    "partOfSpeech": "proper noun",
+    "definition": "Bank-data provider that syncs transactions from banks worldwide through an API key. Brand name: do not translate; write \"Lunch Flow\" even where the source says \"LunchFlow\".",
+    "translatable": false,
+    "uk": "Lunch Flow",
+    "ukAvoid": ["LunchFlow"],
+    "variants": ["LunchFlow"]
+  },
+  {
+    "term": "main category",
+    "partOfSpeech": "noun",
+    "definition": "In a split transaction: the transaction's own category, which keeps any amount not assigned to a split. Not a parent category.",
+    "translatable": true,
+    "uk": "основна категорія"
+  },
+  {
+    "term": "make",
+    "partOfSpeech": "noun",
+    "definition": "A tracked vehicle's manufacturer or brand (e.g. Toyota), entered next to model and trim. Not the verb.",
+    "translatable": true,
+    "uk": "марка"
+  },
+  {
+    "term": "manage",
+    "partOfSpeech": "noun",
+    "definition": "Highest sharing permission on a shared account or budget: Write plus managing who else has access, but not deleting it. Also \"Full access\"/\"Manager\". Elsewhere \"manage\" is the plain verb.",
+    "translatable": true,
+    "uk": "керування",
+    "ukAvoid": ["управління", "менеджер"],
+    "ukNote": "Permission-level label, a noun like its siblings «Перегляд» and «Редагування» (see read-only). 'Full access' = «Повний доступ»; the badge 'Manager' = «Може керувати», like «Може редагувати транзакції». Avoid управління only for this level: management fee = комісія за управління. Plain verb = керувати; the Payees tab 'Manage' = «Керування».",
+    "variants": ["Full access", "Manager"]
+  },
+  {
+    "term": "management fee",
+    "partOfSpeech": "noun",
+    "definition": "Annual fee a venture syndicate or fund charges on a deal, as a percentage. Stored for the record only; not applied to events automatically.",
+    "translatable": true,
+    "uk": "комісія за управління",
+    "variants": ["mgmt fee"]
+  },
+  {
+    "term": "manual account",
+    "partOfSpeech": "noun",
+    "definition": "An account the user creates and updates by hand, not linked to a bank connection. Some strings call it a \"system account\"; that does not mean an account the system created.",
+    "translatable": true,
+    "uk": "ручний рахунок",
+    "ukAvoid": ["системний рахунок"],
+    "ukNote": "'system account', 'manual account' and 'manually managed account' are one concept; «рахунок з ручним керуванням» is a fine longer form in prose. Not the 'built into the app' sense of системна категорія.",
+    "variants": ["system account", "manually managed account"]
+  },
+  {
+    "term": "manual budget",
+    "partOfSpeech": "noun",
+    "definition": "Budget type the user adds transactions to by hand. Not a category budget, which tracks transactions automatically by category.",
+    "translatable": true,
+    "uk": "ручний бюджет"
+  },
+  {
+    "term": "map",
+    "partOfSpeech": "verb",
+    "definition": "In import wizards: match file columns, or imported account, category and tag values, to MoneyMatter fields or existing records. The source also says \"link\" here. Not a geographic map.",
+    "translatable": true,
+    "uk": "зіставити",
+    "ukAvoid": ["відображення", "прив'язати", "пов'язати"],
+    "ukNote": "Noun (mapping) = зіставлення. 'Link to existing' = «Зіставити з наявним». The Wallet import step 'Resolve' does the same job.",
+    "variants": ["mapping", "link to existing"]
+  },
+  {
+    "term": "mark as paid",
+    "partOfSpeech": "verb",
+    "definition": "Record a due recurring-payment period as paid so its schedule moves on. \"Just mark as paid\" does this without creating a transaction.",
+    "translatable": true,
+    "uk": "позначити як сплачено",
+    "ukAvoid": ["позначити як оплачено", "позначити сплаченим"],
+    "variants": ["mark paid"]
+  },
+  {
+    "term": "market value",
+    "partOfSpeech": "noun",
+    "definition": "A holding's current worth at the latest market price (quantity × price). Not the cost basis, which is what the user paid.",
+    "translatable": true,
+    "uk": "ринкова вартість"
+  },
+  {
+    "term": "match",
+    "partOfSpeech": "noun",
+    "definition": "A transaction or record found to fit another: one a rule's conditions hit, one suggested for a recurring payment or invoice, or a possible import duplicate. Likely/Weak match: detection confidence.",
+    "translatable": true,
+    "uk": "збіг",
+    "ukAvoid": ["відповідність"],
+    "variants": ["exact match", "ID match", "likely match", "possible match", "weak match"]
+  },
+  {
+    "term": "match",
+    "partOfSpeech": "verb",
+    "definition": "To link a transaction or imported value to the recurring payment, transfer or record it belongs to (by rules, AI or name). Rules, filters and 'X doesn't match Y' use the plain verb.",
+    "translatable": true,
+    "uk": "зіставити",
+    "ukAvoid": ["відібрати"],
+    "ukNote": "Plain 'X doesn't match Y' (passwords, columns) stays збігатися; a rule's or filter's conditions: відповідати.",
+    "variants": ["auto-match"]
+  },
+  {
+    "term": "matching rule",
+    "partOfSpeech": "noun",
+    "definition": "A condition (field, operator, value) on a recurring payment that links bank transactions to it. In automations, 'first matching rule wins' just means the rule whose conditions fit.",
+    "translatable": true,
+    "uk": "правило зіставлення",
+    "ukNote": "In automations.subtitle 'first matching rule' is not this term: «перше правило, що збіглося»."
+  },
+  {
+    "term": "MCC",
+    "partOfSpeech": "noun",
+    "definition": "Merchant category code: a standard card-network code for the type of business. 'MCC rule' is a categorization source. Usually kept as the acronym.",
+    "translatable": true,
+    "uk": "MCC",
+    "ukNote": "In compounds put the acronym after the noun: «правило MCC» (or «MCC-правило»), not «MCC правило»."
+  },
+  {
+    "term": "MCP",
+    "partOfSpeech": "proper noun",
+    "definition": "Model Context Protocol: the open standard that lets AI assistants such as Claude or ChatGPT connect to the user's MoneyMatter data through its MCP server. Do not translate.",
+    "translatable": false,
+    "uk": "MCP",
+    "ukNote": "MCP server = «сервер MCP» (settings.aiIntegrations.mcpServer.title); align the one «MCP-сервера» (settings.planBilling.tiers.essential.features.mcp)."
+  },
+  {
+    "term": "measure",
+    "partOfSpeech": "noun",
+    "definition": "Pivot report control that picks which value the table adds up: Expenses or Income. Not a unit of measurement.",
+    "translatable": true,
+    "uk": "метрика"
+  },
+  {
+    "term": "member",
+    "partOfSpeech": "noun",
+    "definition": "A person with shared access to an account, budget or household, as opposed to its owner.",
+    "translatable": true,
+    "uk": "учасник",
+    "ukAvoid": ["учасник домогосподарства"],
+    "ukNote": "Household member: always «член сім'ї» (household = сім'я), never a bare член."
+  },
+  {
+    "term": "merchant",
+    "partOfSpeech": "noun",
+    "definition": "The raw business name from bank or invoice text, used by automations and to detect payees. Not payee, the cleaned-up counterparty.",
+    "translatable": true,
+    "uk": "продавець",
+    "ukAvoid": ["купець", "підприємство", "постачальник"]
+  },
+  {
+    "term": "merge",
+    "partOfSpeech": "verb",
+    "definition": "Combine two records into one: two payees (transactions and aliases move to the one kept), or an imported item into an existing holding or planned transaction.",
+    "translatable": true,
+    "uk": "об'єднати"
+  },
+  {
+    "term": "Microsoft Money",
+    "partOfSpeech": "proper noun",
+    "definition": "Discontinued Microsoft personal-finance desktop app whose .mny files can be imported. \"Your Money file\" and \"MS Money\" mean this product, not money. Do not translate.",
+    "translatable": false,
+    "uk": "Microsoft Money",
+    "ukNote": "Money file = «файл Money».",
+    "variants": ["MS Money"]
+  },
+  {
+    "term": "mileage",
+    "partOfSpeech": "noun",
+    "definition": "Distance a tracked vehicle has been driven (odometer reading). The unit is not fixed and can be kilometres.",
+    "translatable": true,
+    "uk": "пробіг"
+  },
+  {
+    "term": "minimum payment",
+    "partOfSpeech": "noun",
+    "definition": "Lowest monthly loan payment the lender requires; an optional loan field that can be estimated from principal, rate and term. Not the user's planned payment.",
+    "translatable": true,
+    "uk": "мінімальний платіж",
+    "ukAvoid": ["мінімальна виплата"],
+    "variants": ["minimum monthly payment"]
+  },
+  {
+    "term": "model",
+    "partOfSpeech": "noun",
+    "definition": "The AI model (e.g. Gemini Flash, Claude Haiku) chosen to run an AI feature such as categorization or statement parsing, from a provider or a custom endpoint. Not a vehicle model.",
+    "translatable": true,
+    "uk": "модель"
+  },
+  {
+    "term": "model",
+    "partOfSpeech": "noun",
+    "definition": "A tracked vehicle's model name (e.g. Corolla), entered next to make and trim. Not an AI model, and not \"Depreciation model\" (the method that computes a vehicle's loss of value).",
+    "translatable": true,
+    "uk": "модель"
+  },
+  {
+    "term": "MoneyMatter",
+    "partOfSpeech": "proper noun",
+    "definition": "Do not translate – product/brand name.",
+    "translatable": false,
+    "uk": "MoneyMatter"
+  },
+  {
+    "term": "Monobank",
+    "partOfSpeech": "proper noun",
+    "definition": "Do not translate – product/brand name (Ukrainian digital bank).",
+    "translatable": false,
+    "uk": "Monobank"
+  },
+  {
+    "term": "mortgage",
+    "partOfSpeech": "noun",
+    "definition": "A loan secured by real estate. Appears as a loan type, an account category and a seeded Housing subcategory.",
+    "translatable": true,
+    "uk": "іпотека"
+  },
+  {
+    "term": "NAV",
+    "partOfSpeech": "noun",
+    "definition": "Net asset value: the current value of the user's stake in a venture deal as reported by the fund or platform; a \"NAV update\" event records a new value. Keep the acronym.",
+    "translatable": false,
+    "uk": "NAV"
+  },
+  {
+    "term": "NAV update",
+    "partOfSpeech": "noun",
+    "definition": "Venture event that records a new net asset value (NAV) for a deal without any money moving. Keep NAV as the acronym.",
+    "translatable": true,
+    "uk": "оновлення NAV"
+  },
+  {
+    "term": "needs attention",
+    "partOfSpeech": "other",
+    "definition": "Status for an item the user must act on, such as an import row that needs a choice or a bank connection that needs reconnecting.",
+    "translatable": true,
+    "uk": "потребує уваги"
+  },
+  {
+    "term": "net",
+    "partOfSpeech": "noun",
+    "definition": "Label for income minus expenses of a budget, transaction group or selection; can be negative, not an account balance. In venture 'LP net' it means after the GP's carry.",
+    "translatable": true,
+    "uk": "сальдо",
+    "ukAvoid": ["баланс"],
+    "ukNote": "Here сальдо means inflow minus outflow, never an account's balance. Compounds keep чистий: чистий потік, чисті заощадження, чистий дохід.",
+    "variants": ["Net Balance"]
+  },
+  {
+    "term": "net flow",
+    "partOfSpeech": "noun",
+    "definition": "Money in minus money out for a period or for one payee; negative when more went out. Shown in the cash-flow chart and payee stats.",
+    "translatable": true,
+    "uk": "чистий потік"
+  },
+  {
+    "term": "net income",
+    "partOfSpeech": "noun",
+    "definition": "In the investment calculator: average monthly income minus expenses, the same idea as net savings. Not after-tax income and not profit.",
+    "translatable": true,
+    "uk": "чистий дохід"
+  },
+  {
+    "term": "net savings",
+    "partOfSpeech": "noun",
+    "definition": "Income minus expenses for a period: what the user saved. Negative when spending exceeds income.",
+    "translatable": true,
+    "uk": "чисті заощадження"
+  },
+  {
+    "term": "net worth",
+    "partOfSpeech": "noun",
+    "definition": "Everything the user owns (cash, accounts, investments, vehicles, venture deals) minus everything owed (loans and other debts).",
+    "translatable": true,
+    "uk": "чистий капітал",
+    "ukAvoid": ["власний капітал", "чисте майно"]
+  },
+  {
+    "term": "net worth drivers",
+    "partOfSpeech": "noun",
+    "definition": "Analytics report that splits net-worth change into Saved (income minus spending) and Grown (market returns on holdings).",
+    "translatable": true,
+    "uk": "чинники чистого капіталу",
+    "ukAvoid": ["драйвери чистого капіталу", "драйвери чистого майна"]
+  },
+  {
+    "term": "net worth history",
+    "partOfSpeech": "noun",
+    "definition": "Analytics report charting assets, liabilities and net worth over time, filterable by asset and debt type.",
+    "translatable": true,
+    "uk": "історія чистого капіталу",
+    "ukAvoid": ["історія чистого майна"]
+  },
+  {
+    "term": "no charge",
+    "partOfSpeech": "other",
+    "definition": "Free of cost: the user pays nothing (e.g. to vote on the roadmap for a coming-soon plan). Not a payment and not a fee.",
+    "translatable": true,
+    "uk": "безкоштовно",
+    "variants": ["No charge"]
+  },
+  {
+    "term": "nominal",
+    "partOfSpeech": "adjective",
+    "definition": "Not adjusted for inflation: the projected amount in future money. Opposite of 'real' (inflation-adjusted) in the investment calculator. Not par or face value.",
+    "translatable": true,
+    "uk": "номінальний"
+  },
+  {
+    "term": "note",
+    "partOfSpeech": "noun",
+    "definition": "The free-text memo on a transaction, often the bank's description; automations and matching rules search or set it. Also Notes on deals, events, recurring payments. Not a 'Note:' remark.",
+    "translatable": true,
+    "uk": "примітка",
+    "ukAvoid": ["нотатка"],
+    "variants": ["notes"]
+  },
+  {
+    "term": "Notepad",
+    "partOfSpeech": "proper noun",
+    "definition": "Windows' built-in text editor, named in the Enable Banking setup steps. Use the name Windows shows in your language.",
+    "translatable": true,
+    "uk": "Блокнот"
+  },
+  {
+    "term": "OAuth",
+    "partOfSpeech": "proper noun",
+    "definition": "Open standard for signing in with another service (e.g. Google) or authorizing a bank or app connection without sharing a password. Do not translate.",
+    "translatable": false,
+    "uk": "OAuth"
+  },
+  {
+    "term": "offline access",
+    "partOfSpeech": "noun",
+    "definition": "OAuth permission that lets a connected AI app keep access between sessions without asking the user again. Not access without internet.",
+    "translatable": true,
+    "uk": "доступ у фоновому режимі",
+    "ukAvoid": ["автономний доступ"]
+  },
+  {
+    "term": "OFX",
+    "partOfSpeech": "noun",
+    "definition": "Open Financial Exchange: a bank-statement file format MoneyMatter can import. File format name: do not translate.",
+    "translatable": false,
+    "uk": "OFX"
+  },
+  {
+    "term": "Ollama",
+    "partOfSpeech": "proper noun",
+    "definition": "Tool for running AI models locally; can serve as a custom AI endpoint. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Ollama"
+  },
+  {
+    "term": "OpenAI",
+    "partOfSpeech": "proper noun",
+    "definition": "AI company behind GPT; one of the AI providers users can pick for AI features. 'OpenAI-compatible' means a server that speaks OpenAI's API. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "OpenAI"
+  },
+  {
+    "term": "OpenRouter",
+    "partOfSpeech": "proper noun",
+    "definition": "Hosted gateway to many AI models; can serve as a custom AI endpoint. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "OpenRouter"
+  },
+  {
+    "term": "OpenStreetMap",
+    "partOfSpeech": "proper noun",
+    "definition": "Open map service that supplies map tiles and address search for the transaction location picker. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "OpenStreetMap"
+  },
+  {
+    "term": "optimizations",
+    "partOfSpeech": "noun",
+    "definition": "App section with cleanup tools for existing data: transfer matching, AI categorization, and running an automation over past transactions.",
+    "translatable": true,
+    "uk": "оптимізація",
+    "ukNote": "The sidebar item and page title use the singular «Оптимізація»."
+  },
+  {
+    "term": "order",
+    "partOfSpeech": "noun",
+    "definition": "A purchase from a shop or service, as in the order number or order page kept with a transaction. Not a sequence.",
+    "translatable": true,
+    "uk": "замовлення"
+  },
+  {
+    "term": "order",
+    "partOfSpeech": "noun",
+    "definition": "The sequence items are arranged or run in, e.g. automation rules or file columns. Not a purchase.",
+    "translatable": true,
+    "uk": "порядок"
+  },
+  {
+    "term": "original amount",
+    "partOfSpeech": "noun",
+    "definition": "A transaction's amount in the foreign currency it was actually paid in, when that differs from the account's currency. Not the base amount. In refund linking: the original transaction's amount.",
+    "translatable": true,
+    "uk": "оригінальна сума"
+  },
+  {
+    "term": "out of wallet",
+    "partOfSpeech": "adjective",
+    "definition": "A one-sided transfer to or from money outside the user's tracked accounts; for a venture event, cash recorded with no linked transaction. Not the Wallet product.",
+    "translatable": true,
+    "uk": "поза гаманцем",
+    "ukAvoid": ["зі гаманця", "поза Wallet"],
+    "variants": ["out-of-wallet"]
+  },
+  {
+    "term": "outstanding",
+    "partOfSpeech": "adjective",
+    "definition": "Venture deal status: the investment is still held, not exited or written off. On loan screens a bare \"Outstanding\" is the debt still owed instead (see outstanding balance).",
+    "translatable": true,
+    "uk": "активний",
+    "ukNote": "Venture status label, next to «Частковий вихід», «Повністю закритий», «Списаний». A loan's 'Outstanding' is the debt: «Залишок»."
+  },
+  {
+    "term": "outstanding balance",
+    "partOfSpeech": "noun",
+    "definition": "The amount still owed on a loan, reduced by the payments linked to it. Loan screens also label it Balance or Outstanding. Not money in an account.",
+    "translatable": true,
+    "uk": "залишок боргу",
+    "ukAvoid": ["заборгованість", "баланс позики", "залишок заборгованості", "залишок за кредитом", "видатні залишки"],
+    "ukNote": "Short column or summary label in loan screens: «Залишок». uk.md §5.",
+    "variants": ["total outstanding", "loan balance", "remaining loan balance", "remaining balance"]
+  },
+  {
+    "term": "overdraft",
+    "partOfSpeech": "noun",
+    "definition": "Account type that lets the balance go below zero; to overdraw is to spend more than an account holds.",
+    "translatable": true,
+    "uk": "овердрафт"
+  },
+  {
+    "term": "overdue",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a scheduled or recurring payment whose due date has passed without it being paid or recorded.",
+    "translatable": true,
+    "uk": "прострочений",
+    "ukNote": "Status badge: «Прострочено»."
+  },
+  {
+    "term": "owner",
+    "partOfSpeech": "noun",
+    "definition": "The user who owns a shared account, budget or household and decides who else gets access. Opposite of member.",
+    "translatable": true,
+    "uk": "власник"
+  },
+  {
+    "term": "P&L",
+    "partOfSpeech": "noun",
+    "definition": "Profit and loss: the total gain or loss on a venture deal so far. Keep the acronym.",
+    "translatable": false,
+    "uk": "P&L"
+  },
+  {
+    "term": "paid",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a recurring-payment period whose payment is recorded or marked as paid. Not 'paid' as in not free (a paid service).",
+    "translatable": true,
+    "uk": "сплачений",
+    "ukAvoid": ["оплачено"],
+    "ukNote": "Status label: «Сплачено»."
+  },
+  {
+    "term": "paid off",
+    "partOfSpeech": "adjective",
+    "definition": "Loan status: the debt is fully repaid and nothing is left to pay.",
+    "translatable": true,
+    "uk": "погашений",
+    "ukAvoid": ["закрито"],
+    "ukNote": "Status badge: «Погашено». The 'Closed' date label stays «Закрито»."
+  },
+  {
+    "term": "parent category",
+    "partOfSpeech": "noun",
+    "definition": "The category a subcategory sits under in the category tree.",
+    "translatable": true,
+    "uk": "батьківська категорія"
+  },
+  {
+    "term": "partial exit",
+    "partOfSpeech": "noun",
+    "definition": "Venture deal status: some money has come back or part was written down, but the deal still has value left.",
+    "translatable": true,
+    "uk": "частковий вихід"
+  },
+  {
+    "term": "passkey",
+    "partOfSpeech": "noun",
+    "definition": "A sign-in credential kept on the user's device or security key (fingerprint, face, PIN) that replaces typing a password.",
+    "translatable": true,
+    "uk": "ключ доступу"
+  },
+  {
+    "term": "paused",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a recurring payment, automation or MoneyMatter plan that is stopped for now and can be resumed. Automations pause when an item they use is deleted.",
+    "translatable": true,
+    "uk": "призупинений",
+    "ukNote": "Status label: «Призупинено»."
+  },
+  {
+    "term": "payee",
+    "partOfSpeech": "noun",
+    "definition": "The app's cleaned-up counterparty of a transaction, whether paid or paying: one word for both directions. Not merchant (raw bank or invoice text).",
+    "translatable": true,
+    "uk": "отримувач",
+    "ukNote": "«отримувач платежу» is fine for a standalone label or title (uk.md §5)."
+  },
+  {
+    "term": "payee detection",
+    "partOfSpeech": "noun",
+    "definition": "MoneyMatter automatically creating and matching payees from the merchant text (optionally the description) of synced bank transactions. Configured in the Settings tab of the Payees page.",
+    "translatable": true,
+    "uk": "виявлення отримувачів",
+    "ukAvoid": ["визначення отримувача"]
+  },
+  {
+    "term": "payment method",
+    "partOfSpeech": "noun",
+    "definition": "The card or other means Stripe charges for the user's MoneyMatter plan ('Update payment method'). Not a transaction's payment type (cash, card, etc.).",
+    "translatable": true,
+    "uk": "спосіб оплати"
+  },
+  {
+    "term": "payment period",
+    "partOfSpeech": "noun",
+    "definition": "One due occurrence in a recurring payment's schedule; it can be marked paid, skipped or reverted to unpaid. Often just 'period'. Not a report date range.",
+    "translatable": true,
+    "uk": "платіжний період",
+    "ukNote": "Bare 'Period' in planned.subscriptions.periods.*: «період»."
+  },
+  {
+    "term": "payment schedule",
+    "partOfSpeech": "noun",
+    "definition": "The due dates a recurring payment follows; each date is a payment period the user marks paid or skips. Without one, the item only detects matching transactions. Not a loan's amortization schedule.",
+    "translatable": true,
+    "uk": "розклад платежів",
+    "ukAvoid": ["платіжний розклад"],
+    "ukNote": "Standalone 'Schedule' in the recurring-payment editor = «розклад». A loan's amortization schedule is a separate entry: «графік погашення»; 'Original schedule' = «Початковий графік», never первоначальний.",
+    "variants": ["schedule"]
+  },
+  {
+    "term": "payment type",
+    "partOfSpeech": "noun",
+    "definition": "Transaction field under 'More options' for how it was paid: cash, bank transfer, credit or debit card, mobile payment, voucher, web payment. Not the plan's payment method.",
+    "translatable": true,
+    "uk": "тип платежу"
+  },
+  {
+    "term": "payoff",
+    "partOfSpeech": "noun",
+    "definition": "The moment a loan's balance reaches zero, as in 'Payoff date' and 'Payoff projection'. Not a reward or result. 'Paid off' is the finished state.",
+    "translatable": true,
+    "uk": "погашення",
+    "ukAvoid": ["прогноз виплат"],
+    "ukNote": "Follows the paid off decision: Payoff date = «Дата погашення»; Payoff projection = «Прогноз погашення». Current strings say закриття (дата закриття, прогноз закриття)."
+  },
+  {
+    "term": "PDF",
+    "partOfSpeech": "noun",
+    "definition": "File format name (Portable Document Format), used for bank statements, invoices and attachments. Keep as is.",
+    "translatable": false,
+    "uk": "PDF"
+  },
+  {
+    "term": "PEM",
+    "partOfSpeech": "noun",
+    "definition": "Text file format for the RSA private key used by the Enable Banking and Walutomat connections. Keep as is.",
+    "translatable": false,
+    "uk": "PEM"
+  },
+  {
+    "term": "pending",
+    "partOfSpeech": "adjective",
+    "definition": "Transaction status: the bank reported the transaction but has not booked it yet, so it doesn't affect the balance. Not 'planned' (entered ahead by the user).",
+    "translatable": true,
+    "uk": "в обробці",
+    "ukAvoid": ["непідтверджений", "непроведений"],
+    "ukNote": "Status label: «В обробці». «Не підтверджено» belongs to planned transactions (see the other pending entry)."
+  },
+  {
+    "term": "pending",
+    "partOfSpeech": "adjective",
+    "definition": "Invitation status: an invitation to share an account, budget or household was sent but not yet accepted or declined.",
+    "translatable": true,
+    "uk": "в очікуванні",
+    "ukAvoid": ["очікуваний"],
+    "ukNote": "Heading: «Запрошення в очікуванні»; short badge: «Очікує»."
+  },
+  {
+    "term": "pending",
+    "partOfSpeech": "adjective",
+    "definition": "Describes planned transactions not yet confirmed as having happened ('pending planned transactions'), so they are not in the balance. Not a bank-pending transaction or an invitation.",
+    "translatable": true,
+    "uk": "непідтверджений"
+  },
+  {
+    "term": "permission",
+    "partOfSpeech": "noun",
+    "definition": "An access right granted to someone: a share's level (read, write, manage) or what a connected AI app may do with your data.",
+    "translatable": true,
+    "uk": "дозвіл",
+    "ukNote": "'Access level' label: «Рівень доступу».",
+    "variants": ["Access level"]
+  },
+  {
+    "term": "personal",
+    "partOfSpeech": "adjective",
+    "definition": "Loan type label, shown alone in the loan type list: a personal (unsecured consumer) loan. Not the 'Personal' settings group.",
+    "translatable": true,
+    "uk": "споживчий кредит",
+    "ukNote": "The label stands alone, so write the full loan-type name, like Автокредит, Бізнес-кредит."
+  },
+  {
+    "term": "personal",
+    "partOfSpeech": "adjective",
+    "definition": "Name of the settings group with the user's own preferences (appearance, language, security, plan). Its pair is the Workspace group. Not the personal loan type.",
+    "translatable": true,
+    "uk": "особисте"
+  },
+  {
+    "term": "pivot",
+    "partOfSpeech": "noun",
+    "definition": "Name of the Pivot report: a table that breaks spending or income down by category, payee or tag across time periods. Not a turn or change of direction.",
+    "translatable": true,
+    "uk": "зведення",
+    "ukNote": "As in зведена таблиця (pivot table).",
+    "variants": ["Pivot report"]
+  },
+  {
+    "term": "plan",
+    "partOfSpeech": "noun",
+    "definition": "The user's MoneyMatter tier: the paid Essential, Plus and Premium plans, or the lifetime Early Adopter plan. Not a planned transaction or an installment plan, which some strings also call 'plan'.",
+    "translatable": true,
+    "uk": "план",
+    "ukNote": "Plan names stay in Latin script: «план Plus»."
+  },
+  {
+    "term": "Plan & billing",
+    "partOfSpeech": "noun",
+    "definition": "Settings section where the user picks a MoneyMatter plan and manages payment method and invoices through Stripe. 'Billing' here means paying for the plan.",
+    "translatable": true,
+    "uk": "План і оплата"
+  },
+  {
+    "term": "planned",
+    "partOfSpeech": "adjective",
+    "definition": "Transaction status: an expense or income entered ahead of time; it doesn't change the balance until confirmed. Not 'pending' (bank hasn't booked it).",
+    "translatable": true,
+    "uk": "запланований",
+    "ukNote": "planned transaction = запланована транзакція; status label «Заплановано», filter/section title «Заплановані». A loan's 'Planned payment' is a different term (планований платіж).",
+    "variants": ["planned transaction"]
+  },
+  {
+    "term": "planned",
+    "partOfSpeech": "adjective",
+    "definition": "Roadmap sense: a feature or plan MoneyMatter intends to build but hasn't released yet, e.g. the Premium plan. Not a scheduled transaction.",
+    "translatable": true,
+    "uk": "запланований",
+    "ukNote": "Status label: «Заплановано»."
+  },
+  {
+    "term": "Planned",
+    "partOfSpeech": "adjective",
+    "definition": "Name of the sidebar section that groups Recurring Payments and Budgets. Not the planned-transaction status, so the word should not agree with 'transactions'.",
+    "translatable": true,
+    "uk": "Заплановане",
+    "ukNote": "Neuter used as a noun; sidebar item, keep it short."
+  },
+  {
+    "term": "planned payment",
+    "partOfSpeech": "noun",
+    "definition": "A loan's target monthly payment set by the user, used to project payoff. Not the lender's minimum payment and not a planned transaction.",
+    "translatable": true,
+    "uk": "планований платіж",
+    "ukAvoid": ["плановий платіж", "запланований платіж"]
+  },
+  {
+    "term": "platform",
+    "partOfSpeech": "noun",
+    "definition": "In Venture: the syndicate, fund manager or GP you invest through; its default fees pre-fill new deals. Not a software platform.",
+    "translatable": true,
+    "uk": "платформа"
+  },
+  {
+    "term": "Plus",
+    "partOfSpeech": "proper noun",
+    "definition": "Name of a MoneyMatter paid plan ('Included in the Plus plan'). One form everywhere. Not the word 'plus' (added to), which also appears in strings.",
+    "translatable": true,
+    "uk": "Plus",
+    "ukNote": "«план Plus», «Перейдіть на Plus»."
+  },
+  {
+    "term": "PNG",
+    "partOfSpeech": "noun",
+    "definition": "Image file format, accepted for transaction attachments and invoices. Keep as is.",
+    "translatable": false,
+    "uk": "PNG"
+  },
+  {
+    "term": "portfolio",
+    "partOfSpeech": "noun",
+    "definition": "A collection of investment holdings (stocks, ETFs, crypto) tracked together as one unit.",
+    "translatable": true,
+    "uk": "портфель"
+  },
+  {
+    "term": "portfolio transfer",
+    "partOfSpeech": "noun",
+    "definition": "Moving cash between an account and a portfolio, or between two portfolios. Tracked separately from a transfer between two accounts.",
+    "translatable": true,
+    "uk": "переказ портфеля",
+    "ukAvoid": ["перенести до портфеля", "до портфелю", "переказ в портфель"],
+    "ukNote": "Directional labels: «Переказ з портфеля», «Переказ з рахунку», «На портфель» (like «На рахунок»). Where the direction matters, name it: «переказ з рахунку на портфель»."
+  },
+  {
+    "term": "portfolio type",
+    "partOfSpeech": "noun",
+    "definition": "The kind of investment portfolio: Investment, Retirement, Savings or Other. The type names appear alone as labels and describe the portfolio.",
+    "translatable": true,
+    "uk": "тип портфеля",
+    "ukNote": "Type names agree with «портфель»: Інвестиційний, Пенсійний, Накопичувальний, Інший."
+  },
+  {
+    "term": "Premium",
+    "partOfSpeech": "proper noun",
+    "definition": "Name of a MoneyMatter paid plan, announced but not yet released. One form everywhere.",
+    "translatable": true,
+    "uk": "Premium",
+    "ukNote": "«план Premium»."
+  },
+  {
+    "term": "principal",
+    "partOfSpeech": "noun",
+    "definition": "Loan amount excluding interest: the sum first borrowed ('Original principal') or the part of a payment that repays it, as opposed to interest. Not a person in charge.",
+    "translatable": true,
+    "uk": "основна сума",
+    "ukAvoid": ["основний борг"],
+    "ukNote": "Where the loan context is unclear: «основна сума боргу». Original principal = «Початкова сума»."
+  },
+  {
+    "term": "principal",
+    "partOfSpeech": "noun",
+    "definition": "In Venture: the cash you commit to a deal, excluding platform fees; entry fees are calculated from it. Not a borrowed amount.",
+    "translatable": true,
+    "uk": "основна сума"
+  },
+  {
+    "term": "private key",
+    "partOfSpeech": "noun",
+    "definition": "Secret RSA key file (PEM) the user creates to connect Enable Banking or Walutomat. MoneyMatter stores it encrypted and uses it to sign requests.",
+    "translatable": true,
+    "uk": "приватний ключ",
+    "ukAvoid": ["Private Key"],
+    "ukNote": "Always «приватний ключ», also in the Enable Banking instruction steps (the MoneyMatter field is «Приватний ключ»)."
+  },
+  {
+    "term": "projected balance",
+    "partOfSpeech": "noun",
+    "definition": "The balance expected on a date after adding planned transactions to the current balance. Compact spots show 'Projected {amount}'.",
+    "translatable": true,
+    "uk": "прогнозований баланс",
+    "ukNote": "Compact 'Projected {amount}' / '{amount} projected': «Прогноз {amount}»."
+  },
+  {
+    "term": "provider",
+    "partOfSpeech": "noun",
+    "definition": "A third-party service MoneyMatter connects to: a bank-data provider (e.g. Enable Banking), an AI provider (e.g. OpenAI) or a sign-in provider (Google). \"Credit card provider\" means the card issuer.",
+    "translatable": true,
+    "uk": "провайдер",
+    "ukNote": "'Credit card provider' = емітент кредитної картки."
+  },
+  {
+    "term": "PSD2",
+    "partOfSpeech": "noun",
+    "definition": "EU Payment Services Directive 2, the open-banking regulation Enable Banking uses to reach banks. Keep as is.",
+    "translatable": false,
+    "uk": "PSD2"
+  },
+  {
+    "term": "public key",
+    "partOfSpeech": "noun",
+    "definition": "The shareable half of an RSA key pair. The user uploads it to Walutomat; the private key stays secret and is entered in MoneyMatter.",
+    "translatable": true,
+    "uk": "публічний ключ",
+    "ukNote": "key pair = пара ключів; private key = приватний ключ."
+  },
+  {
+    "term": "Q1",
+    "partOfSpeech": "other",
+    "definition": "Date-range shortcut typed into the date field (Q1–Q4 quarters, H1/H2 half-years). The field reads English only, so keep it as is. In 'Try: …' hints translate only 'Try:'.",
+    "translatable": false,
+    "uk": "Q1",
+    "ukNote": "In 'Try: …' hints the months (Jan) stay in English too; only 'Try:' becomes «Спробуйте:». Outside the hints months are translated (Січ, Квіт).",
+    "variants": ["Q4", "H1", "H2"]
+  },
+  {
+    "term": "QFX",
+    "partOfSpeech": "noun",
+    "definition": "Quicken's variant of the OFX file format, imported alongside OFX as a bank statement. Keep as is.",
+    "translatable": false,
+    "uk": "QFX"
+  },
+  {
+    "term": "queued",
+    "partOfSpeech": "adjective",
+    "definition": "Status: waiting in line to start or be applied, e.g. a bank sync, a file import, or a category move not yet saved. Not 'planned'.",
+    "translatable": true,
+    "uk": "у черзі",
+    "ukAvoid": ["заплановане"],
+    "ukNote": "Standalone label: «У черзі». After a vowel: «в черзі» («переміщення в черзі», «додано в чергу»); after a consonant: «у черзі» («переміщень у черзі»)."
+  },
+  {
+    "term": "Quick Start",
+    "partOfSpeech": "proper noun",
+    "definition": "Name of the onboarding checklist on the dashboard that walks new users through setup tasks. One form everywhere.",
+    "translatable": true,
+    "uk": "Швидкий старт",
+    "ukAvoid": ["Quick Start"],
+    "ukNote": "Quick Start guide = посібник «Швидкий старт»."
+  },
+  {
+    "term": "rate limit",
+    "partOfSpeech": "noun",
+    "definition": "A cap on how many requests a service (an AI provider, a bank API) accepts in a period; going over it blocks requests for a while. 'Rate' is request frequency, not an exchange or interest rate.",
+    "translatable": true,
+    "uk": "ліміт запитів",
+    "ukNote": "Prose may say «без обмежень» (no rate limits).",
+    "variants": ["rate limiting"]
+  },
+  {
+    "term": "read-only",
+    "partOfSpeech": "adjective",
+    "definition": "Access that lets someone view data but not change it: a share permission (\"Read\", \"Read-only\", \"View only\") or your data after your plan ends. Also API tokens and bank-synced fields.",
+    "translatable": true,
+    "uk": "лише перегляд",
+    "ukAvoid": ["тільки читання", "тільки перегляд"],
+    "ukNote": "Level label 'Read': «Перегляд»; 'Read-only' / 'View only': «Лише перегляд»; in a sentence: «лише для перегляду». API tokens, MCP data access and bank-synced fields: «лише для читання» is fine; the avoid list applies to share-level labels only.",
+    "variants": ["View only"]
+  },
+  {
+    "term": "real",
+    "partOfSpeech": "adjective",
+    "definition": "Adjusted for inflation, as opposed to nominal (e.g. 'Real final value'). Elsewhere 'real' just means actual, e.g. a real transaction vs a planned one.",
+    "translatable": true,
+    "uk": "реальний"
+  },
+  {
+    "term": "realized gain",
+    "partOfSpeech": "noun",
+    "definition": "Profit or loss locked in by selling a holding; can be negative. Opposite of unrealized gain on holdings still owned.",
+    "translatable": true,
+    "uk": "реалізований прибуток",
+    "variants": ["Realized"]
+  },
+  {
+    "term": "reassign",
+    "partOfSpeech": "verb",
+    "definition": "Move items to another owner before deleting: a category's transactions to another category, or loan payments to another account. Not assigning a person or role.",
+    "translatable": true,
+    "uk": "перепризначити"
+  },
+  {
+    "term": "reauthorization",
+    "partOfSpeech": "noun",
+    "definition": "Repeating a bank provider's login and consent after access expired, keeping the existing bank connection. The same step as 'reconnect'.",
+    "translatable": true,
+    "uk": "повторна авторизація"
+  },
+  {
+    "term": "receipt",
+    "partOfSpeech": "noun",
+    "definition": "A proof-of-purchase document (shop slip, e-receipt image or PDF) attached to a transaction; AI can match it to one. Different from an invoice: strings list both, so use two words.",
+    "translatable": true,
+    "uk": "чек"
+  },
+  {
+    "term": "recipient",
+    "partOfSpeech": "noun",
+    "definition": "The person an account or budget is shared with (the invitee), as opposed to the owner. Not a payee, the other party of a transaction.",
+    "translatable": true,
+    "uk": "одержувач",
+    "ukAvoid": ["отримувач"],
+    "ukNote": "As a role label next to «Власник», use «Учасник» (like Member in budgets)."
+  },
+  {
+    "term": "reconciliation",
+    "partOfSpeech": "noun",
+    "definition": "Bank-connection feature that finds and merges duplicate transactions created by overlapping syncs. Not matching a balance against a bank statement.",
+    "translatable": true,
+    "uk": "узгодження дублікатів"
+  },
+  {
+    "term": "reconnect",
+    "partOfSpeech": "verb",
+    "definition": "Restore a broken connection so syncing resumes: re-authorize an expired bank or AI connection, or retry a failed AI endpoint. \"Reconnect this account\" in unlink texts means relink.",
+    "translatable": true,
+    "uk": "перепідключити",
+    "ukAvoid": ["повторно підключити"],
+    "ukNote": "Noun: перепідключення. Linking an unlinked account to its bank connection again: «знову прив'язати» (see relink)."
+  },
+  {
+    "term": "record payment",
+    "partOfSpeech": "verb",
+    "definition": "Log in MoneyMatter that a recurring or loan payment was made, by marking the period paid or creating a transaction. 'Record' means enter, not save audio.",
+    "translatable": true,
+    "uk": "записати платіж",
+    "ukAvoid": ["зафіксувати платіж"],
+    "variants": ["Mark Payment"]
+  },
+  {
+    "term": "recurring",
+    "partOfSpeech": "adjective",
+    "definition": "Describes a payment or income that repeats on a schedule, as tracked in Recurring Payments. Covers income too, not only expenses.",
+    "translatable": true,
+    "uk": "регулярний",
+    "ukAvoid": ["повторюваний"]
+  },
+  {
+    "term": "recurring payment",
+    "partOfSpeech": "noun",
+    "definition": "A scheduled repeating payment or income (subscription, bill or installment). The feature is \"Recurring Payments\", also named \"Scheduled payments\": one translation for both names.",
+    "translatable": true,
+    "uk": "регулярний платіж",
+    "ukAvoid": ["регулярні витрати", "повторювані платежі", "заплановані платежі"],
+    "ukNote": "Feature/section name, also for 'Scheduled payments': «Регулярні платежі» (uk.md §5).",
+    "variants": ["Scheduled payments"]
+  },
+  {
+    "term": "refund",
+    "partOfSpeech": "noun",
+    "definition": "A transaction that returns money from a prior expense or income, linked back to it. Also a verb ('refunds', 'refunded by'). Not an investment return.",
+    "translatable": true,
+    "uk": "повернення",
+    "ukAvoid": ["рефанд"],
+    "ukNote": "As a verb: повертати («Повертає транзакцію»); 'Refunded by' = «Повернено»."
+  },
+  {
+    "term": "Register.csv",
+    "partOfSpeech": "proper noun",
+    "definition": "Exact name of the transactions file in YNAB's budget export, which the user uploads. Keep it character for character; 'Register' here is not a verb or a sign-up.",
+    "translatable": false,
+    "uk": "Register.csv"
+  },
+  {
+    "term": "relink",
+    "partOfSpeech": "verb",
+    "definition": "Link an existing account to its bank connection's account again, keeping its transactions. Not Reconnect (renews the whole connection), though \"reconnect this account\" in unlink texts means this.",
+    "translatable": true,
+    "uk": "прив'язати знову",
+    "ukAvoid": ["перепідключити"],
+    "ukNote": "Link/Unlink = Прив'язати/Відв'язати; Reconnect (the whole bank connection) = Перепідключити. 'Reconnect this account' in the unlink texts = «знову прив'язати рахунок». 're-link' in payee texts (a sync attaching a transaction to a payee again) = «прив'язати знову».",
+    "variants": ["re-link"]
+  },
+  {
+    "term": "reminder",
+    "partOfSpeech": "noun",
+    "definition": "A notification MoneyMatter sends before a recurring payment is due, or from a tag reminder rule (spending on a tag passes a limit, or a tag is used).",
+    "translatable": true,
+    "uk": "нагадування"
+  },
+  {
+    "term": "renewal",
+    "partOfSpeech": "noun",
+    "definition": "Automatic start of the next paid period of the user's MoneyMatter plan ('Renews on {date}'). To renew after cancelling means switching auto-renewal back on.",
+    "translatable": true,
+    "uk": "поновлення",
+    "ukNote": "Verb: поновити / поновлюється. After a cancellation, 'Renew' = «відновити підписку».",
+    "variants": ["renew"]
+  },
+  {
+    "term": "resolve",
+    "partOfSpeech": "verb",
+    "definition": "Import step where each account, category or tag in the file is linked to an existing one, created new or skipped; 'resolved' counts decided rows. Not a hostname lookup or fixing an issue.",
+    "translatable": true,
+    "uk": "вирішити",
+    "ukNote": "Counter 'resolved' = «вирішено». Other importers call the same step 'Map' (зіставити)."
+  },
+  {
+    "term": "restore",
+    "partOfSpeech": "verb",
+    "definition": "Bring something back: a portfolio from trash, an archived loan, or all data from a backup file (which replaces the current data).",
+    "translatable": true,
+    "uk": "відновити",
+    "ukNote": "Noun: відновлення («Відновлення з резервної копії»)."
+  },
+  {
+    "term": "return",
+    "partOfSpeech": "noun",
+    "definition": "Investment gain or yield, often a percentage (\"Annual return\", \"Total Return\"). Not a refund and not income. The verb \"return\" (an SPV returns capital) is ordinary.",
+    "translatable": true,
+    "uk": "дохідність",
+    "ukAvoid": ["повернення", "дохід"],
+    "ukNote": "Total return = загальна дохідність; Annual return = річна дохідність (uk.md §5)."
+  },
+  {
+    "term": "revert",
+    "partOfSpeech": "verb",
+    "definition": "Undo a payment period's paid or skipped status so it is unpaid again, optionally unlinking or deleting its transaction. Not Cancel (close a dialog).",
+    "translatable": true,
+    "uk": "скинути",
+    "ukAvoid": ["скасувати", "повернути"],
+    "ukNote": "Title: «Скинути статус періоду»; toast: «Статус періоду скинуто»."
+  },
+  {
+    "term": "revoke",
+    "partOfSpeech": "verb",
+    "definition": "End access you granted: a shared budget member, a connected AI app, a sign-in session. Not 'leave' (ending your own access) and not Cancel.",
+    "translatable": true,
+    "uk": "відкликати",
+    "ukAvoid": ["скасувати"],
+    "ukNote": "revoke access = відкликати доступ.",
+    "variants": ["revoke access"]
+  },
+  {
+    "term": "roadmap",
+    "partOfSpeech": "noun",
+    "definition": "MoneyMatter's public list of planned features, where users vote on and suggest what gets built next. Not a navigation map.",
+    "translatable": true,
+    "uk": "дорожня карта"
+  },
+  {
+    "term": "RSA",
+    "partOfSpeech": "noun",
+    "definition": "Public-key encryption standard. 'RSA private key' and 'RSA key pair' are the key files a user creates for Enable Banking and Walutomat. Keep as is.",
+    "translatable": false,
+    "uk": "RSA",
+    "ukNote": "Put the acronym after the noun: «приватний ключ RSA», «ключ RSA», «пара ключів RSA»."
+  },
+  {
+    "term": "rule",
+    "partOfSpeech": "noun",
+    "definition": "A set of conditions that triggers an action: one automation, a matching rule of a recurring payment, or a categorization source (MCC rule, payee rule, user rule).",
+    "translatable": true,
+    "uk": "правило"
+  },
+  {
+    "term": "run",
+    "partOfSpeech": "noun",
+    "definition": "One execution of AI categorization over a batch of transactions, started by hand or after a sync or import. Past runs are kept in a history.",
+    "translatable": true,
+    "uk": "запуск"
+  },
+  {
+    "term": "S&P 500",
+    "partOfSpeech": "proper noun",
+    "definition": "The US stock market index, cited in the investment calculator as a benchmark for average yearly return. Do not translate.",
+    "translatable": false,
+    "uk": "S&P 500"
+  },
+  {
+    "term": "salvage floor",
+    "partOfSpeech": "noun",
+    "definition": "The lowest value, as a % of purchase price, that a vehicle's modeled depreciation can reach: its salvage value. Not the current depreciated (book) value.",
+    "translatable": true,
+    "uk": "мінімальна вартість",
+    "ukAvoid": ["залишкова вартість"]
+  },
+  {
+    "term": "Save",
+    "partOfSpeech": "verb",
+    "definition": "Button label that stores the current form's changes. Not saving money, as in 'Save up to 20%' on the plan billing page.",
+    "translatable": true,
+    "uk": "Зберегти",
+    "ukNote": "Money sense ('Save up to {percent}%', settings.planBilling.saveUpTo) = заощаджувати."
+  },
+  {
+    "term": "Saved",
+    "partOfSpeech": "adjective",
+    "definition": "Label for money set aside (income minus spending): part of net-worth change next to \"Grown\", and the cash-flow savings figure. Prose reuses the label. Not \"stored\", as in a saved file.",
+    "translatable": true,
+    "uk": "Заощаджено",
+    "ukNote": "«Збережено» only for saved forms, files and settings. In prose, quote the label: «Заощаджено»."
+  },
+  {
+    "term": "saving account",
+    "partOfSpeech": "noun",
+    "definition": "Account category for a savings or deposit account: money set aside, not used for daily payments. Listed next to Current account and Credit card.",
+    "translatable": true,
+    "uk": "ощадний рахунок"
+  },
+  {
+    "term": "savings",
+    "partOfSpeech": "noun",
+    "definition": "Money saved over a period: income minus spending (Cash Flow, Trends, Net Worth Drivers). Also a seeded category. Not a savings account or the Savings portfolio type.",
+    "translatable": true,
+    "uk": "заощадження",
+    "ukAvoid": ["збережено"],
+    "ukNote": "The label 'Saved' (money) = «Заощаджено», not «Збережено»."
+  },
+  {
+    "term": "savings",
+    "partOfSpeech": "noun",
+    "definition": "Portfolio type label for a portfolio used to hold savings, shown alone next to Investment, Retirement and Other. It describes the portfolio.",
+    "translatable": true,
+    "uk": "накопичувальний",
+    "ukNote": "Adjective agreeing with «портфель»."
+  },
+  {
+    "term": "savings rate",
+    "partOfSpeech": "noun",
+    "definition": "The share of income left after spending over a period, shown as a percentage in cash-flow analytics. Spending in categories marked as savings counts toward it.",
+    "translatable": true,
+    "uk": "рівень заощаджень",
+    "ukAvoid": ["ставка заощаджень"]
+  },
+  {
+    "term": "scheduled",
+    "partOfSpeech": "adjective",
+    "definition": "Badge on a recurring payment that is due soon but not overdue yet (the other badge is 'Overdue'). Not a planned transaction, which shows 'Expected'.",
+    "translatable": true,
+    "uk": "заплановано",
+    "ukNote": "Badge form; in running text: запланований."
+  },
+  {
+    "term": "scope",
+    "partOfSpeech": "noun",
+    "definition": "The permissions a connected AI app was granted through OAuth ('Scope: {scopes}'), e.g. read financial data or offline access. Not the sharing write scope.",
+    "translatable": true,
+    "uk": "область доступу"
+  },
+  {
+    "term": "seat",
+    "partOfSpeech": "noun",
+    "definition": "A plan-limited place for one person the user shares with: each plan caps how many people can have accepted access to one household, account or budget. Not a physical seat.",
+    "translatable": true,
+    "uk": "місце",
+    "ukNote": "Plan cards say 'household seats': write e.g. «{count} місць для учасників», never «місце в сім'ї» (reads as one's role in the family). Current strings still say «місце в/у домогосподарстві», while household = сім'я elsewhere."
+  },
+  {
+    "term": "security",
+    "partOfSpeech": "noun",
+    "definition": "A tradable financial instrument (stock, ETF, crypto) a portfolio can hold. Not safety or protection. A holding is one security within a portfolio.",
+    "translatable": true,
+    "uk": "цінний папір",
+    "ukAvoid": ["актив"],
+    "ukNote": "Genitive singular: «цінного папера» (document sense), not паперу (paper as material)."
+  },
+  {
+    "term": "security",
+    "partOfSpeech": "noun",
+    "definition": "Safety of the user's MoneyMatter login and data: the Security settings page (password, login methods, sessions, backups) and security notes. Not a tradable instrument.",
+    "translatable": true,
+    "uk": "безпека",
+    "variants": ["Security settings"]
+  },
+  {
+    "term": "sell",
+    "partOfSpeech": "noun",
+    "definition": "Investment transaction type: selling units of a holding for cash. Shown as a type label next to Buy, Dividend, Fee and Tax.",
+    "translatable": true,
+    "uk": "продаж"
+  },
+  {
+    "term": "session",
+    "partOfSpeech": "noun",
+    "definition": "A signed-in period on a device, listed under Security settings; also how long a bank connection stays authorized, or how long an uploaded import file is kept on the server.",
+    "translatable": true,
+    "uk": "сесія",
+    "ukAvoid": ["сеанс"]
+  },
+  {
+    "term": "settlement currency",
+    "partOfSpeech": "noun",
+    "definition": "Currency of the cash actually paid or received for a trade, which can differ from the security's own currency. The form says \"Payment currency\", the table \"Cash ccy\". Not the base currency.",
+    "translatable": true,
+    "uk": "валюта розрахунку",
+    "ukAvoid": ["валюта готівки", "валюта оплати"],
+    "ukNote": "'Cash ccy' (column header) is also валюта розрахунку, not готівка.",
+    "variants": ["payment currency", "Cash ccy"]
+  },
+  {
+    "term": "setup token",
+    "partOfSpeech": "noun",
+    "definition": "The one-time code the user creates in SimpleFIN Bridge and pastes into MoneyMatter to connect it. Where a string quotes SimpleFIN's own label, keep that label in English.",
+    "translatable": true,
+    "uk": "токен налаштування",
+    "ukNote": "When a string quotes SimpleFIN's own dashboard label, keep it in English inside «» (uk.md §2)."
+  },
+  {
+    "term": "share",
+    "partOfSpeech": "noun",
+    "definition": "A unit of a holding: stock, ETF or crypto (\"Price per Share\", the \"Shares\" column); use a neutral units word if your stock word misfits crypto. Not access given, and not a proportion.",
+    "translatable": true,
+    "uk": "одиниця",
+    "ukAvoid": ["акція"],
+    "ukNote": "'Shares' (quantity held, column label) = «кількість» (uk.md §5); per share = «за одиницю»; short unit «од.»; «акції» only where the text means stock."
+  },
+  {
+    "term": "share",
+    "partOfSpeech": "noun",
+    "definition": "Access to an account, budget or household that its owner gave another user (\"Leave share?\", \"Per-account shares\"); \"Sharing\" is the tab that manages it. Not units held, not a proportion.",
+    "translatable": true,
+    "uk": "спільний доступ",
+    "ukAvoid": ["поділ"],
+    "ukNote": "Verb share = «поділитися» («Поділитися рахунком»). The Sharing tab = «Спільний доступ», not «Поділ». Per-account share = спільний доступ до окремого рахунку. Shared account = спільний рахунок.",
+    "variants": ["sharing"]
+  },
+  {
+    "term": "share",
+    "partOfSpeech": "verb",
+    "definition": "Give another MoneyMatter user access to your household or to one of your accounts or budgets, by invitation. Not units of a holding, and not a proportion.",
+    "translatable": true,
+    "uk": "поділитися",
+    "ukAvoid": ["поділений"],
+    "ukNote": "«Поділитися рахунком». 'Shared by {handle}' = «Ділиться: {handle}» (no gender agreement); «Поділено з {handle}» means shared WITH them. 'Shared with me' = «Поділилися зі мною». No passive participle: поділений means 'divided', so write «…, яким поділилися з вами» or «спільний …»."
+  },
+  {
+    "term": "share",
+    "partOfSpeech": "noun",
+    "definition": "A proportion of a total, e.g. \"Share of income\" or the GP's share of profits. Not units of a holding, and not access given to someone.",
+    "translatable": true,
+    "uk": "частка"
+  },
+  {
+    "term": "shared account",
+    "partOfSpeech": "noun",
+    "definition": "An account one user owns and has shared with another; it keeps the owner's categories and payees. Not a joint account held at a bank.",
+    "translatable": true,
+    "uk": "спільний рахунок",
+    "ukNote": "Here: an account someone shared with you in MoneyMatter, not a bank joint account (the usual banking sense of спільний рахунок). Where that reading is possible, write «рахунок зі спільним доступом»."
+  },
+  {
+    "term": "shared resource",
+    "partOfSpeech": "noun",
+    "definition": "Generic name for an account, budget or household shared between users, used when its type isn't named. Not the uploaded file the server keeps during an import session.",
+    "translatable": true,
+    "uk": "спільний ресурс"
+  },
+  {
+    "term": "Shared with me",
+    "partOfSpeech": "other",
+    "definition": "Name of the page, settings item and account-list section that list accounts, budgets and households other users shared with the current user.",
+    "translatable": true,
+    "uk": "Поділилися зі мною",
+    "ukAvoid": ["Поділено зі мною"]
+  },
+  {
+    "term": "side",
+    "partOfSpeech": "noun",
+    "definition": "Investment file import: the column giving each row's type (buy, sell, dividend, fee, tax, transfer, cancel), 'Side / Action'. Not a page side or the cash side of a trade.",
+    "translatable": true,
+    "uk": "дія"
+  },
+  {
+    "term": "SimpleFIN",
+    "partOfSpeech": "proper noun",
+    "definition": "Brand of a bank-data service for US and Canadian banks, connected through its SimpleFIN Bridge product. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "SimpleFIN"
+  },
+  {
+    "term": "SimpleFIN Bridge",
+    "partOfSpeech": "proper noun",
+    "definition": "SimpleFIN's paid hosted service where the user links US or Canadian banks and creates the setup token MoneyMatter needs; strings may say just \"Bridge\". Keep as is.",
+    "translatable": false,
+    "uk": "SimpleFIN Bridge",
+    "ukAvoid": ["обліковий запис моста"],
+    "ukNote": "'bridge account' = «обліковий запис SimpleFIN Bridge»; never translate Bridge as «міст».",
+    "variants": ["Bridge"]
+  },
+  {
+    "term": "skip",
+    "partOfSpeech": "verb",
+    "definition": "Leave an item out without deleting it: a row or account not imported, a recurring payment period marked as not happening, or a suggestion hidden.",
+    "translatable": true,
+    "uk": "пропустити",
+    "ukAvoid": ["відхилити"]
+  },
+  {
+    "term": "skipped",
+    "partOfSpeech": "adjective",
+    "definition": "Status of an item left out and not processed: by the user's choice (import row, account, recurring payment period), as a duplicate, or because it couldn't be read. Not deleted.",
+    "translatable": true,
+    "uk": "пропущено",
+    "ukNote": "Status label form; as an agreeing adjective: пропущений."
+  },
+  {
+    "term": "source account",
+    "partOfSpeech": "noun",
+    "definition": "The account money leaves in a transfer, loan payment or portfolio transfer; the opposite of the destination account. Field labels say 'From account'.",
+    "translatable": true,
+    "uk": "вихідний рахунок",
+    "ukAvoid": ["рахунок джерела"],
+    "ukNote": "Opposite: цільовий рахунок. Source portfolio = вихідний портфель. Field label 'From account' = «З рахунку»."
+  },
+  {
+    "term": "Spending by Categories",
+    "partOfSpeech": "proper noun",
+    "definition": "Dashboard widget showing the period's spending split by category. Its card title is 'Expenses Structure': one widget with two English names, ideally one translation.",
+    "translatable": true,
+    "uk": "Витрати за категоріями",
+    "variants": ["Expenses Structure"]
+  },
+  {
+    "term": "spike",
+    "partOfSpeech": "noun",
+    "definition": "A large day-to-day balance change, up or down, marked on the Balance trend chart; the percent and amount thresholds that count as a spike are user settings.",
+    "translatable": true,
+    "uk": "стрибок"
+  },
+  {
+    "term": "split",
+    "partOfSpeech": "noun",
+    "definition": "A part of one transaction's amount assigned to its own category; also the act of dividing a transaction across several categories.",
+    "translatable": true,
+    "uk": "розподіл",
+    "ukAvoid": ["розділ", "розбиття"],
+    "ukNote": "One split line = частина (розподілу): «Кожна частина має мати іншу категорію». Verb on buttons ('Split into categories') = розділити; a split transaction = розділена транзакція."
+  },
+  {
+    "term": "SPV",
+    "partOfSpeech": "noun",
+    "definition": "Special purpose vehicle: the legal entity through which a venture deal invests in one or several startups. Keep the acronym.",
+    "translatable": false,
+    "uk": "SPV"
+  },
+  {
+    "term": "statement",
+    "partOfSpeech": "noun",
+    "definition": "A bank, card or broker document (PDF, CSV, TXT, OFX/QFX) listing transactions, imported to create them in bulk. Not a claim or declaration.",
+    "translatable": true,
+    "uk": "виписка"
+  },
+  {
+    "term": "Statement Parser",
+    "partOfSpeech": "proper noun",
+    "definition": "The AI feature and page that reads an uploaded bank statement (PDF, CSV or TXT) and extracts its transactions for import.",
+    "translatable": true,
+    "uk": "Парсер виписок",
+    "ukNote": "The process in prose ('statement parsing') = розбір виписок.",
+    "variants": ["statement parsing"]
+  },
+  {
+    "term": "stock",
+    "partOfSpeech": "noun",
+    "definition": "A share of a company traded on an exchange; the Stocks asset class and search filter. For units of any holding, crypto included, see 'share'.",
+    "translatable": true,
+    "uk": "акція",
+    "ukNote": "Filter label: «Акції». The number of units held is «кількість», not акції."
+  },
+  {
+    "term": "Stripe",
+    "partOfSpeech": "proper noun",
+    "definition": "The payment company that charges cards for MoneyMatter plans and retries failed payments. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Stripe"
+  },
+  {
+    "term": "structured",
+    "partOfSpeech": "adjective",
+    "definition": "AI model capability badge: the model can return structured output (data in a fixed JSON format). Shown next to Text, Vision, Functions, Fast and Agents.",
+    "translatable": true,
+    "uk": "структурований"
+  },
+  {
+    "term": "stuck",
+    "partOfSpeech": "adjective",
+    "definition": "Status of a bank sync that stopped progressing because a bank connection didn't respond in time; the user can retry or reconnect. Not failed.",
+    "translatable": true,
+    "uk": "завислий",
+    "ukNote": "With синхронізація: «Синхронізація зависла»."
+  },
+  {
+    "term": "subcategory",
+    "partOfSpeech": "noun",
+    "definition": "A category nested under another (parent) category; categories can nest a few levels deep.",
+    "translatable": true,
+    "uk": "підкатегорія"
+  },
+  {
+    "term": "Submit",
+    "partOfSpeech": "verb",
+    "definition": "Button label that sends a form for processing.",
+    "translatable": true,
+    "uk": "Надіслати",
+    "ukAvoid": ["Підтвердити"],
+    "ukNote": "'Confirm' = Підтвердити; don't reuse it for Submit. In forms that move money, where Надіслати could read as sending money, use the form's own verb (forms.directCashTransaction.submitButton opens a confirm step: «Продовжити»)."
+  },
+  {
+    "term": "subscription",
+    "partOfSpeech": "noun",
+    "definition": "The Subscription type of recurring payment (next to Bill and Installment), e.g. streaming. In prose about any recurring item it means a recurring payment.",
+    "translatable": true,
+    "uk": "підписка",
+    "ukNote": "Where it means any recurring item ('Couldn't load your subscriptions') = регулярний платіж."
+  },
+  {
+    "term": "subscription",
+    "partOfSpeech": "noun",
+    "definition": "The user's paid MoneyMatter plan, in billing banners and Plan & billing settings (\"Your subscription has ended\", \"Subscribe again\"). Not the Subscription recurring-payment type.",
+    "translatable": true,
+    "uk": "підписка",
+    "ukNote": "uk.md §5: підписка for the plan too. 'Subscribe' = «оформити підписку»; 'Subscribe again' = «Підписатися знову»."
+  },
+  {
+    "term": "subscription amount",
+    "partOfSpeech": "noun",
+    "definition": "Venture term: the capital an investor commits to an SPV or fund, before entry fees. Not a recurring payment or a MoneyMatter plan.",
+    "translatable": true,
+    "uk": "сума підписки"
+  },
+  {
+    "term": "Subscriptions & Bills",
+    "partOfSpeech": "proper noun",
+    "definition": "Widget-picker name of the recurring-payments dashboard widget; it names two of its types, Subscription and Bill (a payment due, not an account). The widget also shows installments.",
+    "translatable": true,
+    "uk": "Підписки та рахунки"
+  },
+  {
+    "term": "suggested",
+    "partOfSpeech": "adjective",
+    "definition": "Proposed by the app, not chosen by the user: a low-confidence column match to confirm in import mapping, transactions offered as recurring-payment matches, or categories picked by AI.",
+    "translatable": true,
+    "uk": "запропонований",
+    "ukAvoid": ["пропоноване"],
+    "ukNote": "Standalone status label: «Запропоновано»."
+  },
+  {
+    "term": "Support",
+    "partOfSpeech": "verb",
+    "definition": "Header button with a heart icon that invites users to back the MoneyMatter project, e.g. by donating. Not customer support.",
+    "translatable": true,
+    "uk": "Підтримати"
+  },
+  {
+    "term": "support",
+    "partOfSpeech": "noun",
+    "definition": "MoneyMatter's help team users contact when something goes wrong ('contact support'). Not 'supports/supported' (compatibility), the header Support button (donations) or child support.",
+    "translatable": true,
+    "uk": "підтримка"
+  },
+  {
+    "term": "support@moneymatter.app",
+    "partOfSpeech": "proper noun",
+    "definition": "MoneyMatter's support email address. Copy it exactly.",
+    "translatable": false,
+    "uk": "support@moneymatter.app"
+  },
+  {
+    "term": "symbol",
+    "partOfSpeech": "noun",
+    "definition": "On investment screens: a security's ticker (AAPL, BTC), same as \"ticker\" (\"Add Symbols\", the \"Symbol\" column). Translate the word; the codes stay. Not a currency symbol such as $.",
+    "translatable": true,
+    "uk": "тікер",
+    "ukAvoid": ["символ"],
+    "ukNote": "«символ» stays for currency symbols ($, ₴) and character counts («не більше {max} символів»)."
+  },
+  {
+    "term": "sync",
+    "partOfSpeech": "noun",
+    "definition": "Fetching the latest accounts and transactions from a connected bank integration.",
+    "translatable": true,
+    "uk": "синхронізація",
+    "ukNote": "Verb on buttons ('Sync now') = синхронізувати."
+  },
+  {
+    "term": "syndicate",
+    "partOfSpeech": "noun",
+    "definition": "In Venture: a group of investors, led by a lead or GP, who pool money into one deal, usually through an SPV (e.g. an AngelList syndicate).",
+    "translatable": true,
+    "uk": "синдикат"
+  },
+  {
+    "term": "system category",
+    "partOfSpeech": "noun",
+    "definition": "A built-in category the app manages itself (e.g. Other); it can't be moved, used as a parent or hold subcategories. Not a user-created category.",
+    "translatable": true,
+    "uk": "системна категорія"
+  },
+  {
+    "term": "tag",
+    "partOfSpeech": "noun",
+    "definition": "A free-form label users attach to transactions for flexible, non-category grouping.",
+    "translatable": true,
+    "uk": "тег"
+  },
+  {
+    "term": "tag reminder",
+    "partOfSpeech": "noun",
+    "definition": "A rule on a tag that notifies the user when tagged transactions appear or when spending on the tag passes a set amount.",
+    "translatable": true,
+    "uk": "нагадування для тегу",
+    "ukNote": "Inside tag settings plain «нагадування» is enough."
+  },
+  {
+    "term": "target amount",
+    "partOfSpeech": "noun",
+    "definition": "In a transfer between currencies, the converted amount that arrives in the destination account, portfolio or loan. Not a goal or savings target.",
+    "translatable": true,
+    "uk": "цільова сума",
+    "ukNote": "Means the amount credited to the destination, not a goal. In the loan dialog, 'Amount applied to loan' follows loan = «кредит», not «позика»."
+  },
+  {
+    "term": "target company",
+    "partOfSpeech": "noun",
+    "definition": "Venture deal field: free-text name of the startup or thesis the deal backs (e.g. 'YC W26 batch'), for display only. Not an acquisition target.",
+    "translatable": true,
+    "uk": "цільова компанія"
+  },
+  {
+    "term": "tax",
+    "partOfSpeech": "noun",
+    "definition": "Investment transaction type recording tax withheld or paid on an investment, e.g. withholding tax on a dividend.",
+    "translatable": true,
+    "uk": "податок"
+  },
+  {
+    "term": "template",
+    "partOfSpeech": "noun",
+    "definition": "A saved set of transaction form values (amount, account, category, payee, tags, note) that fills the form in one tap. In imports, 'Saved templates' are saved import mappings.",
+    "translatable": true,
+    "uk": "шаблон"
+  },
+  {
+    "term": "term",
+    "partOfSpeech": "noun",
+    "definition": "The length of a loan, in months. Not 'terms' meaning the conditions of a loan or deal.",
+    "translatable": true,
+    "uk": "строк",
+    "ukAvoid": ["термін"],
+    "ukNote": "'terms' (conditions) = умови. термін elsewhere means a due date (термін оплати) or a word, so «Поширені терміни» reads as 'common terminology'."
+  },
+  {
+    "term": "TextEdit",
+    "partOfSpeech": "proper noun",
+    "definition": "Built-in macOS text editor, named in the Enable Banking setup steps for opening the key file. Keep as is.",
+    "translatable": false,
+    "uk": "TextEdit"
+  },
+  {
+    "term": "ticker",
+    "partOfSpeech": "noun",
+    "definition": "The short trading code of a stock, ETF or crypto (e.g. AAPL, BTC), same as 'symbol' on investment screens; not a currency symbol ($, ₴). Translate the word; the codes stay unchanged.",
+    "translatable": true,
+    "uk": "тікер",
+    "ukNote": "Symbol (security) = тікер too, not символ (see symbol)."
+  },
+  {
+    "term": "timeline",
+    "partOfSpeech": "noun",
+    "definition": "A chronological view: a loan's or venture deal's event history, the over-time tab in budget statistics, or the date strip in statement import. Not a project plan.",
+    "translatable": true,
+    "uk": "хронологія",
+    "ukAvoid": ["часова шкала", "стрічка подій"],
+    "ukNote": "'Transaction Timeline' in statement import is also «Хронологія транзакцій»."
+  },
+  {
+    "term": "token",
+    "partOfSpeech": "noun",
+    "definition": "In AI features: the unit of text an AI model reads and writes, used to measure file size and cost ('Estimated tokens'). Not an access token.",
+    "translatable": true,
+    "uk": "токен"
+  },
+  {
+    "term": "token",
+    "partOfSpeech": "noun",
+    "definition": "A secret code that gives MoneyMatter or a connected app access: a Monobank API token, a SimpleFIN setup token, OAuth access tokens. Not an AI token.",
+    "translatable": true,
+    "uk": "токен",
+    "ukNote": "Monobank 'API token' = «API-токен»; SimpleFIN 'setup token': see setup token."
+  },
+  {
+    "term": "top category",
+    "partOfSpeech": "noun",
+    "definition": "On a payee: the category used most often in its transactions, applied when no default category is set. Not a top-level category or a split's main category.",
+    "translatable": true,
+    "uk": "найчастіша категорія",
+    "ukAvoid": ["основна категорія"]
+  },
+  {
+    "term": "top level",
+    "partOfSpeech": "noun",
+    "definition": "The root of the category tree. A top-level category has no parent category; dropping a category there takes it out of its parent.",
+    "translatable": true,
+    "uk": "верхній рівень",
+    "variants": ["top-level"]
+  },
+  {
+    "term": "total return",
+    "partOfSpeech": "noun",
+    "definition": "A portfolio's overall investment performance, combining realized and unrealized gains. An investment return, not a refund of money.",
+    "translatable": true,
+    "uk": "загальна дохідність",
+    "ukAvoid": ["повернення", "дохід"]
+  },
+  {
+    "term": "total value",
+    "partOfSpeech": "noun",
+    "definition": "Current worth of a whole portfolio: market value of all holdings plus cash. Not total cost (what was paid for the holdings).",
+    "translatable": true,
+    "uk": "загальна вартість",
+    "ukNote": "'Total Cost' in the holdings table (portfolioDetail.holdingsTable.headers.totalCost) is currently also «Загальна вартість», although it is the summed cost basis (базова вартість, uk.md §5)."
+  },
+  {
+    "term": "trade",
+    "partOfSpeech": "noun",
+    "definition": "One buy or sell of a security in a portfolio. Its cash side may settle in another currency (the settlement currency). Not a venture deal.",
+    "translatable": true,
+    "uk": "угода"
+  },
+  {
+    "term": "transaction",
+    "partOfSpeech": "noun",
+    "definition": "A single recorded money movement: an expense, income or transfer; in portfolios also a buy, sell or cash transaction.",
+    "translatable": true,
+    "uk": "транзакція",
+    "ukAvoid": ["операція"]
+  },
+  {
+    "term": "transaction group",
+    "partOfSpeech": "noun",
+    "definition": "A user-made bundle of related transactions shown together, with its own name, note and totals (e.g. one trip). UI often says just 'Group'. Not an account group.",
+    "translatable": true,
+    "uk": "група транзакцій",
+    "ukNote": "Short labels 'Group'/'Groups' (navigation.transactionGroups): «група»/«групи». Account groups: «група рахунків»."
+  },
+  {
+    "term": "transfer",
+    "partOfSpeech": "noun",
+    "definition": "A transaction moving money between two of the user's own accounts or portfolios. Not a payment to someone else. The payment method 'Bank Transfer' is a bank wire, a different sense.",
+    "translatable": true,
+    "uk": "переказ",
+    "ukAvoid": ["переведення", "перенести"],
+    "ukNote": "Verb: переказати. The payment type 'Bank Transfer' (common.paymentTypes.bankTransfer) is «Банківський переказ», a different sense."
+  },
+  {
+    "term": "transfer leg",
+    "partOfSpeech": "noun",
+    "definition": "One side of a transfer: the outgoing or the incoming transaction. If the other side isn't imported, the leg is kept alone as an out-of-wallet transaction.",
+    "translatable": true,
+    "uk": "сторона переказу",
+    "ukAvoid": ["частина переказу"]
+  },
+  {
+    "term": "transfer matching",
+    "partOfSpeech": "noun",
+    "definition": "Finding an expense and an income that are really one transfer between the user's own accounts, and linking them. Name of an Optimizations tool and a setting.",
+    "translatable": true,
+    "uk": "зіставлення переказів",
+    "ukAvoid": ["пошук переказів"],
+    "ukNote": "'Transfer suggestions' (the candidate pairs found, not the process) = «пропозиції переказів»."
+  },
+  {
+    "term": "trash",
+    "partOfSpeech": "noun",
+    "definition": "Holding area on the Investments page for deleted portfolios: they can be restored for 30 days, then are permanently deleted. Venture delete messages also point to it. A recycle bin.",
+    "translatable": true,
+    "uk": "смітник",
+    "ukAvoid": ["кошик"],
+    "ukNote": "Button 'Move to Trash' = «Перемістити у смітник»."
+  },
+  {
+    "term": "trends comparison",
+    "partOfSpeech": "noun",
+    "definition": "Analytics report comparing spending, income and savings for a selected period against the previous period.",
+    "translatable": true,
+    "uk": "порівняння трендів"
+  },
+  {
+    "term": "trial",
+    "partOfSpeech": "noun",
+    "definition": "The free period after signup with Plus-plan features unlocked (backup restore excluded). When it ends, data stays viewable and exportable but read-only until the user subscribes.",
+    "translatable": true,
+    "uk": "пробний період"
+  },
+  {
+    "term": "trim",
+    "partOfSpeech": "noun",
+    "definition": "A vehicle's trim level: the equipment version of a make and model (e.g. 'Sport', 'Base'). Field of a vehicle asset. Not the verb 'trim' (cut).",
+    "translatable": true,
+    "uk": "комплектація"
+  },
+  {
+    "term": "TVPI",
+    "partOfSpeech": "noun",
+    "definition": "Venture metric Total Value to Paid-In: distributions received plus current value, divided by the capital paid in. Keep the acronym.",
+    "translatable": false,
+    "uk": "TVPI"
+  },
+  {
+    "term": "tx",
+    "partOfSpeech": "noun",
+    "definition": "Short for 'transaction' in tight labels. '# tx' and 'Tx amount' both mean the number of transactions, not a sum of money; '(no tx)' means without a transaction.",
+    "translatable": true,
+    "uk": "транзакція",
+    "ukAvoid": ["тр."],
+    "ukNote": "In narrow columns abbreviate the count word, not «транзакції»: «К-ть транзакцій». 'Tx amount' = кількість транзакцій, not a sum."
+  },
+  {
+    "term": "TXT",
+    "partOfSpeech": "noun",
+    "definition": "Plain-text file format, accepted for bank statements and investment imports. Keep as is.",
+    "translatable": false,
+    "uk": "TXT"
+  },
+  {
+    "term": "unarchive",
+    "partOfSpeech": "verb",
+    "definition": "Return an archived account, budget or loan to the active lists and pickers. Opposite of archive. Some loan screens say \"Restore\" for the same action.",
+    "translatable": true,
+    "uk": "розархівувати"
+  },
+  {
+    "term": "uncategorized",
+    "partOfSpeech": "adjective",
+    "definition": "Describes a transaction with no real category yet: none set, or still in the user's default fallback category. AI categorization works on these.",
+    "translatable": true,
+    "uk": "некатегоризований",
+    "ukNote": "Standalone label without a noun: «Без категорії»."
+  },
+  {
+    "term": "unconfirmed",
+    "partOfSpeech": "adjective",
+    "definition": "Badge on a pending planned transaction over a week past its date with no matching bank transaction; the user must confirm it happened. Otherwise the badge is 'Expected'.",
+    "translatable": true,
+    "uk": "не підтверджено",
+    "ukNote": "Badge form; the sibling badge is «Очікується»."
+  },
+  {
+    "term": "unlink",
+    "partOfSpeech": "verb",
+    "definition": "Remove a link without deleting anything: between a transfer's sides, a refund and its expense, a transaction and a budget/portfolio/loan/recurring payment, or an account and its bank.",
+    "translatable": true,
+    "uk": "відв'язати",
+    "ukAvoid": ["від'єднати"]
+  },
+  {
+    "term": "unpriceable",
+    "partOfSpeech": "adjective",
+    "definition": "Describes an import row whose currency has no stored exchange rate, so it can't be converted to the base currency. About exchange rates, not item prices.",
+    "translatable": true,
+    "uk": "без курсу обміну",
+    "ukAvoid": ["неможливо оцінити", "не оцінено"],
+    "variants": ["unpriced", "cannot be priced"]
+  },
+  {
+    "term": "unrealized gain",
+    "partOfSpeech": "noun",
+    "definition": "Gain or loss on holdings still owned: current market value minus cost basis, not yet locked in by selling. Can be negative.",
+    "translatable": true,
+    "uk": "нереалізований прибуток",
+    "variants": ["unrealized"]
+  },
+  {
+    "term": "upcoming",
+    "partOfSpeech": "adjective",
+    "definition": "Describes payments due soon: the pinned section of overdue and soon-due scheduled payments, or a future payment period. Use a word distinct from \"planned\" (scheduled).",
+    "translatable": true,
+    "uk": "найближчий",
+    "ukAvoid": ["запланований"],
+    "ukNote": "Section title: «Найближчі». Status of a payment period that hasn't started yet (planned.subscriptions.periods.status.upcoming): «майбутній»."
+  },
+  {
+    "term": "upgrade",
+    "partOfSpeech": "verb",
+    "definition": "Move to a higher MoneyMatter plan to unlock features ('Upgrade to Plus'). Not a software update.",
+    "translatable": true,
+    "uk": "перейти на вищий план",
+    "ukAvoid": ["покращити план"],
+    "ukNote": "'Upgrade to Plus' = «перейти на Plus»."
+  },
+  {
+    "term": "URL",
+    "partOfSpeech": "noun",
+    "definition": "A web address: an MCP server URL, an AI endpoint's base URL, a transaction's external link, a bank redirect URL. Keep the acronym.",
+    "translatable": false,
+    "uk": "URL",
+    "ukNote": "«URL-адреса» where grammar needs a noun. A transaction's External URL field is shown as «Зовнішнє посилання»."
+  },
+  {
+    "term": "utilization",
+    "partOfSpeech": "noun",
+    "definition": "Share of a limit already used: of a budget's limit spent so far (Budget Utilization), or of credit card limits (Credit Utilization widget).",
+    "translatable": true,
+    "uk": "використання",
+    "ukNote": "Credit Utilization = «Використання кредитного ліміту», not «Використання кредиту» (кредит = loan); see credit utilization."
+  },
+  {
+    "term": "value override",
+    "partOfSpeech": "noun",
+    "definition": "A manual correction of a vehicle's current value, saved as a dated entry that restarts depreciation from there. Elsewhere 'override' just means replacing a default.",
+    "translatable": true,
+    "uk": "корекція вартості",
+    "ukNote": "Short labels just «корекція» («Остання корекція», «Історія корекцій»). Verb: скоригувати (вартість). Outside vehicles 'override' = перевизначити/змінити/перезаписати, not «корекція»."
+  },
+  {
+    "term": "vehicle",
+    "partOfSpeech": "noun",
+    "definition": "A car or other vehicle tracked as an asset, with its own account and a value that depreciates over time. Not the Vehicle loan type (car loan) or the car-costs category.",
+    "translatable": true,
+    "uk": "транспортний засіб",
+    "ukAvoid": ["автомобіль"],
+    "ukNote": "«транспорт» is a mass noun: one asset is «транспортний засіб» («Транспортний засіб додано», «Видалити транспортний засіб?»). Section, account-category and nav labels (accounts.sections.vehicles, common.accountCategories.vehicle, sidebar 'Cars') stay «Транспорт». Loan type Vehicle = «Автокредит»; seeded category = «Авто».",
+    "variants": ["car"]
+  },
+  {
+    "term": "vehicle",
+    "partOfSpeech": "noun",
+    "definition": "Seeded expense category for car costs (fuel, parking, insurance, maintenance). Use your market's natural category name. Not the vehicle asset account.",
+    "translatable": true,
+    "uk": "авто"
+  },
+  {
+    "term": "vehicle class",
+    "partOfSpeech": "noun",
+    "definition": "The kind of vehicle (sedan, SUV, truck, luxury, electric, motorcycle...) that sets its default depreciation curve. Shown alone as \"Class\". Not only a body type, and not an asset class.",
+    "translatable": true,
+    "uk": "тип транспортного засобу",
+    "ukAvoid": ["тип транспорту"],
+    "ukNote": "Follows vehicle = транспортний засіб. Standalone 'Class' = «Тип»."
+  },
+  {
+    "term": "venture",
+    "partOfSpeech": "noun",
+    "definition": "The section for private venture investments (SPVs, syndicates, fund deals), separate from Investments. Use a real word that differs from the Investments label.",
+    "translatable": true,
+    "uk": "венчур",
+    "ukAvoid": ["підприємства", "інвестиції", "венчурний проект"],
+    "ukNote": "Plural 'Ventures' = «Венчури» (uk.md §5).",
+    "variants": ["Ventures"]
+  },
+  {
+    "term": "venture deal",
+    "partOfSpeech": "noun",
+    "definition": "One private investment in the Venture section: a single SPV, syndicate or fund commitment with its own events. UI often says just 'deal'. Not a discount.",
+    "translatable": true,
+    "uk": "венчурна угода",
+    "ukNote": "uk.md §5, backend too. Bare 'deal' = угода."
+  },
+  {
+    "term": "venture event",
+    "partOfSpeech": "noun",
+    "definition": "A dated entry on a venture deal: initial investment, capital call, distribution, NAV update, exit, writedown or fee payment. The UI says just 'event'.",
+    "translatable": true,
+    "uk": "венчурна подія",
+    "ukNote": "In the Venture UI just «подія»."
+  },
+  {
+    "term": "view",
+    "partOfSpeech": "noun",
+    "definition": "A saved set of layout and filters on the Pivot analytics page, or a display mode (List view, Table view). Not the verb 'view' and not a screen.",
+    "translatable": true,
+    "uk": "вигляд",
+    "ukAvoid": ["подання", "погляд", "вид"]
+  },
+  {
+    "term": "vision",
+    "partOfSpeech": "noun",
+    "definition": "AI model capability label: the model can read images such as receipts or scanned statements. Shown with Text, Structured, Functions, Fast, Agents.",
+    "translatable": true,
+    "uk": "зображення"
+  },
+  {
+    "term": "VITE_LOGO_DEV_TOKEN",
+    "partOfSpeech": "noun",
+    "definition": "Environment variable a self-hosting admin sets to turn on brand logos. Code name: copy it exactly.",
+    "translatable": false,
+    "uk": "VITE_LOGO_DEV_TOKEN"
+  },
+  {
+    "term": "vLLM",
+    "partOfSpeech": "proper noun",
+    "definition": "Open-source server software for running AI models; it can act as an OpenAI-compatible custom AI endpoint. Keep as is.",
+    "translatable": false,
+    "uk": "vLLM"
+  },
+  {
+    "term": "voided",
+    "partOfSpeech": "adjective",
+    "definition": "A Microsoft Money entry marked void: kept in the register but never applied to the balance. Imported at zero with the tag \"Void\", which stays in English.",
+    "translatable": true,
+    "uk": "анульований",
+    "ukNote": "Keep the tag «Void» in English.",
+    "variants": ["void"]
+  },
+  {
+    "term": "wallet",
+    "partOfSpeech": "noun",
+    "definition": "A place money is kept outside a bank account: a cash or e-wallet, or a per-currency balance at a provider such as Walutomat. In \"out of wallet\" it means the tracked accounts. Not the Wallet app.",
+    "translatable": true,
+    "uk": "гаманець",
+    "ukAvoid": ["зі гаманця", "поза Wallet"],
+    "ukNote": "Out of wallet = «поза гаманцем», also in the Wallet (BudgetBakers) import."
+  },
+  {
+    "term": "Wallet (BudgetBakers)",
+    "partOfSpeech": "proper noun",
+    "definition": "Wallet by BudgetBakers, a third-party budgeting app whose export MoneyMatter imports; lists may say just \"Wallet\". Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Wallet (BudgetBakers)",
+    "ukNote": "'Out of wallet' in the Wallet import is not the brand: «Поза гаманцем» (uk.md §5), not «Поза Wallet»."
+  },
+  {
+    "term": "Walutomat",
+    "partOfSpeech": "proper noun",
+    "definition": "Polish currency-exchange platform; a provider the user connects to import its currency wallets. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Walutomat"
+  },
+  {
+    "term": "watchlist",
+    "partOfSpeech": "noun",
+    "definition": "Dashboard widget that tracks spending and income for categories the user picks, like a stock watchlist. A widget name, not a to-do list.",
+    "translatable": true,
+    "uk": "спостереження",
+    "ukNote": "Widget name: «Спостереження за категоріями» (sentence case; спостереження за + instrumental, as in «Спостереження за продуктами»).",
+    "variants": ["Categories Watchlist"]
+  },
+  {
+    "term": "WebP",
+    "partOfSpeech": "noun",
+    "definition": "Image file format, accepted for transaction attachments and invoices. Keep as is.",
+    "translatable": false,
+    "uk": "WebP"
+  },
+  {
+    "term": "Windows",
+    "partOfSpeech": "proper noun",
+    "definition": "Microsoft's operating system, named in the Enable Banking setup steps. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "Windows"
+  },
+  {
+    "term": "wipe data",
+    "partOfSpeech": "verb",
+    "definition": "Permanently erase all of the user's financial data while keeping the login, so they start over from onboarding. Not deleting the account.",
+    "translatable": true,
+    "uk": "стерти дані"
+  },
+  {
+    "term": "withdrawal",
+    "partOfSpeech": "noun",
+    "definition": "Cash taken out of a portfolio's cash balance. Opposite of a deposit. Not leaving a household or a share.",
+    "translatable": true,
+    "uk": "зняття",
+    "ukAvoid": ["виведення"]
+  },
+  {
+    "term": "workspace",
+    "partOfSpeech": "noun",
+    "definition": "All of a user's MoneyMatter data plus its settings (currencies, categories, payees, AI). Names a settings group and what 'Wipe all data' erases.",
+    "translatable": true,
+    "uk": "робочий простір",
+    "ukNote": "Write it in full: робочий простір («у вашому робочому просторі»)."
+  },
+  {
+    "term": "write",
+    "partOfSpeech": "noun",
+    "definition": "Sharing permission between Read and Manage: on accounts and households the person can add and edit transactions (see write scope); on budgets they attach their own transactions. Not the verb.",
+    "translatable": true,
+    "uk": "редагування",
+    "ukAvoid": ["запис"],
+    "ukNote": "Follows the Read/Write label decision under read-only; current labels say «Запис», which also renders entry (запис). The account and budget dialogs spell the right out instead."
+  },
+  {
+    "term": "write scope",
+    "partOfSpeech": "noun",
+    "definition": "For write access, which transactions the shared person may edit: all of them (on the shared account, or on any account for a household share) or only the ones they created.",
+    "translatable": true,
+    "uk": "область редагування",
+    "ukAvoid": ["область запису"],
+    "ukNote": "The account dialog's 'Transaction edit scope' = «Область редагування транзакцій».",
+    "variants": ["Transaction edit scope"]
+  },
+  {
+    "term": "writedown",
+    "partOfSpeech": "noun",
+    "definition": "Venture event that lowers a deal's value with no cash moving (e.g. an impairment). A writedown to zero makes the deal written off.",
+    "translatable": true,
+    "uk": "уцінка",
+    "ukAvoid": ["списання"],
+    "ukNote": "A writedown can go to zero; the deal then gets the status «Списаний». «Списання» stays for card charges (charge)."
+  },
+  {
+    "term": "written off",
+    "partOfSpeech": "adjective",
+    "definition": "Venture deal status: the investment counts as a total loss, its value written down to zero.",
+    "translatable": true,
+    "uk": "списаний",
+    "ukNote": "Status label «Списаний» (adjective, like «Активний»), not «Списано»."
+  },
+  {
+    "term": "YC",
+    "partOfSpeech": "proper noun",
+    "definition": "Y Combinator, a startup accelerator, used in venture examples. 'YC W26 batch' is its Winter 2026 group of startups. Keep 'YC'; 'batch' is translatable.",
+    "translatable": false,
+    "uk": "YC",
+    "ukNote": "Translate the word batch; «YC batch'у» in venture.deals.form.subtypeHint mixes languages."
+  },
+  {
+    "term": "YNAB",
+    "partOfSpeech": "proper noun",
+    "definition": "YNAB (You Need A Budget), a third-party budgeting app whose CSV export MoneyMatter imports. Brand name: do not translate.",
+    "translatable": false,
+    "uk": "YNAB"
+  },
+  {
+    "term": "zip",
+    "partOfSpeech": "noun",
+    "definition": "Compressed archive file format (.zip) used for backups and the data export. Keep the name; 'unzip' (extract the archive) is an ordinary verb and is translated.",
+    "translatable": false,
+    "uk": "zip",
+    "ukNote": "unzip = «розпакувати».",
+    "variants": [".zip"]
+  }
+]
