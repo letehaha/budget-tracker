@@ -38,7 +38,10 @@
           }"
         ></div>
 
-        <div class="absolute top-5 right-5 z-10 flex flex-wrap justify-end gap-2 @md/vehicle:top-6 @md/vehicle:right-6">
+        <div
+          v-if="isOwner"
+          class="absolute top-5 right-5 z-10 flex flex-wrap justify-end gap-2 @md/vehicle:top-6 @md/vehicle:right-6"
+        >
           <UiButton variant="outline" @click="isOverrideOpen = true">
             {{ $t('pages.vehicleDetails.overrideValueButton') }}
           </UiButton>
@@ -55,7 +58,8 @@
         <div class="relative grid gap-6 p-5 pt-20 @md/vehicle:p-8 @md/vehicle:pt-8 @md/vehicle:pr-104">
           <div class="grid gap-4">
             <div class="flex items-center gap-3">
-              <AccountLogoPicker :account-id="vehicle.accountId" class="size-9" />
+              <AccountLogoPicker v-if="isOwner" :account-id="vehicle.accountId" class="size-9" />
+              <AccountLogo v-else-if="linkedAccount" :account="linkedAccount" class="size-9" />
               <div class="grid gap-0.5">
                 <div class="text-muted-foreground text-xs tracking-wider uppercase">
                   {{ $t(VEHICLE_CLASS_TRANSLATION_KEYS[vehicle.vehicleClass]) }}
@@ -217,17 +221,23 @@
         </DetailsCard>
       </section>
 
-      <OverrideHistoryCard v-if="vehicle.account" :account-id="vehicle.account.id" :currency-code="currencyCode" />
+      <OverrideHistoryCard
+        v-if="vehicle.account"
+        :account-id="vehicle.account.id"
+        :currency-code="currencyCode"
+        :readonly="!isOwner"
+      />
 
       <BalanceAdjustmentDialog
-        v-if="isOverrideOpen && vehicle.account"
+        v-if="isOwner && isOverrideOpen && vehicle.account"
         :account="vehicle.account"
         @close="onOverrideClosed"
       />
 
-      <EditVehicleDialog v-model:open="isEditOpen" :vehicle="vehicle" />
+      <EditVehicleDialog v-if="isOwner" v-model:open="isEditOpen" :vehicle="vehicle" />
 
       <ResponsiveAlertDialog
+        v-if="isOwner"
         v-model:open="isDeleteOpen"
         :confirm-label="$t('pages.vehicleDetails.deleteConfirm')"
         confirm-variant="destructive"
@@ -247,6 +257,7 @@ import {
   DEPRECIATION_PRESET_TRANSLATION_KEYS,
   VEHICLE_CLASS_TRANSLATION_KEYS,
 } from '@/common/const/vehicle-classes-verbose';
+import AccountLogo from '@/components/common/account-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import EditVehicleDialog from '@/components/dialogs/edit-vehicle-dialog.vue';
@@ -254,6 +265,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useFormatCurrency } from '@/composable';
+import { useAccountAccess } from '@/composable/use-account-access';
 import { captureException } from '@/lib/sentry';
 import AccountLogoPicker from '@/pages/account/components/account-logo-picker.vue';
 import BalanceAdjustmentDialog from '@/pages/account/components/balance-adjustment-dialog.vue';
@@ -263,7 +275,7 @@ import DetailsCard from '@/pages/accounts/components/vehicle-details/details-car
 import OverrideHistoryCard from '@/pages/accounts/components/vehicle-details/override-history-card.vue';
 import { buildDepreciationTimeline, getSalvageFloorValue } from '@/pages/accounts/utils/depreciation-math';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useCurrenciesStore } from '@/stores';
+import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ArrowDownRightIcon, ArrowUpRightIcon, CarIcon, Trash2Icon, TrendingDownIcon } from '@lucide/vue';
 import { addMonths, differenceInCalendarDays, format, parseISO } from 'date-fns';
@@ -291,6 +303,12 @@ const { data: vehicle, isLoading } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.vehicleDetail, vehicleId],
   queryFn: () => getVehicleById({ id: vehicleId.value }),
 });
+
+const { accountsRecord } = storeToRefs(useAccountsStore());
+const linkedAccount = computed(() => (vehicle.value ? accountsRecord.value[vehicle.value.accountId] : undefined));
+const access = useAccountAccess(linkedAccount);
+// useAccountAccess treats a missing account as owned; hide owner actions until the account loads.
+const isOwner = computed(() => !!linkedAccount.value && access.isOwner.value);
 
 // Empty string is a safe placeholder — the page body only renders inside a
 // `v-else` gated on `vehicle.account`, so this fallback never reaches the

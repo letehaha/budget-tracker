@@ -381,7 +381,11 @@ const moneyAccounts = computed(() =>
 
 // VehicleModel.account is nullable — render/count only vehicles that have one, so the
 // section, its count, its total, and the overview all agree and no row null-derefs.
-const vehiclesWithAccount = computed(() => (vehicles.value ?? []).filter((v) => v.account != null));
+// Shared-in vehicles render under "Shared with me" and stay out of the caller's totals.
+const sharedAccountIds = computed(() => new Set(sharedAccounts.value.map((account) => account.id)));
+const vehiclesWithAccount = computed(() =>
+  (vehicles.value ?? []).filter((v) => v.account != null && !sharedAccountIds.value.has(v.accountId)),
+);
 
 // Loose rows of the Manual section: ungrouped manual accounts, plus manual accounts a
 // user placed inside a connection-managed group (that group only renders under Bank
