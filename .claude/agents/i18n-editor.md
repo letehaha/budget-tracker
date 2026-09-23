@@ -55,6 +55,8 @@ Sibling locale directories (`uk/`, `es/`, `id/`, `zh-CN/`, …) mirror this tree
 3. For shared UI elements → check `common.json`, `dialogs.json`, `forms.json`
 4. If you're not sure that you guessed the file right away, check all existing /locales/chunks/en files to find the correct one. If still not confident, ask user to clarify
 
+When you create a new `en` chunk file, add its entry to `docs/i18n/file-context.json` in the same format as its neighbours (Crowdin path → 2–4 plain sentences on where the strings appear and who sees them), and mention it in your Notes.
+
 ### Backend
 
 Backend translations are a single file per locale. The one you edit:

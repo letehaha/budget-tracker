@@ -17,6 +17,7 @@
     "i18n:crowdin:upload": "bash ./scripts/crowdin/upload-translations.sh",
     "i18n:crowdin:style-guides": "node ./scripts/crowdin/push-style-guides.mjs",
     "i18n:crowdin:glossary": "node ./scripts/crowdin/push-glossary.mjs",
+    "i18n:crowdin:file-context": "node ./scripts/crowdin/push-file-context.mjs",
     "release:bump": "npm version -w packages/frontend --no-git-tag-version",
     "docker:dev": "bash ./scripts/docker-dev.sh up",
     "docker:dev:build": "bash ./scripts/docker-dev.sh up --build",
