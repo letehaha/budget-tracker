@@ -11,12 +11,12 @@ export const INITIAL_SYNC_FALLBACK_DAYS = [1095, 730, 365, 90] as const;
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * How far a booked transaction may look back/forward for the pending row it
- * replaces. A Friday card swipe often books on Tuesday, and some ASPSPs drop
+ * How far back a booked transaction may look for the pending row it replaces.
+ * Transfers can sit pending well over a week, and some ASPSPs drop
  * transaction_date on the booked copy so its date jumps to booking_date.
  * Reconcile pass (a) reuses it, so retuning widens both live sync and reconcile.
  */
-export const PENDING_UPGRADE_WINDOW_DAYS = 5;
+export const PENDING_UPGRADE_WINDOW_DAYS = 14;
 
 /**
  * How far the IBAN fingerprint tier may look for a row whose hash date drifted.

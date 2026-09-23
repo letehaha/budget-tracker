@@ -43,12 +43,28 @@ describe('filterIbanCompatible', () => {
     expect(result).toEqual([match]);
   });
 
-  it('rejects an IBAN-less candidate when the reference has an IBAN', () => {
+  it('falls back to an IBAN-less candidate when no candidate carries the reference IBAN', () => {
     const ibanLess = expenseRow({ id: 'a' });
+    const mismatch = expenseRow({ id: 'b', creditorAccount: OTHER_IBAN });
 
-    const result = filterIbanCompatible({ candidates: [ibanLess], counterpartyIban: IBAN });
+    const result = filterIbanCompatible({ candidates: [ibanLess, mismatch], counterpartyIban: IBAN });
 
-    expect(result).toEqual([]);
+    expect(result).toEqual([ibanLess]);
+  });
+
+  it('prefers an IBAN match over an IBAN-less candidate', () => {
+    const match = expenseRow({ id: 'a', creditorAccount: IBAN });
+    const ibanLess = expenseRow({ id: 'b' });
+
+    const result = filterIbanCompatible({ candidates: [ibanLess, match], counterpartyIban: IBAN });
+
+    expect(result).toEqual([match]);
+  });
+
+  it('returns nothing when the only candidate carries a different IBAN', () => {
+    const mismatch = expenseRow({ id: 'a', creditorAccount: OTHER_IBAN });
+
+    expect(filterIbanCompatible({ candidates: [mismatch], counterpartyIban: IBAN })).toEqual([]);
   });
 
   it('filters nothing when the reference has no IBAN', () => {

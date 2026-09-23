@@ -198,6 +198,26 @@ export const syncTransactions = async (
   return response;
 };
 
+export interface ReconcileDuplicatesResult {
+  mergedCount: number;
+  skippedCount: number;
+  consideredPairs: number;
+  unresolvedCount: number;
+}
+
+export const reconcileDuplicates = async ({
+  connectionId,
+  accountId,
+}: {
+  connectionId: string;
+  accountId: string;
+}): Promise<ReconcileDuplicatesResult> => {
+  const response = await api.post(`/bank-data-providers/connections/${connectionId}/reconcile-duplicates`, {
+    accountId,
+  });
+  return response;
+};
+
 export const loadTransactionsForPeriod = async (
   connectionId: string,
   accountId: string,

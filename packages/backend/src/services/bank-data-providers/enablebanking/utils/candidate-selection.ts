@@ -2,9 +2,10 @@ import { type CounterpartyRow, getCounterpartyIban } from './transaction-metadat
 
 /**
  * Drops candidates whose counterparty IBAN contradicts the reference row's.
- * When the reference has an IBAN only an exact match survives – an IBAN-less
- * card pending is not the SEPA transfer that is looking for a partner. When
- * the reference has none (card purchases) nothing is filtered.
+ * When the reference has an IBAN, exact matches win; without any, IBAN-less
+ * candidates survive, since ASPSPs often omit the counterparty on the pending
+ * payload and fill it at booking. A different IBAN never survives. When the
+ * reference has none (card purchases) nothing is filtered.
  */
 export function filterIbanCompatible<T extends CounterpartyRow>({
   candidates,
@@ -14,7 +15,9 @@ export function filterIbanCompatible<T extends CounterpartyRow>({
   counterpartyIban: string | null;
 }): T[] {
   if (!counterpartyIban) return candidates;
-  return candidates.filter((candidate) => getCounterpartyIban({ tx: candidate }) === counterpartyIban);
+  const matches = candidates.filter((candidate) => getCounterpartyIban({ tx: candidate }) === counterpartyIban);
+  if (matches.length > 0) return matches;
+  return candidates.filter((candidate) => getCounterpartyIban({ tx: candidate }) === null);
 }
 
 /**

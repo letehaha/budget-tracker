@@ -10,8 +10,9 @@ import { bankProviderRegistry } from '../registry';
 
 /**
  * One-time reconciliation of duplicates the live matcher can no longer catch.
- * The provider first pairs each booked row with a leftover pending copy (±5 days,
- * booked at or after pending, IBAN-gated, user edits migrated via planEditMerge),
+ * The provider first pairs each booked row with a leftover pending copy (up to
+ * 14 days, booked at or after pending, IBAN-gated, user edits migrated via
+ * planEditMerge),
  * then runs the stricter pass that deletes rows without entryReference when a
  * sibling carrying one exists for the same fingerprint within ±2 days. Returns
  * { mergedCount, skippedCount, consideredPairs, unresolvedCount }. Only
