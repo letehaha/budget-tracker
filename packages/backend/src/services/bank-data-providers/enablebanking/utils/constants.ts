@@ -19,6 +19,13 @@ export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const PENDING_UPGRADE_WINDOW_DAYS = 14;
 
 /**
+ * How far an IBAN-less pending row may sit from a booked payload that carries a
+ * counterparty IBAN and still be taken as its pre-booking copy. Calendar days:
+ * a Friday transfer books Monday, a holiday weekend adds one more.
+ */
+export const IBAN_LESS_FALLBACK_WINDOW_DAYS = 5;
+
+/**
  * How far the IBAN fingerprint tier may look for a row whose hash date drifted.
  * Reconcile pass (b) reuses it, so retuning widens both live sync and reconcile.
  */

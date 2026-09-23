@@ -1743,10 +1743,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const ibanCompatible = filterIbanCompatible({
       candidates: pendingCandidates,
       counterpartyIban: counterpartyIban ?? null,
+      date: tx.date,
     });
     if (pendingCandidates.length > 0 && ibanCompatible.length === 0) {
       logger.info(
-        `Enable Banking pending upgrade: account ${accountId} dropped ${pendingCandidates.length} candidate(s) – iban_mismatch`,
+        `Enable Banking pending upgrade: account ${accountId} dropped ${pendingCandidates.length} candidate(s) – iban_mismatch_or_fallback_window`,
       );
       return null;
     }
@@ -1782,10 +1783,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    *   a) booked row + leftover pre-booking row, booked at or after pending and
    *      within PENDING_UPGRADE_WINDOW_DAYS. When the booked row has a
    *      counterparty IBAN, a pending row carrying the same one wins, an
-   *      IBAN-less one is the fallback, and a different IBAN never pairs; when it
-   *      has none (card purchases) no IBAN filtering happens. A pending row with
-   *      an entryReference only pairs with a booked row that has one too. User
-   *      edits on the pending copy move to the survivor.
+   *      IBAN-less one within IBAN_LESS_FALLBACK_WINDOW_DAYS is the fallback, and
+   *      a different IBAN never pairs; when it has none (card purchases) no IBAN
+   *      filtering happens. A pending row with an entryReference only pairs with
+   *      a booked row that has one too. User edits on the pending copy move to
+   *      the survivor.
    *   b) row with entryReference + row without, within ±2 days and sharing a
    *      counterparty IBAN.
    *
@@ -1877,6 +1879,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         const ibanCompatible = filterIbanCompatible({
           candidates: eligible,
           counterpartyIban: getCounterpartyIban({ tx: booked }),
+          date: booked.time,
         });
         unresolvedCount += pendingRows.length - ibanCompatible.length;
         for (const pending of ibanCompatible) {

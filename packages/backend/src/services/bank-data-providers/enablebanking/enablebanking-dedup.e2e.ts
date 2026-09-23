@@ -978,6 +978,36 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(externalData.entryReference).toBe('2025-03-03-09.17.04.263432');
     });
 
+    it('does not let a booked transfer adopt an IBAN-less pending row dated more than five days earlier', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '64.00',
+          transactionDate: '2025-03-01',
+          remittanceInformation: ['CARD PURCHASE PENDING'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '64.00',
+          currency: 'EUR',
+          isExpense: true,
+          status: 'BOOK',
+          bookingDate: '2025-03-07',
+          counterpartyIban: 'FI1414141414141414',
+          entryReference: 'sepa_late_ref',
+          remittanceInformation: ['SEPA TRANSFER BOOKED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect((await listTransactions({ accountId })).length).toBe(2);
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+    });
+
     it('prefers a pending row carrying the booked copy IBAN over an IBAN-less one', async () => {
       helpers.enablebanking.setFixedTransactions([
         {
@@ -1145,6 +1175,35 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         categoryId: canonical.categoryId,
         remittanceInformation: ['PENDING WITH REFERENCE'],
         entryReference: 'pending_ref_58',
+      });
+
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
+      expect(result.mergedCount).toBe(0);
+      expect((await listTransactions({ accountId })).length).toBe(2);
+    });
+
+    it('reconcile keeps an IBAN-less pending row dated more than five days before a booked row that carries an IBAN', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '73.00',
+          currency: 'EUR',
+          isExpense: true,
+          status: 'BOOK',
+          bookingDate: '2025-03-27',
+          counterpartyIban: 'FI1515151515151515',
+          entryReference: 'sepa_reconcile_late_ref',
+          remittanceInformation: ['SEPA TRANSFER BOOKED'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const canonical = (await listTransactions({ accountId }))[0]!;
+
+      await insertPendingOrphan({
+        accountId,
+        amount: 73,
+        time: new Date('2025-03-21').toISOString(),
+        categoryId: canonical.categoryId,
+        remittanceInformation: ['CARD PURCHASE PENDING'],
       });
 
       const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
