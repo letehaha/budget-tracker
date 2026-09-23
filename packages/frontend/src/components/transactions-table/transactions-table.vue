@@ -237,6 +237,15 @@
     <TransactionDetailsModal v-model:open="isDialogVisible" :mobile="isMobileMode" :is-compact="isCompactDialog">
       <ManageTransactionDialogContent v-bind="dialogProps" @close-modal="closeDialog" />
     </TransactionDetailsModal>
+
+    <LoanPaymentDialog
+      v-if="loanDialogProps.loanAccount"
+      :open="isLoanDialogVisible"
+      :loan-account="loanDialogProps.loanAccount"
+      :transaction="loanDialogProps.transaction"
+      :opposite-transaction="loanDialogProps.oppositeTransaction"
+      @update:open="(value) => !value && closeLoanDialog()"
+    />
   </div>
 </template>
 
@@ -285,6 +294,7 @@ const INITIAL_SKELETON_ROW_COUNT = 10;
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
 );
+const LoanPaymentDialog = defineAsyncComponent(() => import('@/pages/loans/components/loan-payment-dialog/index.vue'));
 
 const props = defineProps<{
   transactions: TransactionModel[];
@@ -329,8 +339,17 @@ const initialSkeletonRowCount = computed(() =>
 // payee lookup so any payee resolves, not just the truncated top-50 dropdown list.
 const { byId: payeeById } = usePayeeLookup();
 
-// Transaction detail dialog
-const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
+// Transaction detail dialog; transfer_to_loan rows route to the loan dialog instead
+const {
+  isDialogVisible,
+  dialogProps,
+  isCompactDialog,
+  handleRecordClick,
+  closeDialog,
+  isLoanDialogVisible,
+  loanDialogProps,
+  closeLoanDialog,
+} = useManageTransactionDialog();
 
 // Selection, eligibility, bulk mutations and dialog state — shared with the list view.
 const bulkActions = useBulkTransactionActions({
