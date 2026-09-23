@@ -346,6 +346,7 @@ const notifyLinked = ({ transaction, text }: { transaction: TransactionModel; te
 const link = async ({ transaction }: { transaction: TransactionModel }) => {
   try {
     await linkMutation.mutateAsync({ transaction });
+    trackAnalyticsEvent({ event: 'invoice_attached', properties: { method: 'link' } });
     notifyLinked({ transaction, text: t('dialogs.attachInvoice.linked') });
   } catch {
     // The mutation already surfaced the server message.
@@ -364,6 +365,7 @@ const onTransactionCreated = ({
   if (!transaction || attachmentsFailed) {
     return addWarningNotification(t('dialogs.attachInvoice.errors.createdNotAttached'));
   }
+  trackAnalyticsEvent({ event: 'invoice_attached', properties: { method: 'create' } });
   notifyLinked({ transaction, text: t('dialogs.attachInvoice.created') });
 };
 

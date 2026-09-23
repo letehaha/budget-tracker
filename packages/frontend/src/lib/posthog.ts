@@ -55,6 +55,7 @@ type AnalyticsEvent =
     }
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' | 'invoice_matching' } }
+  | { event: 'invoice_attached'; properties: { method: 'link' | 'create' } }
   | { event: 'ai_settings_visited' }
   | { event: 'automations_mcp_tip_opened' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
