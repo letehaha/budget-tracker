@@ -1,364 +1,245 @@
-import { AIFeatureConfig, AI_FEATURE, API_ERROR_CODES } from '@bt/shared/types';
+import { AI_FEATURE, PLANS } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
-import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
-import { RateLimitService } from '@services/common/rate-limit.service';
+import { SERVER_MODELS } from '@services/ai/resolution-ladder';
 import * as helpers from '@tests/helpers';
-import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
-import { makeRequest } from '@tests/helpers/common';
+import { enableServerModel, runAsCloud, useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import {
-  createFirstEndpoint,
-  errorMessage,
+  FIRST_CONNECTION_NAME,
+  SECOND_CONNECTION_MODEL,
+  SECOND_CONNECTION_NAME,
+  createFirstConnection,
+  createSecondConnection,
   getTestUserId,
   readStoredFeatureConfigs,
 } from '@tests/helpers/user-settings';
+import { createCallsCounter } from '@tests/mocks/helpers';
+import { MODELS_DEV_CATALOG, MODELS_DEV_URL, modelsDevUnavailableMock } from '@tests/mocks/models-dev/mock-api';
 import {
-  CUSTOM_ENDPOINT_BASE_URL,
-  CUSTOM_ENDPOINT_LISTED_MODELS,
-  CUSTOM_ENDPOINT_LISTING_BASE_URL,
+  CUSTOM_ENDPOINT_LOOPBACK_BASE_URL,
   CUSTOM_ENDPOINT_MODEL,
-  CUSTOM_ENDPOINT_UNKNOWN_MODEL,
   getCustomEndpointCallCountingMock,
-  getCustomEndpointOfflineMock,
 } from '@tests/mocks/openai-compatible/mock-api';
+import { randomUUID } from 'node:crypto';
 
-// Anthropic-retired alias – stored value would 404 at call time until upgraded.
-const RETIRED_MODEL_ID = 'anthropic/claude-3-5-haiku-latest';
-const LIVE_REPLACEMENT_ID = 'anthropic/claude-haiku-4-5';
+const FEATURE = AI_FEATURE.categorization;
+const FIRST_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
+const SECOND_MODEL_ID = `custom/${SECOND_CONNECTION_MODEL}`;
 
-async function seedFeatureConfigs({
-  userId,
-  configs,
-}: {
-  userId: number;
-  configs: { feature: AI_FEATURE; modelId: string }[];
-}): Promise<void> {
-  const [settings] = await UserSettings.findOrCreate({
-    where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
-  });
-
-  settings.settings = {
-    ...settings.settings,
-    ai: {
-      ...(settings.settings.ai ?? { apiKeys: [], featureConfigs: [] }),
-      featureConfigs: configs,
-    },
-  };
-
-  await settings.save();
-}
-
-async function readStoredConfig({
-  userId,
-  feature,
-}: {
-  userId: number;
-  feature: AI_FEATURE;
-}): Promise<AIFeatureConfig | null> {
-  return (await readStoredFeatureConfigs({ userId })).find((config) => config.feature === feature) ?? null;
-}
-
-async function readStoredModelId({ userId, feature }: { userId: number; feature: AI_FEATURE }): Promise<string | null> {
-  return (await readStoredConfig({ userId, feature }))?.modelId ?? null;
-}
-
-/** An endpoint that publishes a `/models` catalogue, so the list decides the verdict. */
-async function createListingEndpoint() {
-  return helpers.createAiCustomEndpoint({
-    name: 'Listing LLM',
-    baseUrl: CUSTOM_ENDPOINT_LISTING_BASE_URL,
-    defaultModel: CUSTOM_ENDPOINT_MODEL,
-    raw: true,
-  });
-}
-
-/** Saving an endpoint probes it too, so the budget is cleared once the setup is done. */
-async function resetProbeBudget({ userId }: { userId: number }) {
-  await RateLimitService.resetRateLimit(`ai-custom-endpoint-test:user:${userId}`);
-}
-
-describe('AI feature settings – lazy upgrade of retired model IDs', () => {
+describe('AI feature settings', () => {
   useSelfHostWithoutServerAiKeys();
 
   describe('GET /user/settings/ai/features', () => {
-    it('rewrites a retired model in the response and persists the upgrade', async () => {
-      const userId = await getTestUserId();
-      await seedFeatureConfigs({
-        userId,
-        configs: [
-          { feature: AI_FEATURE.categorization, modelId: RETIRED_MODEL_ID },
-          {
-            feature: AI_FEATURE.statementParsing,
-            modelId: LIVE_REPLACEMENT_ID,
-          },
-        ],
+    it('reports every feature as unserved without connections or a server model', async () => {
+      const { features } = await helpers.getAiFeaturesStatus({ raw: true });
+
+      expect(features.map(({ feature }) => feature).toSorted()).toEqual(Object.values(AI_FEATURE).toSorted());
+      for (const status of features) {
+        expect(status).toMatchObject({
+          isConfigured: false,
+          servedBy: null,
+          modelId: '',
+          modelName: '',
+          usingUserKey: false,
+          serverModelName: null,
+        });
+        expect(status.connectionId).toBeUndefined();
+      }
+    });
+
+    it('serves every unconfigured feature from the first connection', async () => {
+      const first = await createFirstConnection();
+      await createSecondConnection();
+
+      const { features } = await helpers.getAiFeaturesStatus({ raw: true });
+
+      for (const status of features) {
+        expect(status).toMatchObject({
+          isConfigured: false,
+          servedBy: 'connection',
+          connectionId: first.id,
+          connectionName: FIRST_CONNECTION_NAME,
+          modelId: FIRST_MODEL_ID,
+          modelName: CUSTOM_ENDPOINT_MODEL,
+          usingUserKey: true,
+        });
+      }
+    });
+
+    it('falls back to the included server model when the user has no connections', async () => {
+      enableServerModel();
+
+      const { features } = await helpers.getAiFeaturesStatus({ raw: true });
+
+      for (const status of features) {
+        expect(status).toMatchObject({ isConfigured: false, servedBy: 'server', usingUserKey: false });
+        expect(status.serverModelName).toEqual(expect.any(String));
+        expect(status.modelName).toBe(status.serverModelName);
+      }
+    });
+
+    it('names, prices and describes the answering model from the public model catalog, fetching it once', async () => {
+      enableServerModel();
+      const catalogCalls = createCallsCounter(global.mswMockServer, MODELS_DEV_URL);
+
+      await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      const status = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      const { name, cost, limit, modalities } = MODELS_DEV_CATALOG.google.models['gemini-3.8-flash'];
+
+      expect(status).toMatchObject({
+        servedBy: 'server',
+        modelName: name,
+        serverModelName: name,
+        pricing: { inputPerMillion: cost.input, outputPerMillion: cost.output },
+        capabilities: { inputs: modalities.input, maxOutputTokens: limit.output, structuredOutput: true },
       });
+      expect(catalogCalls.count).toBe(1);
+    });
 
-      const response = await makeRequest<{ features: Array<{ feature: AI_FEATURE; modelId: string }> }, true>({
-        method: 'get',
-        url: '/user/settings/ai/features',
-        raw: true,
+    it('reports the price and capabilities as unknown when the model catalog is unreachable, without refetching it', async () => {
+      enableServerModel();
+      global.mswMockServer.use(modelsDevUnavailableMock());
+      const catalogCalls = createCallsCounter(global.mswMockServer, MODELS_DEV_URL);
+
+      await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      const status = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+
+      expect(status).toMatchObject({
+        servedBy: 'server',
+        modelName: SERVER_MODELS[AI_FEATURE.statementParsing].model,
+        pricing: null,
+        capabilities: null,
       });
-
-      const categorization = response.features.find((f) => f.feature === AI_FEATURE.categorization);
-      expect(categorization?.modelId).toBe(LIVE_REPLACEMENT_ID);
-
-      expect(await readStoredModelId({ userId, feature: AI_FEATURE.categorization })).toBe(LIVE_REPLACEMENT_ID);
-      expect(
-        await readStoredModelId({
-          userId,
-          feature: AI_FEATURE.statementParsing,
-        }),
-      ).toBe(LIVE_REPLACEMENT_ID);
+      expect(catalogCalls.count).toBe(1);
     });
   });
 
   describe('GET /user/settings/ai/features/:feature', () => {
-    it('rewrites a retired model in the response and persists the upgrade', async () => {
-      const userId = await getTestUserId();
-      await seedFeatureConfigs({
-        userId,
-        configs: [{ feature: AI_FEATURE.statementParsing, modelId: RETIRED_MODEL_ID }],
-      });
+    it('offers the server model to receipt parsing on an invoice-matching trial, and to nothing else', async () => {
+      // Cloud mode, where the plan decides who gets the server model.
+      runAsCloud();
+      enableServerModel();
+      await helpers.setUserBilling({ plan: PLANS.essential });
 
-      const response = await makeRequest<{ modelId: string; isConfigured: boolean }, true>({
-        method: 'get',
-        url: `/user/settings/ai/features/${AI_FEATURE.statementParsing}`,
-        raw: true,
-      });
+      const receiptParsing = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.receiptParsing, raw: true });
+      const categorization = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
 
-      expect(response.modelId).toBe(LIVE_REPLACEMENT_ID);
-      expect(response.isConfigured).toBe(true);
-
-      const persisted = await readStoredModelId({
-        userId,
-        feature: AI_FEATURE.statementParsing,
-      });
-      expect(persisted).toBe(LIVE_REPLACEMENT_ID);
+      expect(receiptParsing).toMatchObject({ servedBy: 'server', serverModelName: expect.any(String) });
+      expect(categorization).toMatchObject({ servedBy: null, serverModelName: null });
     });
   });
 
   describe('PUT /user/settings/ai/features/:feature', () => {
-    it('accepts a retired model ID and silently upgrades it, but rejects a fully unknown one', async () => {
+    it('pins a connection other than the default and stores only its id', async () => {
       const userId = await getTestUserId();
+      const first = await createFirstConnection();
+      const second = await createSecondConnection();
 
-      const response = await makeRequest<{ modelId: string; isConfigured: boolean }, true>({
-        method: 'put',
-        url: `/user/settings/ai/features/${AI_FEATURE.categorization}`,
-        payload: { modelId: RETIRED_MODEL_ID },
-        raw: true,
+      const status = await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: second.id, raw: true });
+
+      expect(status).toMatchObject({
+        feature: FEATURE,
+        isConfigured: true,
+        configuredConnectionId: second.id,
+        servedBy: 'connection',
+        connectionId: second.id,
+        connectionName: SECOND_CONNECTION_NAME,
+        modelId: SECOND_MODEL_ID,
+        modelName: SECOND_CONNECTION_MODEL,
+        usingUserKey: true,
       });
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([{ feature: FEATURE, connectionId: second.id }]);
 
-      expect(response.modelId).toBe(LIVE_REPLACEMENT_ID);
-      expect(response.isConfigured).toBe(true);
-      expect(await readStoredModelId({ userId, feature: AI_FEATURE.categorization })).toBe(LIVE_REPLACEMENT_ID);
+      const otherFeature = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      expect(otherFeature).toMatchObject({ isConfigured: false, connectionId: first.id });
+    });
 
-      const rejected = await makeRequest({
-        method: 'put',
-        url: `/user/settings/ai/features/${AI_FEATURE.categorization}`,
-        payload: { modelId: 'anthropic/this-model-never-existed' },
+    it('makes no outbound call when a feature is pointed at a connection', async () => {
+      await createFirstConnection();
+      const second = await createSecondConnection();
+
+      let connectionCalls = 0;
+      global.mswMockServer.use(
+        getCustomEndpointCallCountingMock({
+          baseUrl: CUSTOM_ENDPOINT_LOOPBACK_BASE_URL,
+          onCall: () => {
+            connectionCalls += 1;
+          },
+        }),
+      );
+
+      const response = await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: second.id });
+
+      expect(response.statusCode).toBe(200);
+      expect(connectionCalls).toBe(0);
+    });
+
+    it('rejects an unknown connection and keeps the stored pick', async () => {
+      const userId = await getTestUserId();
+      const first = await createFirstConnection();
+      await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: first.id, raw: true });
+
+      const response = await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: randomUUID() });
+
+      expect(response.statusCode).toBe(404);
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([{ feature: FEATURE, connectionId: first.id }]);
+    });
+
+    it('refuses the server model when the user cannot use it', async () => {
+      const userId = await getTestUserId();
+      await createFirstConnection();
+
+      const response = await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: null });
+
+      expect(response.statusCode).toBe(422);
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([]);
+    });
+
+    it('pins the server model over the default connection', async () => {
+      const userId = await getTestUserId();
+      enableServerModel();
+      await createFirstConnection();
+
+      const status = await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: null, raw: true });
+
+      expect(status).toMatchObject({
+        isConfigured: true,
+        configuredConnectionId: null,
+        servedBy: 'server',
+        usingUserKey: false,
       });
-
-      expect(rejected.statusCode).toBe(422);
-      expect(await readStoredModelId({ userId, feature: AI_FEATURE.categorization })).toBe(LIVE_REPLACEMENT_ID);
-    });
-  });
-});
-
-describe('PUT /user/settings/ai/features/:feature – custom model probe', () => {
-  const SERVED_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
-  const UNSERVED_MODEL_ID = `custom/${CUSTOM_ENDPOINT_UNKNOWN_MODEL}`;
-
-  useSelfHostWithoutServerAiKeys();
-
-  it('rejects an unserved model and one on an unreachable endpoint, keeping the stored config', async () => {
-    const userId = await getTestUserId();
-    const endpoint = await createFirstEndpoint();
-    await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
+      expect(status.connectionId).toBeUndefined();
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([{ feature: FEATURE, connectionId: null }]);
     });
 
-    const unserved = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: UNSERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
-    });
+    it('reports a server pick as unconfigured once the server model is gone', async () => {
+      enableServerModel();
+      const first = await createFirstConnection();
+      await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: null, raw: true });
 
-    expect(unserved.statusCode).toBe(422);
-    expect(errorMessage({ response: unserved })).toContain(CUSTOM_ENDPOINT_UNKNOWN_MODEL);
+      delete process.env.GEMINI_API_KEY;
 
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-    });
+      const status = await helpers.getAiFeatureConfig({ feature: FEATURE, raw: true });
 
-    // The endpoint answered while it was being saved; it goes down only now
-    global.mswMockServer.use(getCustomEndpointOfflineMock({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
-
-    const unreachable = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: SERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
-    });
-
-    expect(unreachable.statusCode).toBe(422);
-
-    const unreachableMessage = errorMessage({ response: unreachable });
-    expect(unreachableMessage).toEqual(expect.any(String));
-    expect(unreachableMessage).not.toContain(CUSTOM_ENDPOINT_MODEL);
-
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-    });
-  }, 30_000);
-
-  it('rejects a model missing from the endpoint model list and saves a listed one', async () => {
-    const userId = await getTestUserId();
-    const endpoint = await createListingEndpoint();
-    await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-    });
-
-    const response = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: `custom/${CUSTOM_ENDPOINT_UNKNOWN_MODEL}`,
-      customEndpointId: endpoint.id,
-    });
-
-    expect(response.statusCode).toBe(422);
-    expect(errorMessage({ response })).toContain(CUSTOM_ENDPOINT_UNKNOWN_MODEL);
-    expect(errorMessage({ response })).toContain(CUSTOM_ENDPOINT_LISTED_MODELS[0]);
-
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-    });
-
-    let endpointCalls = 0;
-    global.mswMockServer.use(
-      getCustomEndpointCallCountingMock({
-        baseUrl: CUSTOM_ENDPOINT_LISTING_BASE_URL,
-        onCall: () => {
-          endpointCalls += 1;
-        },
-      }),
-    );
-
-    const config = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: SERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
-      raw: true,
-    });
-
-    expect(config.modelId).toBe(SERVED_MODEL_ID);
-    expect(endpointCalls).toBe(0);
-
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: SERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
+      expect(status).toMatchObject({
+        isConfigured: false,
+        servedBy: 'connection',
+        connectionId: first.id,
+        serverModelName: null,
+      });
     });
   });
 
-  it('makes no outbound call for a catalog model, then saves a custom model the endpoint serves', async () => {
-    const userId = await getTestUserId();
-    const endpoint = await createFirstEndpoint();
-
-    let endpointCalls = 0;
-    global.mswMockServer.use(
-      getCustomEndpointCallCountingMock({
-        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-        onCall: () => {
-          endpointCalls += 1;
-        },
-      }),
-    );
-
-    const catalogConfig = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-      raw: true,
-    });
-
-    expect(catalogConfig.isConfigured).toBe(true);
-    expect(endpointCalls).toBe(0);
-
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: LIVE_REPLACEMENT_ID,
-    });
-
-    const customConfig = await helpers.setAiFeatureConfig({
-      feature: AI_FEATURE.categorization,
-      modelId: SERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
-      raw: true,
-    });
-
-    expect(customConfig.modelId).toBe(SERVED_MODEL_ID);
-    expect(customConfig.customEndpointId).toBe(endpoint.id);
-    expect(customConfig.isConfigured).toBe(true);
-
-    expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
-      feature: AI_FEATURE.categorization,
-      modelId: SERVED_MODEL_ID,
-      customEndpointId: endpoint.id,
-    });
-  });
-
-  describe('Outbound probe rate limit', () => {
-    it('counts a custom model against the same budget as a connection test', async () => {
+  describe('DELETE /user/settings/ai/features/:feature', () => {
+    it('clears the pick so the feature goes back to the default connection', async () => {
       const userId = await getTestUserId();
-      const endpoint = await createFirstEndpoint();
-      await resetProbeBudget({ userId });
+      const first = await createFirstConnection();
+      const second = await createSecondConnection();
+      await helpers.setAiFeatureConfig({ feature: FEATURE, connectionId: second.id, raw: true });
 
-      for (let attempt = 1; attempt <= 15; attempt++) {
-        const probe = await helpers.testAiCustomEndpoint({
-          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-          defaultModel: CUSTOM_ENDPOINT_MODEL,
-        });
-        expect(probe.statusCode).toBe(200);
-      }
+      const status = await helpers.resetAiFeatureConfig({ feature: FEATURE, raw: true });
 
-      const blocked = await helpers.setAiFeatureConfig({
-        feature: AI_FEATURE.categorization,
-        modelId: SERVED_MODEL_ID,
-        customEndpointId: endpoint.id,
-      });
-
-      expect(blocked.statusCode).toBe(429);
-      const errorBody = blocked.body as unknown as {
-        response?: { code?: string };
-      };
-      expect(errorBody.response?.code).toBe(API_ERROR_CODES.tooManyRequests);
-
-      expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toBeNull();
-    }, 30_000);
-
-    it('leaves the budget untouched for catalog models', async () => {
-      const userId = await getTestUserId();
-      await resetProbeBudget({ userId });
-
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        const saved = await helpers.setAiFeatureConfig({
-          feature: AI_FEATURE.categorization,
-          modelId: LIVE_REPLACEMENT_ID,
-        });
-        expect(saved.statusCode).toBe(200);
-      }
-
-      // A consumed budget would start refusing these before the 15th
-      for (let attempt = 1; attempt <= 15; attempt++) {
-        const probe = await helpers.testAiCustomEndpoint({
-          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-          defaultModel: CUSTOM_ENDPOINT_MODEL,
-        });
-        expect(probe.statusCode).toBe(200);
-      }
-    }, 30_000);
+      expect(status).toMatchObject({ isConfigured: false, servedBy: 'connection', connectionId: first.id });
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([]);
+    });
   });
 });

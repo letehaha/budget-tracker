@@ -16,13 +16,14 @@ import AccountUnlinkSection from '@/pages/account/components/account-unlink-sect
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { AccountModel, SHARE_PERMISSIONS } from '@bt/shared/types';
+import { ACCOUNT_TYPES, AccountModel, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { AlertTriangleIcon, ExternalLinkIcon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LoadTransactions from './load-transactions.vue';
+import ReconcileDuplicates from './reconcile-duplicates.vue';
 import SyncTransactions from './sync-transactions.vue';
 
 const { t } = useI18n();
@@ -131,6 +132,12 @@ const tabItems = computed<PillTabItem[]>(() => {
         <Separator />
 
         <LoadTransactions :account="account" />
+
+        <template v-if="account.type === ACCOUNT_TYPES.enableBanking">
+          <Separator />
+
+          <ReconcileDuplicates :account="account" />
+        </template>
 
         <div class="border-destructive @container/danger-zone mt-2 grid gap-4 rounded-xl border p-4 sm:-mx-4">
           <p class="text-lg font-medium">{{ t('pages.account.deletion.dangerZone') }}</p>

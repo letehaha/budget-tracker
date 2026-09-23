@@ -132,11 +132,8 @@ export function wherePreBookingStatus() {
   });
 }
 
-export function isPendingOrphan({ tx }: { tx: StoredRow }): boolean {
-  return (
-    isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.externalData }) }) &&
-    getEntryReference({ tx }) === null
-  );
+export function isPreBookingRow({ tx }: { tx: StoredRow }): boolean {
+  return isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.externalData }) });
 }
 
 /**

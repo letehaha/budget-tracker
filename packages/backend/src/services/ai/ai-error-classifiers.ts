@@ -9,6 +9,12 @@ import { APICallError, RetryError } from 'ai';
 const MODEL_NOT_FOUND_MARKERS = ['model_not_found', 'not found', 'does not exist', 'unknown model'];
 
 /**
+ * OpenRouter's 404 when the model exists but none of its providers can take the request,
+ * such as an image sent to a text-only model.
+ */
+const UNSUPPORTED_REQUEST_MARKER = 'no endpoints found that';
+
+/**
  * The SDK hides the error that actually ended the call inside a RetryError, so classifying
  * the outer error misreads a blocked address or a rejected key.
  */
@@ -113,9 +119,21 @@ export function isModelNotFoundError({ error }: { error: unknown }): boolean {
   return MODEL_NOT_FOUND_MARKERS.some((marker) => message.includes(marker));
 }
 
+function isUnsupportedRequestError({ error }: { error: unknown }): boolean {
+  const cause = unwrapRetryError({ error });
+
+  if (!(cause instanceof APICallError) || !answeredAsApi({ error: cause })) return false;
+  return cause.message.toLowerCase().includes(UNSUPPORTED_REQUEST_MARKER);
+}
+
+/** `reason` is the provider's own words, which name what the model can't take. */
+export function buildUnsupportedRequestMessage({ modelId, reason }: { modelId: string; reason: string }): string {
+  return `The AI model "${getModelNameFromModelId({ modelId })}" can't handle this request: ${reason}. Please pick a different model in AI settings.`;
+}
+
 /** Reaches the user through job error lists rather than an HTTP response, so it stays English. */
 export function buildModelNotServedMessage({ modelId }: { modelId: string }): string {
-  return `The AI model "${getModelNameFromModelId({ modelId })}" is not available on the configured AI endpoint. Please update the model name in AI settings.`;
+  return `The AI model "${getModelNameFromModelId({ modelId })}" is not available from its provider. Please update the model name in AI settings.`;
 }
 
 /**
@@ -138,7 +156,11 @@ export function isTemporaryError({ error }: { error: unknown }): boolean {
 export function isAuthError({ error }: { error: unknown }): boolean {
   if (error instanceof APICallError) {
     const status = error.statusCode;
-    return status === 401 || status === 403;
+    if (status === 401 || status === 403) return true;
+
+    // Gemini answers a bad key with a 400 carrying `API_KEY_INVALID`
+    const text = `${error.message} ${error.responseBody ?? ''}`.toLowerCase();
+    return status === 400 && (text.includes('api_key_invalid') || text.includes('api key not valid'));
   }
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
@@ -156,6 +178,7 @@ export function isAuthError({ error }: { error: unknown }): boolean {
 export type AiCallFailureKind =
   | 'blocked-address'
   | 'endpoint-down'
+  | 'unsupported-request'
   | 'model-not-found'
   | 'auth'
   | 'rate-limited'
@@ -172,9 +195,9 @@ interface AiCallFailure {
 
 /**
  * One verdict for a failed AI call. The precedence is load-bearing: blocked-address >
- * endpoint-down > model-not-found > auth > rate-limited > temporary > unknown, because the
- * broad predicates swallow the specific ones. `isTemporaryError` accepts anything the SDK
- * flagged retryable and `isAuthError` matches substrings in the message.
+ * endpoint-down > unsupported-request > model-not-found > auth > rate-limited > temporary >
+ * unknown, because the broad predicates swallow the specific ones. `isTemporaryError`
+ * accepts anything the SDK flagged retryable and `isAuthError` matches substrings in the message.
  */
 export function classifyAiCallFailure({ error }: { error: unknown }): AiCallFailure {
   const unwrapped = unwrapRetryError({ error });
@@ -188,6 +211,9 @@ export function classifyAiCallFailure({ error }: { error: unknown }): AiCallFail
   }
   if (isConnectionError({ error: unwrapped }) || isNonApiResponseError({ error: unwrapped })) {
     return { kind: 'endpoint-down', cause, httpStatus };
+  }
+  if (isUnsupportedRequestError({ error: unwrapped })) {
+    return { kind: 'unsupported-request', cause, httpStatus };
   }
   if (isModelNotFoundError({ error: unwrapped })) {
     return { kind: 'model-not-found', cause, httpStatus };

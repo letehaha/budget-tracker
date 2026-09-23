@@ -76,7 +76,7 @@ import {
   hasSettledStatus,
   isBookedCanonical,
   isNonLedgerStatus,
-  isPendingOrphan,
+  isPreBookingRow,
   isPreBookingStatus,
   isRevokedStatus,
   parseBookingDay,
@@ -1707,11 +1707,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       if (byFingerprint) return byFingerprint;
     }
 
-    // (4) Pending upgrade. A card purchase first arrives as PDNG or HOLD and is
-    // re-issued as BOOK with different remittance text and, on some ASPSPs, a
-    // different entry_reference, so no earlier tier sees it. Safety comes from
-    // the pre-booking-only candidate pool, exact amount/currency/type equality, the
-    // conditional IBAN gate below, and the caller flipping the matched row to BOOK.
+    // (4) Pending upgrade. A card purchase or transfer first arrives as PDNG or
+    // HOLD and is re-issued as BOOK with different remittance text and, on some
+    // ASPSPs, a different entry_reference, so no earlier tier sees it. Safety comes
+    // from the pre-booking-only candidate pool, exact amount/currency/type equality,
+    // the IBAN gate below (a different counterparty IBAN never matches), and the
+    // caller flipping the matched row to BOOK.
     // A stored entryReference is only tolerated when the incoming payload carries
     // one too: then tier 1 has already ruled out an equal-reference row, so the
     // mismatch is the fresh-reference re-issue. A reference-less payload never
@@ -1730,8 +1731,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         // re-stamped by a heuristic; the booked copy lands as its own row instead.
         transferId: { [Op.is]: null },
         refundLinked: false,
+        // A pending copy can trail its booking by a day or two of date drift, never
+        // by weeks, so the forward side stays narrow.
         time: {
-          [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS)],
+          [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, FINGERPRINT_WINDOW_DAYS)],
         },
         [Op.and]: entryReference ? [wherePreBookingStatus()] : [wherePreBookingStatus(), whereNoEntryReference()],
       },
@@ -1740,10 +1743,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const ibanCompatible = filterIbanCompatible({
       candidates: pendingCandidates,
       counterpartyIban: counterpartyIban ?? null,
+      date: tx.date,
     });
     if (pendingCandidates.length > 0 && ibanCompatible.length === 0) {
       logger.info(
-        `Enable Banking pending upgrade: account ${accountId} dropped ${pendingCandidates.length} candidate(s) – iban_mismatch`,
+        `Enable Banking pending upgrade: account ${accountId} dropped ${pendingCandidates.length} candidate(s) – iban_mismatch_or_fallback_window`,
       );
       return null;
     }
@@ -1776,10 +1780,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * One-time reconciliation of duplicate pairs that predate the live-sync
    * matcher. Two passes per (amount, currency, type) bucket:
    *
-   *   a) booked row + leftover pre-booking row within ±5 days, booked at or after
-   *      pending. When the booked row has a counterparty IBAN the pending row
-   *      must carry the same one; when it has none (card purchases) no IBAN
-   *      filtering happens. User edits on the pending copy move to the survivor.
+   *   a) booked row + leftover pre-booking row, booked at or after pending and
+   *      within PENDING_UPGRADE_WINDOW_DAYS. When the booked row has a
+   *      counterparty IBAN, a pending row carrying the same one wins, an
+   *      IBAN-less one within IBAN_LESS_FALLBACK_WINDOW_DAYS is the fallback, and
+   *      a different IBAN never pairs; when it has none (card purchases) no IBAN
+   *      filtering happens. A pending row with an entryReference only pairs with
+   *      a booked row that has one too. User edits on the pending copy move to
+   *      the survivor.
    *   b) row with entryReference + row without, within ±2 days and sharing a
    *      counterparty IBAN.
    *
@@ -1848,7 +1856,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     for (const candidates of buckets.values()) {
       if (candidates.length < 2) continue;
 
-      const pendingRows = candidates.filter((c) => isPendingOrphan({ tx: c }));
+      const pendingRows = candidates.filter((c) => isPreBookingRow({ tx: c }));
       const bookedRows = candidates.filter((c) => isBookedCanonical({ tx: c }));
 
       // Nearest-first over every plausible pair, so the closest booked/pending
@@ -1858,18 +1866,24 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       // value_date estimate postdated the booking, which is the cheaper mistake.
       const pairs: { booked: Transactions; pending: Transactions; distance: number }[] = [];
       for (const booked of bookedRows) {
+        const bookedHasEntryReference = getEntryReference({ tx: booked }) !== null;
+        // Window first: the IBAN gate's IBAN-less fallback depends on which
+        // candidates are in play, so an out-of-window match must not suppress it.
+        const eligible = pendingRows.filter((pending) => {
+          const distance = booked.time.getTime() - pending.time.getTime();
+          if (distance < 0 || distance > PENDING_UPGRADE_WINDOW_DAYS * MS_PER_DAY) return false;
+          // A referenced pending row can only be re-issued under a fresh
+          // reference, so a reference-less booked row is not its copy.
+          return bookedHasEntryReference || getEntryReference({ tx: pending }) === null;
+        });
         const ibanCompatible = filterIbanCompatible({
-          candidates: pendingRows,
+          candidates: eligible,
           counterpartyIban: getCounterpartyIban({ tx: booked }),
+          date: booked.time,
         });
         unresolvedCount += pendingRows.length - ibanCompatible.length;
         for (const pending of ibanCompatible) {
-          const distance = booked.time.getTime() - pending.time.getTime();
-          if (distance < 0 || distance > PENDING_UPGRADE_WINDOW_DAYS * MS_PER_DAY) {
-            unresolvedCount++;
-            continue;
-          }
-          pairs.push({ booked, pending, distance });
+          pairs.push({ booked, pending, distance: booked.time.getTime() - pending.time.getTime() });
         }
       }
       pairs.sort(

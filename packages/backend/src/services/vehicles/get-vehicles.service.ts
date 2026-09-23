@@ -1,6 +1,7 @@
 import Accounts from '@models/accounts.model';
 import Vehicles from '@models/vehicles.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 
 import { refreshStaleVehicleValuesForUser } from './refresh-vehicle-value.service';
 
@@ -13,8 +14,10 @@ const getVehiclesImpl = async ({ userId }: GetVehiclesParams) => {
   // are fresh in the response. Errors per-vehicle are swallowed inside.
   await refreshStaleVehicleValuesForUser({ userId });
 
+  const accountIds = await getAccessibleAccountIdsForUser({ userId });
+
   return Vehicles.findAll({
-    where: { userId },
+    where: { accountId: accountIds },
     include: [{ model: Accounts }],
     order: [['createdAt', 'DESC']],
   });

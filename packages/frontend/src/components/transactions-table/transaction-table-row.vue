@@ -48,7 +48,7 @@
         <div class="flex items-center gap-1.5">
           <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
           <span class="max-w-36 truncate">{{ accountFrom?.name }}</span>
-          <template v-if="isCommonTransfer">
+          <template v-if="isTwoLegTransferRow">
             <ArrowRightIcon :size="13" class="shrink-0 opacity-60" />
             <AccountLogo
               v-if="transferDestinationAccount"
@@ -196,6 +196,7 @@ import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore } from '@/stores';
 import {
   CATEGORIZATION_SOURCE,
+  isTwoLegTransfer,
   PayeeLookupItem,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -233,16 +234,16 @@ const { categoriesMap } = storeToRefs(useCategoriesStore());
 const { accountsRecord } = storeToRefs(useAccountsStore());
 const { formatBaseCurrency } = useFormatCurrency();
 
-const isCommonTransfer = computed(() => props.tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer);
+const isTwoLegTransferRow = computed(() => isTwoLegTransfer(props.tx.transferNature));
 const isOutOfWalletTransfer = computed(
   () => props.tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
 );
 const isPortfolioLinked = computed(() => props.tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
-const isTransferRow = computed(() => isCommonTransfer.value || isOutOfWalletTransfer.value || isPortfolioLinked.value);
+const isTransferRow = computed(
+  () => isTwoLegTransferRow.value || isOutOfWalletTransfer.value || isPortfolioLinked.value,
+);
 const isPlannedRow = computed(() => props.tx.isPlanned);
 
-// Opposite leg lookup is only meaningful for common transfers; the composable
-// no-ops for other natures.
 const { data: oppositeTx } = useOppositeTxRecord(() => props.tx);
 
 const portfolioLinkId = computed(() => (isPortfolioLinked.value ? props.tx.id : undefined));
@@ -261,7 +262,7 @@ const transferDestinationName = computed(
 const formattedDate = computed(() => format(new Date(props.tx.time), 'd MMM y'));
 
 const amountColorClass = computed(() => {
-  if (isCommonTransfer.value) return 'text-app-transfer-color';
+  if (isTwoLegTransferRow.value) return 'text-app-transfer-color';
   if (props.tx.transactionType === TRANSACTION_TYPES.income) return 'text-app-income-color';
   return 'text-app-expense-color';
 });

@@ -1,9 +1,20 @@
 import { HttpResponse, http } from 'msw';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+export const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_MODELS_URL = 'https://api.anthropic.com/v1/models';
 
 export const VALID_ANTHROPIC_API_KEY = 'sk-ant-test-valid-key-12345';
 export const INVALID_ANTHROPIC_API_KEY = 'sk-ant-test-invalid-key';
+
+/** What the default `/v1/models` handler lists. */
+export const ANTHROPIC_LISTED_MODELS = ['claude-haiku-4-5', 'claude-opus-5', 'claude-sonnet-5'];
+
+function authErrorResponse() {
+  return HttpResponse.json(
+    { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } },
+    { status: 401 },
+  );
+}
 
 interface MockCategorizationOptions {
   /** Map of transaction ordinal to category ordinal (1-based, prompt order), emitted as "t1:c2" alias pairs */
@@ -24,18 +35,8 @@ export function createAnthropicMock(options: MockCategorizationOptions = {}) {
   return http.post(ANTHROPIC_API_URL, ({ request }) => {
     const apiKey = request.headers.get('x-api-key');
 
-    // Check for invalid API key
     if (apiKey === INVALID_ANTHROPIC_API_KEY) {
-      return HttpResponse.json(
-        {
-          type: 'error',
-          error: {
-            type: 'authentication_error',
-            message: 'Invalid API key',
-          },
-        },
-        { status: 401 },
-      );
+      return authErrorResponse();
     }
 
     // Simulate failure if requested
@@ -139,7 +140,26 @@ export function createDynamicCategorizationMock({ categoryId }: { categoryId: nu
   });
 }
 
+/** Answers in the paginated shape the API uses. */
+const modelListHandler = http.get(ANTHROPIC_MODELS_URL, ({ request }) => {
+  if (request.headers.get('x-api-key') === INVALID_ANTHROPIC_API_KEY) {
+    return authErrorResponse();
+  }
+
+  return HttpResponse.json({
+    data: ANTHROPIC_LISTED_MODELS.map((id) => ({
+      type: 'model',
+      id,
+      display_name: id,
+      created_at: '2026-01-01T00:00:00Z',
+    })),
+    has_more: false,
+    first_id: ANTHROPIC_LISTED_MODELS[0],
+    last_id: ANTHROPIC_LISTED_MODELS.at(-1),
+  });
+});
+
 /**
- * Default handler that returns empty categorization
+ * Default handlers: an empty categorization answer and the model list
  */
-export const anthropicHandlers = [createAnthropicMock()];
+export const anthropicHandlers = [createAnthropicMock(), modelListHandler];

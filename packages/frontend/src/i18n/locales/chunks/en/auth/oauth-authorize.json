@@ -5,7 +5,7 @@
       "description": "This app is requesting these permissions:",
       "approve": "Approve",
       "deny": "Deny",
-      "footer": "You can revoke access at any time from Settings > AI Integrations.",
+      "footer": "You can revoke access at any time from Settings → AI → Connectors (MCP).",
       "error": "Failed to process request. Please try again.",
       "unexpected_response": "Unexpected response from server. Please try again.",
       "always_granted": "Always granted",

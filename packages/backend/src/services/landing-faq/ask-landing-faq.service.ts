@@ -1,14 +1,14 @@
-import { AI_MODEL_ID, AI_PROVIDER } from '@bt/shared/types';
+import { AI_PROVIDER } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ServiceUnavailableError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import { createAIClientWithConfig } from '@services/ai/ai-client-factory';
+import { createProviderModel } from '@services/ai/ai-client-factory';
 import { Output, generateText } from 'ai';
 import { z } from 'zod';
 
 import { LANDING_FAQ_KNOWLEDGE } from './knowledge';
 
-export const LANDING_FAQ_MODEL_ID = AI_MODEL_ID['google/gemini-3.5-flash-lite'];
+export const LANDING_FAQ_MODEL = 'gemini-3.5-flash-lite';
 
 // `unknown` is the signal worth tracking: a question about MoneyMatter that the knowledge text
 // cannot answer. `off_topic` keeps unrelated questions out of that list.
@@ -53,11 +53,13 @@ export const askLandingFaq = async ({ question }: { question: string }): Promise
 
   try {
     const { output, usage, finishReason } = await generateText({
-      model: createAIClientWithConfig({ provider: AI_PROVIDER.google, modelId: LANDING_FAQ_MODEL_ID, apiKey }),
+      model: createProviderModel({ provider: AI_PROVIDER.google, model: LANDING_FAQ_MODEL, apiKey }),
       system: SYSTEM_PROMPT,
       prompt: question,
       output: Output.object({ schema: answerSchema }),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
+      // Answering from the given knowledge needs little reasoning, and default thinking can push past the timeout.
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
       abortSignal: AbortSignal.timeout(AI_CALL_TIMEOUT_MS),
       maxRetries: 1,
     });

@@ -1,12 +1,21 @@
 import { afterEach, beforeEach } from '@jest/globals';
 
-/** Providers the model resolver reads server-side keys for. */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'GEMINI_PLUS_API_KEY'] as const;
+
+/** The outbound URL guard rejects anything that is not a public internet host. */
+export function runAsCloud(): void {
+  delete process.env.IS_SELF_HOST;
+}
+
+/** Any value works: the server model only needs the operator to hold a key for its provider. */
+export function enableServerModel(): void {
+  process.env.GEMINI_API_KEY = 'server-side-gemini-key';
+}
 
 /**
  * Self-host stands the outbound URL guard down, which the mock endpoints need because they
- * live on hosts that never resolve. An ambient server key would answer the feature before
- * the endpoint under test is ever dialled.
+ * live on hosts that never resolve. Server keys are cleared so the included server model
+ * answers only in tests that call enableServerModel().
  */
 export function useSelfHostWithoutServerAiKeys(): void {
   let selfHostFlagBeforeTest: string | undefined;

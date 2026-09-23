@@ -205,6 +205,17 @@ export const getCustomEndpointModelNotFoundMock = ({
     return modelNotFoundResponse({ model: await requestedModel({ request }) });
   });
 
+/** OpenRouter's 404 for a request the model can't take, such as an image sent to a text-only model. */
+export const getCustomEndpointUnsupportedInputMock = ({
+  baseUrl = CUSTOM_ENDPOINT_BASE_URL,
+}: { baseUrl?: string } = {}) =>
+  http.post(chatCompletionsUrl({ baseUrl }), () =>
+    HttpResponse.json(
+      { error: { message: 'No endpoints found that support image input', code: 404 } },
+      { status: 404 },
+    ),
+  );
+
 /** Succeeds and fires `onCall`, so a test can prove the server issued an outbound request. */
 export const getCustomEndpointCallCountingMock = ({
   onCall,

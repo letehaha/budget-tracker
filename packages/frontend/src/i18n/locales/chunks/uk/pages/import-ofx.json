@@ -19,7 +19,7 @@
           "parsing": "Читання файлу…",
           "continue": "Продовжити",
           "errors": {
-            "invalidFormatNamed": "\"{name}\" не є файлом OFX або QFX."
+            "invalidFormatNamed": "«{name}» не є файлом OFX або QFX."
           }
         },
         "errors": {
@@ -45,8 +45,8 @@
             "createNewForUnmatched": "Створити нові для незіставлених",
             "reset": "Скинути",
             "tooltips": {
-              "mapExactMatches": "Пов'язує кожен рахунок з наявним рахунком, що має таку саму назву та валюту.",
-              "createNewForUnmatched": "Встановлює створення нового рахунку для кожного рахунку, не пов'язаного з наявним.",
+              "mapExactMatches": "Зіставляє кожен рахунок з наявним рахунком, що має таку саму назву та валюту.",
+              "createNewForUnmatched": "Встановлює створення нового рахунку для кожного рахунку, не зіставленого з наявним.",
               "reset": "Очищає всі вибори та повторно запускає зіставлення."
             }
           },
@@ -79,7 +79,7 @@
           "progressCount": "{processed} з {total}",
           "failed": "Помилка імпорту.",
           "partialImportNote": "Деякі транзакції вже могли бути імпортовані.",
-          "statusQueued": "В черзі",
+          "statusQueued": "У черзі",
           "statusRunning": "Імпортування",
           "statusCompleted": "Завершено",
           "statusFailed": "Помилка"
@@ -94,7 +94,7 @@
           "failedTitle": "Нічого не імпортовано",
           "failedDescription": "Жодної транзакції не вдалося створити. Перегляньте помилки нижче.",
           "accountsCreated": "Рахунків створено",
-          "accountsLinked": "Рахунків прив'язано",
+          "accountsLinked": "Рахунків зіставлено",
           "accountsSkipped": "Рахунків пропущено",
           "payeesCreated": "Отримувачів створено",
           "transactionsImported": "Транзакцій імпортовано",

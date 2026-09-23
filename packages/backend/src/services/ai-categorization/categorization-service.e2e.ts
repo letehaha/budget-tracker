@@ -18,9 +18,6 @@ import { DOMAIN_EVENTS, eventBus } from '../common/event-bus';
  *
  * These tests verify the complete flow from bank transaction sync
  * to AI-powered automatic categorization.
- *
- * Note: AI categorization now uses a server-side GEMINI_API_KEY environment variable
- * instead of per-user API keys.
  */
 describe('AI Categorization Service E2E', () => {
   // Store original env value to restore after tests
@@ -290,49 +287,4 @@ describe('AI Categorization Service E2E', () => {
       expect(enforceTransaction?.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
     }, 60_000);
   });
-
-  // AI API Key management routes are disabled - using server-side GEMINI_API_KEY instead
-  // These tests are kept for reference but skipped
-  // describe('AI API Key management', () => {
-  //   it('should allow setting and retrieving AI API key status', async () => {
-  //     // Initially no key set
-  //     const initialStatus = await helpers.getAiApiKeyStatus({ raw: true });
-  //     expect(initialStatus.hasApiKey).toBe(false);
-  //
-  //     // Set API key
-  //     await helpers.setAiApiKey({
-  //       apiKey: VALID_GEMINI_API_KEY,
-  //       provider: AI_PROVIDER.google,
-  //       raw: true,
-  //     });
-  //
-  //     // Verify key is set
-  //     const afterStatus = await helpers.getAiApiKeyStatus({ raw: true });
-  //     expect(afterStatus.hasApiKey).toBe(true);
-  //     expect(afterStatus.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.google)).toBe(true);
-  //   });
-  //
-  //   it('should allow deleting AI API key', async () => {
-  //     // Set API key
-  //     await helpers.setAiApiKey({
-  //       apiKey: VALID_GEMINI_API_KEY,
-  //       provider: AI_PROVIDER.google,
-  //       raw: true,
-  //     });
-  //
-  //     // Verify key is set
-  //     const statusBefore = await helpers.getAiApiKeyStatus({ raw: true });
-  //     expect(statusBefore.hasApiKey).toBe(true);
-  //
-  //     // Delete key
-  //     await helpers.deleteAiApiKey({
-  //       provider: AI_PROVIDER.google,
-  //       raw: true,
-  //     });
-  //
-  //     // Verify key is deleted
-  //     const statusAfter = await helpers.getAiApiKeyStatus({ raw: true });
-  //     expect(statusAfter.providers.some((p: { provider: string }) => p.provider === AI_PROVIDER.google)).toBe(false);
-  //   });
-  // });
 });

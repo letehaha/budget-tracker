@@ -978,14 +978,17 @@ describe('[Stats] Spendings by categories – excludedCategoryIds', () => {
       },
       raw: true,
     });
-    expectCompleted(await waitForBudgetBakersWalletCompletion({ jobId }));
+    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+    expectCompleted(progress);
+    expect(progress.summary.errors).toEqual([]);
 
     const transactions = await helpers.getTransactions({ raw: true });
-    const uncategorizedTx = transactions.find((tx) => tx.note === 'uncategorized-row')!;
-    expect(uncategorizedTx.categoryId).toBeNull();
+    const uncategorizedTx = transactions.find((tx) => tx.note === 'uncategorized-row');
+    expect(uncategorizedTx).toBeDefined();
+    expect(uncategorizedTx!.categoryId).toBeNull();
 
     await helpers.updateTransaction({
-      id: uncategorizedTx.id,
+      id: uncategorizedTx!.id,
       payload: { splits: [{ categoryId: splitCategory.id, amount: 40 }] },
       raw: true,
     });

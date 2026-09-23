@@ -107,7 +107,7 @@ const handleDelete = () => {
             <p>{{ $t('automations.mcpTip.text') }}</p>
             <RouterLink
               class="text-primary-text mt-2 inline-block underline underline-offset-2"
-              :to="{ name: ROUTES_NAMES.settingsAiIntegrations }"
+              :to="{ name: ROUTES_NAMES.settingsAiConnectedApps }"
             >
               {{ $t('automations.mcpTip.link') }}
             </RouterLink>

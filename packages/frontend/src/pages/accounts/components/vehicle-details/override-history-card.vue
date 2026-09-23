@@ -16,7 +16,7 @@ import { useI18n } from 'vue-i18n';
 
 const OVERRIDE_HISTORY_LIMIT = 100;
 
-const props = defineProps<{ accountId: string; currencyCode: string }>();
+const props = defineProps<{ accountId: string; currencyCode: string; readonly?: boolean }>();
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -122,7 +122,7 @@ const confirmDelete = async () => {
           </div>
         </div>
 
-        <DesktopOnlyTooltip :content="$t('pages.vehicleDetails.overrideHistory.delete')">
+        <DesktopOnlyTooltip v-if="!readonly" :content="$t('pages.vehicleDetails.overrideHistory.delete')">
           <UiButton
             variant="ghost-destructive"
             size="icon-sm"

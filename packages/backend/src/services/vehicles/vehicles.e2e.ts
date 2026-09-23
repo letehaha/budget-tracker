@@ -2,6 +2,7 @@ import {
   ACCOUNT_CATEGORIES,
   asDecimal,
   DEPRECIATION_PRESET,
+  SHARE_PERMISSIONS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
@@ -296,6 +297,62 @@ describe('Vehicles', () => {
 
       const accounts = await helpers.getAccounts();
       expect(accounts.find((a) => a.id === vehicle.accountId)).toBeUndefined();
+    });
+  });
+
+  describe('Household sharing', () => {
+    it('lets a household recipient read the owner vehicle but not update or delete it; outsiders get 404', async () => {
+      const vehicle = await createVehicleAccount();
+      const { id: ownerUserId } = await helpers.getUserInfo({ raw: true });
+
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const outsider = await helpers.provisionSecondUserWithBaseCurrency();
+
+      const invitation = await helpers.createHouseholdInvitation({
+        ownerUserId,
+        inviteeEmail: recipient.email,
+        permission: SHARE_PERMISSIONS.write,
+      });
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      });
+
+      const stale = subDays(new Date(), 10);
+      await Vehicles.update({ valueLastComputedAt: stale }, { where: { id: vehicle.id } });
+
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: async () => {
+          const list = await helpers.getVehicles({ raw: true });
+          expect(list.map((v) => v.id)).toEqual([vehicle.id]);
+          const refreshedAt = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
+          expect(refreshedAt).toBeGreaterThan(stale.getTime());
+
+          const detail = await helpers.getVehicleById({ id: vehicle.id, raw: false });
+          expect(detail.statusCode).toBe(200);
+          expect(helpers.extractResponse(detail).accountId).toBe(vehicle.accountId);
+
+          const patch = await helpers.updateVehicle({ id: vehicle.id, currentMileage: 1, raw: false });
+          expect(patch.statusCode).toBe(404);
+
+          const del = await helpers.deleteVehicle({ id: vehicle.id, raw: false });
+          expect(del.statusCode).toBe(404);
+        },
+      });
+
+      await helpers.asUser({
+        cookies: outsider.cookies,
+        fn: async () => {
+          expect(await helpers.getVehicles({ raw: true })).toEqual([]);
+
+          const detail = await helpers.getVehicleById({ id: vehicle.id, raw: false });
+          expect(detail.statusCode).toBe(404);
+        },
+      });
+
+      const ownerView = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+      expect(ownerView.currentMileage).toBeNull();
     });
   });
 

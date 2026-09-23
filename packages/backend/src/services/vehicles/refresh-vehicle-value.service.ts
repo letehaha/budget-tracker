@@ -7,6 +7,7 @@ import Vehicles from '@models/vehicles.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
+import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 import { parseISO } from 'date-fns';
 
 import { computeVehicleValue } from './compute-vehicle-value';
@@ -142,7 +143,7 @@ export const refreshStaleVehicleValuesForUser = async ({
   }
 
   const vehicles = await Vehicles.findAll({
-    where: { userId },
+    where: { accountId: await getAccessibleAccountIdsForUser({ userId }) },
     attributes: ['id', 'valueLastComputedAt'],
   });
 

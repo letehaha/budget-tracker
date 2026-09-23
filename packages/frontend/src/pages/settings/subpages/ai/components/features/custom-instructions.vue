@@ -12,26 +12,29 @@
     <TextareaField
       v-model="localInstructions"
       :placeholder="$t('settings.ai.customInstructions.placeholder')"
-      :disabled="!hasOwnCredentials"
+      :disabled="!canEdit"
       :maxlength="MAX_CHARS"
       rows="4"
     />
 
     <Callout v-if="credentialsUnknown" variant="destructive" class="mt-2 text-xs" icon-size-class="size-3.5">
       <p>{{ $t('settings.ai.customInstructions.credentialsCheckFailed') }}</p>
-      <Button variant="ghost" size="sm" class="mt-2" :disabled="isRefetchingCredentials" @click="refetchCredentials()">
-        <Loader2Icon v-if="isRefetchingCredentials" class="size-3.5 animate-spin" />
+      <Button variant="ghost" size="sm" class="mt-2" :disabled="isFetchingConnections" @click="refetchConnections()">
+        <Loader2Icon v-if="isFetchingConnections" class="size-3.5 animate-spin" />
         {{ $t('settings.ai.customInstructions.retryCredentialsCheck') }}
       </Button>
     </Callout>
 
-    <!-- Disabled state warning -->
     <Callout v-else-if="!hasOwnCredentials" variant="warning" class="mt-2 text-xs" icon-size-class="size-3.5">
       <p>{{ $t('settings.ai.customInstructions.requiresOwnCredentials') }}</p>
     </Callout>
 
-    <!-- Save button -->
-    <div v-if="hasOwnCredentials" class="mt-3 flex items-center gap-3">
+    <!-- Instructions only reach the user's own models, never the included server one. -->
+    <Callout v-else-if="isServedByServer" variant="warning" class="mt-2 text-xs" icon-size-class="size-3.5">
+      <p>{{ $t('settings.ai.customInstructions.serverModelHint') }}</p>
+    </Callout>
+
+    <div v-if="canEdit" class="mt-3 flex items-center gap-3">
       <Button size="sm" :disabled="!hasChanges || isSaving" @click="handleSave">
         <Loader2Icon v-if="isSaving" class="size-3.5 animate-spin" />
         {{ $t('settings.ai.customInstructions.save') }}
@@ -57,7 +60,8 @@ import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
-import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '@bt/shared/types';
+import { useAiConnectionsList } from '@/composable/data-queries/use-ai-connections';
+import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH, AI_FEATURE } from '@bt/shared/types';
 import { Loader2Icon, MessageSquareTextIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -67,14 +71,18 @@ const MAX_CHARS = AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH;
 const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
 const {
-  hasOwnCredentials,
-  credentialsUnknown,
-  isRefetchingCredentials,
-  refetchCredentials,
   customInstructions,
   setCustomInstructions,
   isSettingCustomInstructions: isSaving,
+  getFeatureStatus,
 } = useAiSettings();
+const { connections, isConnectionsError, isFetchingConnections, refetchConnections } = useAiConnectionsList();
+
+const hasOwnCredentials = computed(() => connections.value.length > 0);
+const credentialsUnknown = computed(() => isConnectionsError.value && !hasOwnCredentials.value);
+
+const isServedByServer = computed(() => getFeatureStatus(AI_FEATURE.categorization)?.servedBy === 'server');
+const canEdit = computed(() => hasOwnCredentials.value && !isServedByServer.value);
 
 const localInstructions = ref('');
 const isSyncingFromRemote = ref(false);

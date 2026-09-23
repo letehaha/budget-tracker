@@ -10,24 +10,24 @@
       "sections": {
         "account": "Рахунки",
         "household": "Сім'ї",
-        "budget": "Бюджети, поділені з вами"
+        "budget": "Бюджети, якими поділилися з вами"
       },
-      "sharedBy": "Надав доступ {handle}",
-      "viaHousehold": "Через домогосподарство {handle}",
+      "sharedBy": "Ділиться: {handle}",
+      "viaHousehold": "Через сім'ю {handle}",
       "unnamedResource": "Без назви",
       "permissions": {
         "read": "Перегляд",
-        "write": "Запис",
+        "write": "Редагування",
         "manage": "Керування"
       },
-      "leave": "Покинути",
-      "leaveTitle": "Покинути спільний доступ?",
+      "leave": "Вийти",
+      "leaveTitle": "Вийти зі спільного доступу?",
       "leaveDescription": "Ви втратите доступ до {resource}, власник {owner}. Власнику не буде надіслано сповіщення.",
-      "leaveConfirm": "Покинути",
-      "leaveSuccess": "Ви покинули спільний доступ.",
-      "leaveError": "Не вдалося покинути спільний доступ.",
+      "leaveConfirm": "Вийти",
+      "leaveSuccess": "Ви вийшли зі спільного доступу.",
+      "leaveError": "Не вдалося вийти зі спільного доступу.",
       "pending": {
-        "heading": "Очікувані запрошення",
+        "heading": "Запрошення в очікуванні",
         "review": "Переглянути"
       }
     }

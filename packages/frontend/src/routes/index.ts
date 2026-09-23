@@ -461,7 +461,8 @@ const routes: RouteRecordRaw[] = [
             name: ROUTES_NAMES.settingsAi,
             component: () => import('@/pages/settings/subpages/ai/index.vue'),
             redirect: { name: ROUTES_NAMES.settingsAiFeatures },
-            meta: { i18nChunks: ['settings/ai'] as I18nChunkName[] },
+            // Chunk names match the Crowdin files, so the merged page keeps both.
+            meta: { i18nChunks: ['settings/ai', 'settings/ai-integrations'] as I18nChunkName[] },
             children: [
               {
                 path: 'features',
@@ -469,15 +470,17 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/settings/subpages/ai/pages/features.vue'),
               },
               {
-                path: 'keys',
-                name: ROUTES_NAMES.settingsAiKeys,
-                component: () => import('@/pages/settings/subpages/ai/pages/keys.vue'),
+                path: 'models',
+                name: ROUTES_NAMES.settingsAiModels,
+                component: () => import('@/pages/settings/subpages/ai/pages/models.vue'),
               },
               {
-                path: 'endpoints',
-                name: ROUTES_NAMES.settingsAiEndpoints,
-                component: () => import('@/pages/settings/subpages/ai/pages/endpoints.vue'),
+                path: 'connected-apps',
+                name: ROUTES_NAMES.settingsAiConnectedApps,
+                component: () => import('@/pages/settings/subpages/ai/pages/connected-apps.vue'),
               },
+              { path: 'keys', redirect: { name: ROUTES_NAMES.settingsAiModels } },
+              { path: 'endpoints', redirect: { name: ROUTES_NAMES.settingsAiModels } },
             ],
           },
           {
@@ -516,9 +519,7 @@ const routes: RouteRecordRaw[] = [
           },
           {
             path: 'ai-integrations',
-            name: ROUTES_NAMES.settingsAiIntegrations,
-            component: () => import('@/pages/settings/subpages/ai-integrations/index.vue'),
-            meta: { i18nChunks: ['settings/ai-integrations'] as I18nChunkName[] },
+            redirect: { name: ROUTES_NAMES.settingsAiConnectedApps },
           },
           {
             path: 'shared-with-me',

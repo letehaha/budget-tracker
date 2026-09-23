@@ -1,12 +1,17 @@
 import {
-  AICustomEndpointInfo,
+  AIConnectionInfo,
   AIFeatureStatus,
-  AIKeyProvider,
   AI_FEATURE,
+  AI_PROVIDER,
+  CreateAIConnectionBody,
+  ListAIConnectionModelsBody,
+  ListAIConnectionModelsResponse,
+  TestAIConnectionBody,
+  TestAIConnectionResponse,
+  UpdateAIConnectionBody,
   WipeDataSharedResources,
 } from '@bt/shared/types';
-import { encryptToken } from '@common/utils/encryption';
-import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
+import UserSettings, { type StoredConnection } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { getUserSettings as apiGetUserSettings } from '@root/services/user-settings/get-user-settings';
 import {
@@ -20,6 +25,7 @@ import {
   CUSTOM_ENDPOINT_LOOPBACK_BASE_URL,
   CUSTOM_ENDPOINT_MODEL,
 } from '@tests/mocks/openai-compatible/mock-api';
+import { OPENAI_LISTED_MODELS, VALID_OPENAI_API_KEY } from '@tests/mocks/openai/mock-api';
 
 import { CustomResponse, makeRequest } from './common';
 
@@ -112,136 +118,43 @@ export async function wipeUserData({
   });
 }
 
-// AI API Key helpers. `provider` stays `AIKeyProvider`: a test proving the route refuses
-// `custom` casts at its own call site instead of widening this type.
+// AI connection helpers
 
-interface AiApiKeyInfo {
-  provider: AIKeyProvider;
-  createdAt: string;
-}
-
-export async function getAiApiKeyStatus<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
-  return makeRequest<{ hasApiKey: boolean; providers: AiApiKeyInfo[]; defaultProvider: AIKeyProvider | null }, R>({
+export async function getAiConnections<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
+  return makeRequest<AIConnectionInfo[], R>({
     method: 'get',
-    url: '/user/settings/ai/api-keys',
+    url: '/user/settings/ai/connections',
     raw,
   });
 }
 
-export async function setAiApiKey<R extends boolean | undefined = undefined>({
-  apiKey,
-  provider,
+export async function createAiConnection<R extends boolean | undefined = undefined>({
   raw,
-}: {
-  apiKey: string;
-  provider: AIKeyProvider;
-  raw?: R;
-}) {
-  return makeRequest<{ success: boolean }, R>({
-    method: 'put',
-    url: '/user/settings/ai/api-keys',
-    payload: { apiKey, provider },
-    raw,
-  });
-}
-
-export async function deleteAiApiKey<R extends boolean | undefined = undefined>({
-  provider,
-  raw,
-}: {
-  provider: AIKeyProvider;
-  raw?: R;
-}) {
-  return makeRequest<{ success: boolean }, R>({
-    method: 'delete',
-    url: '/user/settings/ai/api-keys',
-    payload: { provider },
-    raw,
-  });
-}
-
-export async function setDefaultAiProvider<R extends boolean | undefined = undefined>({
-  provider,
-  raw,
-}: {
-  provider: AIKeyProvider;
-  raw?: R;
-}) {
-  return makeRequest<{ success: boolean }, R>({
-    method: 'put',
-    url: '/user/settings/ai/api-keys/default',
-    payload: { provider },
-    raw,
-  });
-}
-
-export async function deleteAllAiApiKeys<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
-  return makeRequest<{ success: boolean }, R>({
-    method: 'delete',
-    url: '/user/settings/ai/api-keys/all',
-    raw,
-  });
-}
-
-// AI Custom Endpoint helpers
-
-export async function getAiCustomEndpoints<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
-  return makeRequest<AICustomEndpointInfo[], R>({
-    method: 'get',
-    url: '/user/settings/ai/custom-endpoints',
-    raw,
-  });
-}
-
-export async function createAiCustomEndpoint<R extends boolean | undefined = undefined>({
-  name,
-  baseUrl,
-  defaultModel,
-  apiKey,
-  raw,
-}: {
-  name: string;
-  baseUrl: string;
-  defaultModel: string;
-  apiKey?: string | null;
-  raw?: R;
-}) {
-  return makeRequest<AICustomEndpointInfo, R>({
+  ...payload
+}: CreateAIConnectionBody & { raw?: R }) {
+  return makeRequest<AIConnectionInfo, R>({
     method: 'post',
-    url: '/user/settings/ai/custom-endpoints',
-    payload: { name, baseUrl, defaultModel, apiKey },
+    url: '/user/settings/ai/connections',
+    payload,
     raw,
   });
 }
 
-/**
- * Omitted fields keep their stored value. For `apiKey`: omit it to keep the stored key,
- * pass null to remove it, pass a string to replace it.
- */
-export async function updateAiCustomEndpoint<R extends boolean | undefined = undefined>({
+/** Omitted fields keep their stored value. `apiKey`: omit to keep, null to remove, string to replace. */
+export async function updateAiConnection<R extends boolean | undefined = undefined>({
   id,
-  name,
-  baseUrl,
-  defaultModel,
-  apiKey,
   raw,
-}: {
-  id: string;
-  name?: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  apiKey?: string | null;
-  raw?: R;
-}) {
-  return makeRequest<AICustomEndpointInfo, R>({
+  ...payload
+}: UpdateAIConnectionBody & { id: string; raw?: R }) {
+  return makeRequest<AIConnectionInfo, R>({
     method: 'put',
-    url: `/user/settings/ai/custom-endpoints/${id}`,
-    payload: { name, baseUrl, defaultModel, apiKey },
+    url: `/user/settings/ai/connections/${id}`,
+    payload,
     raw,
   });
 }
 
-export async function deleteAiCustomEndpoint<R extends boolean | undefined = undefined>({
+export async function deleteAiConnection<R extends boolean | undefined = undefined>({
   id,
   raw,
 }: {
@@ -250,29 +163,47 @@ export async function deleteAiCustomEndpoint<R extends boolean | undefined = und
 }) {
   return makeRequest<{ success: boolean }, R>({
     method: 'delete',
-    url: `/user/settings/ai/custom-endpoints/${id}`,
+    url: `/user/settings/ai/connections/${id}`,
     raw,
   });
 }
 
-/** With `endpointId` every omitted field falls back to that saved endpoint, including its key. */
-export async function testAiCustomEndpoint<R extends boolean | undefined = undefined>({
-  endpointId,
-  baseUrl,
-  defaultModel,
-  apiKey,
+/** Moves the connection to the front of the list and returns the reordered list. */
+export async function setDefaultAiConnection<R extends boolean | undefined = undefined>({
+  id,
   raw,
 }: {
-  endpointId?: string;
-  baseUrl?: string;
-  defaultModel?: string;
-  apiKey?: string;
+  id: string;
   raw?: R;
-} = {}) {
-  return makeRequest<{ isValid: boolean; error?: string }, R>({
+}) {
+  return makeRequest<AIConnectionInfo[], R>({
     method: 'post',
-    url: '/user/settings/ai/custom-endpoints/test',
-    payload: { endpointId, baseUrl, defaultModel, apiKey },
+    url: `/user/settings/ai/connections/${id}/default`,
+    raw,
+  });
+}
+
+/** With `connectionId` every omitted field falls back to that saved connection, including its key. */
+export async function testAiConnection<R extends boolean | undefined = undefined>({
+  raw,
+  ...payload
+}: TestAIConnectionBody & { raw?: R }) {
+  return makeRequest<TestAIConnectionResponse, R>({
+    method: 'post',
+    url: '/user/settings/ai/connections/test',
+    payload,
+    raw,
+  });
+}
+
+export async function listAiConnectionModels<R extends boolean | undefined = undefined>({
+  raw,
+  ...payload
+}: ListAIConnectionModelsBody & { raw?: R }) {
+  return makeRequest<ListAIConnectionModelsResponse, R>({
+    method: 'post',
+    url: '/user/settings/ai/connections/models',
+    payload,
     raw,
   });
 }
@@ -301,22 +232,35 @@ export async function getAiFeatureConfig<R extends boolean | undefined = undefin
   });
 }
 
-/** `customEndpointId` is required alongside a `custom/*` model ID and ignored otherwise. */
+/** `connectionId: null` pins the included server model. */
 export async function setAiFeatureConfig<R extends boolean | undefined = undefined>({
   feature,
-  modelId,
-  customEndpointId,
+  connectionId,
   raw,
 }: {
   feature: AI_FEATURE;
-  modelId: string;
-  customEndpointId?: string;
+  connectionId: string | null;
   raw?: R;
 }) {
   return makeRequest<AIFeatureStatus, R>({
     method: 'put',
     url: `/user/settings/ai/features/${feature}`,
-    payload: { modelId, customEndpointId },
+    payload: { connectionId },
+    raw,
+  });
+}
+
+/** Clears the pick, so the feature goes back to automatic. */
+export async function resetAiFeatureConfig<R extends boolean | undefined = undefined>({
+  feature,
+  raw,
+}: {
+  feature: AI_FEATURE;
+  raw?: R;
+}) {
+  return makeRequest<AIFeatureStatus, R>({
+    method: 'delete',
+    url: `/user/settings/ai/features/${feature}`,
     raw,
   });
 }
@@ -355,39 +299,34 @@ export async function getTestUserId(): Promise<number> {
   return user.id;
 }
 
-/**
- * Writes an API key straight into settings, bypassing the HTTP route, which validates the
- * key against the live provider.
- */
-export async function seedApiKey({ userId, provider }: { userId: number; provider: AIKeyProvider }): Promise<void> {
-  const [settings] = await UserSettings.findOrCreate({
-    where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
-  });
+export async function readStoredConnections({ userId }: { userId: number }) {
+  const settings = await UserSettings.findOne({ where: { userId } });
+  return settings?.settings?.ai?.connections ?? [];
+}
 
-  const now = new Date().toISOString();
+/** Arranges stored states no endpoint reaches, such as a missing or unreadable key. */
+export async function patchStoredConnection({
+  connectionId,
+  patch,
+}: {
+  connectionId: string;
+  patch: Partial<StoredConnection>;
+}): Promise<void> {
+  const userId = await getTestUserId();
+  const settings = await UserSettings.findOne({ where: { userId } });
+  const ai = settings?.settings.ai;
+  if (!settings || !ai?.connections) throw new Error('Expected the test user to have AI connections by now');
+
   settings.settings = {
     ...settings.settings,
     ai: {
-      ...(settings.settings.ai ?? { apiKeys: [], featureConfigs: [] }),
-      apiKeys: [
-        {
-          provider,
-          keyEncrypted: encryptToken('seeded-provider-key'),
-          createdAt: now,
-          status: 'valid' as const,
-          lastValidatedAt: now,
-        },
-      ],
+      ...ai,
+      connections: ai.connections.map((connection) =>
+        connection.id === connectionId ? { ...connection, ...patch } : connection,
+      ),
     },
   };
-
   await settings.save();
-}
-
-export async function readStoredEndpoints({ userId }: { userId: number }) {
-  const settings = await UserSettings.findOne({ where: { userId } });
-  return settings?.settings?.ai?.customEndpoints ?? [];
 }
 
 export async function readStoredFeatureConfigs({ userId }: { userId: number }) {
@@ -395,29 +334,39 @@ export async function readStoredFeatureConfigs({ userId }: { userId: number }) {
   return settings?.settings?.ai?.featureConfigs ?? [];
 }
 
-export const FIRST_ENDPOINT_NAME = 'Home Ollama';
-export const SECOND_ENDPOINT_NAME = 'Studio vLLM';
-export const SECOND_ENDPOINT_MODEL = 'qwen2.5';
+export const FIRST_CONNECTION_NAME = 'Home Ollama';
+export const SECOND_CONNECTION_NAME = 'Studio vLLM';
+export const SECOND_CONNECTION_MODEL = 'qwen2.5';
 
-/** Both endpoints answer through msw. The caller picks self-host or cloud mode first. */
-export async function createFirstEndpoint({ apiKey }: { apiKey?: string | null } = {}) {
-  return createAiCustomEndpoint({
-    name: FIRST_ENDPOINT_NAME,
+/** Both custom connections answer through msw. The caller picks self-host or cloud mode first. */
+export async function createFirstConnection({ apiKey }: { apiKey?: string } = {}) {
+  return createAiConnection({
+    provider: AI_PROVIDER.custom,
+    name: FIRST_CONNECTION_NAME,
     baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-    defaultModel: CUSTOM_ENDPOINT_MODEL,
+    model: CUSTOM_ENDPOINT_MODEL,
     apiKey,
     raw: true,
   });
 }
 
-export async function createSecondEndpoint({ apiKey }: { apiKey?: string | null } = {}) {
-  return createAiCustomEndpoint({
-    name: SECOND_ENDPOINT_NAME,
+export async function createSecondConnection({ apiKey }: { apiKey?: string } = {}) {
+  return createAiConnection({
+    provider: AI_PROVIDER.custom,
+    name: SECOND_CONNECTION_NAME,
     baseUrl: CUSTOM_ENDPOINT_LOOPBACK_BASE_URL,
-    defaultModel: SECOND_ENDPOINT_MODEL,
+    model: SECOND_CONNECTION_MODEL,
     apiKey,
     raw: true,
   });
+}
+
+export async function createOpenAiConnection({
+  name = 'GPT fast',
+  model = OPENAI_LISTED_MODELS[0]!,
+  apiKey = VALID_OPENAI_API_KEY,
+}: { name?: string; model?: string; apiKey?: string } = {}) {
+  return createAiConnection({ provider: AI_PROVIDER.openai, name, model, apiKey, raw: true });
 }
 
 /** The typed helpers describe success bodies only, so an error message needs its own read. */

@@ -5,15 +5,18 @@ import {
   PLANS,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
-  getModelNameFromModelId,
 } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { getDefaultModelForFeature } from '@services/ai/models-config';
+import { SERVER_MODELS } from '@services/ai/resolution-ladder';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
-import { createFirstEndpoint } from '@tests/helpers/user-settings';
+import { createFirstConnection } from '@tests/helpers/user-settings';
 import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
-import { getCustomEndpointContentMock } from '@tests/mocks/openai-compatible/mock-api';
+import {
+  CUSTOM_ENDPOINT_MODEL,
+  getCustomEndpointContentMock,
+  getCustomEndpointUnsupportedInputMock,
+} from '@tests/mocks/openai-compatible/mock-api';
 
 /** Smallest valid 1x1 PNG; the endpoint identifies the upload by its magic bytes. */
 const PNG_BYTES = Buffer.from(
@@ -69,9 +72,7 @@ const mockAiAnswer = ({ content }: { content: string }) => {
 };
 
 /** The model the server key runs for receipt parsing, which is what a trial upload dials. */
-const OPERATOR_MODEL_NAME = getModelNameFromModelId({
-  modelId: getDefaultModelForFeature({ feature: AI_FEATURE.receiptParsing }),
-});
+const OPERATOR_MODEL_NAME = SERVER_MODELS[AI_FEATURE.receiptParsing].model;
 
 const TRIAL_LIMIT = FEATURE_TRIAL_LIMITS[FEATURES.invoice_matching]!;
 
@@ -87,7 +88,7 @@ describe('Invoice matching', () => {
     useSelfHostWithoutServerAiKeys();
 
     it('returns the paying transaction first, with its signals and external fields', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer() });
 
       const account = await helpers.createAccount({ raw: true });
@@ -148,7 +149,7 @@ describe('Invoice matching', () => {
     });
 
     it('matches an issued invoice against income, by the customer who paid it', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer() });
 
       const account = await helpers.createAccount({ raw: true });
@@ -181,7 +182,7 @@ describe('Invoice matching', () => {
     });
 
     it('rejects a transaction type that is neither income nor expense', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES, transactionType: 'transfer' });
 
@@ -189,7 +190,7 @@ describe('Invoice matching', () => {
     });
 
     it('returns the invoice with no candidates when nothing could have paid it', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer() });
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
@@ -200,7 +201,7 @@ describe('Invoice matching', () => {
     });
 
     it('drops a printed link that leads to a generic page rather than this invoice', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer({ invoiceUrl: 'https://www.fotokoch.de/mybestellstatus.html' }) });
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
@@ -210,7 +211,7 @@ describe('Invoice matching', () => {
     });
 
     it('reads an empty invoice number as none at all', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer({ invoiceNumber: '' }) });
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
@@ -220,7 +221,7 @@ describe('Invoice matching', () => {
     });
 
     it('rejects an upload sent as anything but raw bytes', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES, contentType: 'image/png' });
 
@@ -229,7 +230,7 @@ describe('Invoice matching', () => {
     });
 
     it('rejects an empty body', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
 
       const result = await helpers.matchInvoice({ file: Buffer.alloc(0) });
 
@@ -238,7 +239,7 @@ describe('Invoice matching', () => {
     });
 
     it('rejects a file type the AI cannot read', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
 
       const result = await helpers.matchInvoice({ file: SVG_BYTES });
 
@@ -247,7 +248,7 @@ describe('Invoice matching', () => {
     });
 
     it('rejects a document the AI does not recognise as an invoice', async () => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: notAnInvoiceAnswer });
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
@@ -256,8 +257,21 @@ describe('Invoice matching', () => {
       expect(result.errorMessage).toMatch(/invoice or a receipt/i);
     });
 
+    it('names the model and keeps its connection usable when the model cannot read the file', async () => {
+      const connection = await createFirstConnection();
+      global.mswMockServer.use(getCustomEndpointUnsupportedInputMock());
+
+      const result = await helpers.matchInvoice({ file: PNG_BYTES });
+
+      expect(result.statusCode).toBe(422);
+      expect(result.errorMessage).toContain(CUSTOM_ENDPOINT_MODEL);
+      expect(result.errorMessage).toMatch(/no endpoints found that support image input/i);
+      const connections = await helpers.getAiConnections({ raw: true });
+      expect(connections.find(({ id }) => id === connection.id)).toMatchObject({ status: 'valid' });
+    });
+
     it.each(['http://acme.test/42', 'javascript:alert(1)'])('drops the invoice link when it is %s', async (link) => {
-      await createFirstEndpoint();
+      await createFirstConnection();
       mockAiAnswer({ content: invoiceAnswer({ invoiceUrl: link }) });
 
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
@@ -270,7 +284,7 @@ describe('Invoice matching', () => {
       const result = await helpers.matchInvoice({ file: PNG_BYTES });
 
       expect(result.statusCode).toBe(422);
-      expect(result.errorMessage).toMatch(/no ai provider configured/i);
+      expect(result.errorMessage).toMatch(/no ai model configured/i);
     });
   });
 

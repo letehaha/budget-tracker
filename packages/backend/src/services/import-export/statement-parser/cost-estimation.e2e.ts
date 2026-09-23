@@ -1,27 +1,39 @@
 import type { StatementFileType, StatementTextExtractionFailure } from '@bt/shared/types';
 import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import {
   ENCRYPTED_STATEMENT_PASSWORD,
   STATEMENT_PDF_FIXTURES,
   readStatementPdfFixture,
 } from '@tests/fixtures/statement-parser-fixtures';
 import * as helpers from '@tests/helpers';
-import { createFirstEndpoint, getTestUserId, seedApiKey, setAiFeatureConfig } from '@tests/helpers/user-settings';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
+import { createAiConnection, createFirstConnection, setAiFeatureConfig } from '@tests/helpers/user-settings';
+import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
+import { modelsDevUnavailableMock } from '@tests/mocks/models-dev/mock-api';
 import { CUSTOM_ENDPOINT_MODEL } from '@tests/mocks/openai-compatible/mock-api';
 
 // The estimate makes no AI call, so every case here is decided by the model resolution ladder.
 
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
-/** Catalog default for statement parsing, so a seeded Google key is enough to reach it. */
-const CATALOG_MODEL_ID = 'google/gemini-3.6-flash';
+const CATALOG_MODEL = 'gemini-3.8-flash';
 
 /** Catalog model priced at 0/0, a known free price that must never read as unknown. */
-const FREE_CATALOG_MODEL_ID = 'google/gemma-4-31b-it';
+const FREE_CATALOG_MODEL = 'gemma-4-31b-it';
 
-/** Server keys let the ladder answer without user credentials, so every case starts without them. */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+/** The save-time probe dials the model, so the Gemini mock has to accept it. */
+async function createGeminiConnection({ model }: { model: string }) {
+  global.mswMockServer.use(createGeminiMock({ expectedModel: model }));
+
+  return createAiConnection({
+    provider: AI_PROVIDER.google,
+    name: model,
+    model,
+    apiKey: VALID_GEMINI_API_KEY,
+    raw: true,
+  });
+}
 
 const STATEMENT_CSV = [
   'date;description;amount',
@@ -57,45 +69,13 @@ async function estimateFailure({ file, password }: { file: string; password?: st
 }
 
 describe('Statement parser cost estimation', () => {
-  let selfHostFlagBeforeTest: string | undefined;
-  const serverKeysBeforeTest = new Map<string, string | undefined>();
-
-  beforeEach(() => {
-    selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
-
-    // The mock endpoint's host never resolves, so the outbound guard has to be off to save it.
-    process.env.IS_SELF_HOST = 'true';
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      serverKeysBeforeTest.set(envVar, process.env[envVar]);
-      delete process.env[envVar];
-    }
-  });
-
-  afterEach(() => {
-    if (selfHostFlagBeforeTest === undefined) {
-      delete process.env.IS_SELF_HOST;
-    } else {
-      process.env.IS_SELF_HOST = selfHostFlagBeforeTest;
-    }
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      const keyBeforeTest = serverKeysBeforeTest.get(envVar);
-
-      if (keyBeforeTest === undefined) {
-        delete process.env[envVar];
-      } else {
-        process.env[envVar] = keyBeforeTest;
-      }
-    }
-  });
+  useSelfHostWithoutServerAiKeys();
 
   it('estimates against the custom model the feature is configured with', async () => {
-    const endpoint = await createFirstEndpoint();
+    const connection = await createFirstConnection();
     await setAiFeatureConfig({
       feature: AI_FEATURE.statementParsing,
-      modelId: CUSTOM_MODEL_ID,
-      customEndpointId: endpoint.id,
+      connectionId: connection.id,
       raw: true,
     });
 
@@ -109,8 +89,8 @@ describe('Statement parser cost estimation', () => {
     expect(estimate.estimatedCostUsd).toBeNull();
   });
 
-  it('estimates against the fallback custom endpoint when the feature has no config', async () => {
-    await createFirstEndpoint();
+  it('estimates against the default connection when the feature has no config', async () => {
+    await createFirstConnection();
 
     const estimate = await helpers.statementEstimateCost({ payload: { fileBase64: statementBase64() }, raw: true });
 
@@ -119,24 +99,35 @@ describe('Statement parser cost estimation', () => {
     expect(estimate.estimatedCostUsd).toBeNull();
   });
 
-  it('prices a catalog model from the catalog', async () => {
-    const userId = await getTestUserId();
-    await seedApiKey({ userId, provider: AI_PROVIDER.google });
+  it('prices a native connection running a catalog model from the catalog', async () => {
+    await createGeminiConnection({ model: CATALOG_MODEL });
 
     const estimate = await helpers.statementEstimateCost({ payload: { fileBase64: statementBase64() }, raw: true });
 
-    expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
+    expect(estimate.modelId).toBe(`${AI_PROVIDER.google}/${CATALOG_MODEL}`);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
   });
 
-  it('prices a free catalog model at $0, not at "unknown"', async () => {
-    const userId = await getTestUserId();
-    await seedApiKey({ userId, provider: AI_PROVIDER.google });
-    await setAiFeatureConfig({ feature: AI_FEATURE.statementParsing, modelId: FREE_CATALOG_MODEL_ID, raw: true });
+  it('still estimates, with the price unknown, when the model catalog is unreachable', async () => {
+    await createGeminiConnection({ model: CATALOG_MODEL });
+    global.mswMockServer.use(modelsDevUnavailableMock());
 
     const estimate = await helpers.statementEstimateCost({ payload: { fileBase64: statementBase64() }, raw: true });
 
-    expect(estimate.modelId).toBe(FREE_CATALOG_MODEL_ID);
+    expect(estimate.modelId).toBe(`${AI_PROVIDER.google}/${CATALOG_MODEL}`);
+    expect(estimate.modelName).toBe(CATALOG_MODEL);
+    expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
+    expect(estimate.estimatedCostUsd).toBeNull();
+  });
+
+  it('prices a free catalog model at $0, not at "unknown"', async () => {
+    await createGeminiConnection({ model: CATALOG_MODEL });
+    const freeConnection = await createGeminiConnection({ model: FREE_CATALOG_MODEL });
+    await setAiFeatureConfig({ feature: AI_FEATURE.statementParsing, connectionId: freeConnection.id, raw: true });
+
+    const estimate = await helpers.statementEstimateCost({ payload: { fileBase64: statementBase64() }, raw: true });
+
+    expect(estimate.modelId).toBe(`${AI_PROVIDER.google}/${FREE_CATALOG_MODEL}`);
     expect(estimate.estimatedCostUsd).toBe(0);
     expect(estimate.estimatedCostUsd).not.toBeNull();
   });
@@ -167,8 +158,7 @@ describe('Statement parser cost estimation', () => {
     });
 
     it('estimates normally once the correct password is supplied', async () => {
-      const userId = await getTestUserId();
-      await seedApiKey({ userId, provider: AI_PROVIDER.google });
+      await createGeminiConnection({ model: CATALOG_MODEL });
 
       const estimate = await helpers.statementEstimateCost({
         payload: {
@@ -180,7 +170,7 @@ describe('Statement parser cost estimation', () => {
 
       expect(estimate.textExtraction.success).toBe(true);
       expect(estimate.textExtraction.characterCount).toBeGreaterThan(0);
-      expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
+      expect(estimate.modelId).toBe(`${AI_PROVIDER.google}/${CATALOG_MODEL}`);
       expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
     });
   });

@@ -1,38 +1,37 @@
-import { AIFeatureConfig, AIFeatureStatus, AI_FEATURE, FEATURES } from '@bt/shared/types';
+import { AIFeatureStatus, AI_FEATURE, FEATURES } from '@bt/shared/types';
+import { getRequestFeatureAccess } from '@middlewares/entitlements';
 import type { StoredAiSettings } from '@models/user-settings.model';
-import { hasFeature } from '@services/entitlements/has-feature';
-import { resolveFeatureModelDisplay } from '@services/user-settings/resolve-feature-model-display';
+import { resolveFeatureStatus } from '@services/user-settings/resolve-feature-model-display';
 import type { Request } from 'express';
 
-/** Reuses the entitlements the request already resolved; only unguarded routes pay for a lookup. */
-export const resolveServerKeysAllowed = async ({ req, userId }: { req: Request; userId: number }): Promise<boolean> =>
-  req.entitlements?.features.includes(FEATURES.operator_ai) ?? hasFeature({ userId, feature: FEATURES.operator_ai });
-
-export function buildFeatureStatusPayload({
+/** Receipt parsing also gets the server model on a free try of invoice matching, as `matchInvoice` grants it. */
+export const resolveServerKeysAllowed = async ({
+  req,
   feature,
-  config,
-  aiSettings,
-  serverKeysAllowed,
 }: {
+  req: Request;
   feature: AI_FEATURE;
-  config: AIFeatureConfig | null;
-  aiSettings: StoredAiSettings | null;
-  serverKeysAllowed: boolean;
-}): AIFeatureStatus {
-  const { modelId, modelName, usingUserKey, customEndpointId, endpointName } = resolveFeatureModelDisplay({
-    feature,
-    config,
-    aiSettings,
-    serverKeysAllowed,
-  });
+}): Promise<boolean> => {
+  if ((await getRequestFeatureAccess({ req, feature: FEATURES.operator_ai })) === 'plan') return true;
 
-  return {
+  return (
+    feature === AI_FEATURE.receiptParsing &&
+    (await getRequestFeatureAccess({ req, feature: FEATURES.invoice_matching })) === 'trial'
+  );
+};
+
+export async function buildFeatureStatusPayload({
+  req,
+  feature,
+  aiSettings,
+}: {
+  req: Request;
+  feature: AI_FEATURE;
+  aiSettings: StoredAiSettings | null;
+}): Promise<AIFeatureStatus> {
+  return resolveFeatureStatus({
     feature,
-    isConfigured: !!config,
-    modelId,
-    modelName,
-    usingUserKey,
-    customEndpointId,
-    endpointName,
-  };
+    aiSettings,
+    serverKeysAllowed: await resolveServerKeysAllowed({ req, feature }),
+  });
 }

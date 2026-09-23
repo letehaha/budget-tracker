@@ -12,7 +12,7 @@ import {
   hasSettledStatus,
   isBookedCanonical,
   isNonLedgerStatus,
-  isPendingOrphan,
+  isPreBookingRow,
   isPreBookingStatus,
   isRevokedStatus,
   syncGeneratedNote,
@@ -175,26 +175,26 @@ describe('getCounterpartyIban', () => {
   });
 });
 
-describe('isPendingOrphan', () => {
-  it('accepts a pending or held row that carries no entry reference', () => {
+describe('isPreBookingRow', () => {
+  it('accepts a pending or held row', () => {
     for (const status of [TransactionStatus.PDNG, TransactionStatus.HOLD]) {
-      expect(isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx({ status }) } } })).toBe(true);
+      expect(isPreBookingRow({ tx: { externalData: { rawTransaction: rawTx({ status }) } } })).toBe(true);
     }
   });
 
-  it('rejects a pending row that already carries an entry reference', () => {
+  it('accepts a pending row that carries its own entry reference', () => {
     const externalData = { rawTransaction: rawTx({ status: TransactionStatus.PDNG }), entryReference: 'ref-1' };
 
-    expect(isPendingOrphan({ tx: { externalData } })).toBe(false);
+    expect(isPreBookingRow({ tx: { externalData } })).toBe(true);
   });
 
   it('rejects booked, cancelled and rows with no stored payload', () => {
-    expect(isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx() } } })).toBe(false);
+    expect(isPreBookingRow({ tx: { externalData: { rawTransaction: rawTx() } } })).toBe(false);
     expect(
-      isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx({ status: TransactionStatus.CNCL }) } } }),
+      isPreBookingRow({ tx: { externalData: { rawTransaction: rawTx({ status: TransactionStatus.CNCL }) } } }),
     ).toBe(false);
-    expect(isPendingOrphan({ tx: { externalData: {} } })).toBe(false);
-    expect(isPendingOrphan({ tx: { externalData: null } })).toBe(false);
+    expect(isPreBookingRow({ tx: { externalData: {} } })).toBe(false);
+    expect(isPreBookingRow({ tx: { externalData: null } })).toBe(false);
   });
 });
 

@@ -1,9 +1,12 @@
 import type { RecordId } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
 import MerchantCategoryCodes from '@models/merchant-category-codes.model';
+import isPlainObject from 'lodash/isPlainObject';
+import omit from 'lodash/omit';
 import { Op } from 'sequelize';
 
 import { BACKUP_TABLES, type BackupDumpScope, type BackupTableDef } from './registry';
@@ -47,23 +50,41 @@ async function whereForScope({
   }
 }
 
-/** Blank encrypted AI keys — ciphertext is undecryptable on another instance. */
-function stripAiApiKeys({ rows }: { rows: Row[] }): void {
-  for (const row of rows) {
-    const settings = row.settings as { ai?: { apiKeys?: unknown } } | null | undefined;
-    if (!settings?.ai || settings.ai.apiKeys == null) continue;
+const isRow = (value: unknown): value is Row => isPlainObject(value);
 
-    if (Array.isArray(settings.ai.apiKeys)) {
-      settings.ai.apiKeys = [];
-      continue;
-    }
+/**
+ * Key ciphertext never travels in an archive: a connection that had a key comes back
+ * flagged invalid, asking (in the settings' own locale) for the key again. Legacy
+ * `apiKeys`/`customEndpoints` are dropped, not converted: converting would rebuild
+ * `connections` from the legacy data alone. Never throws.
+ */
+export function stripConnectionKeys({ settings }: { settings: unknown }): unknown {
+  if (!isRow(settings) || !isRow(settings.ai)) return settings;
 
-    // apiKeys present but not the expected array — a drifted/legacy shape this
-    // stripper can't blank field-by-field. Fail closed: drop the whole ai block so
-    // no ciphertext can ride into a shareable archive.
-    logger.warn('stripAiApiKeys: settings.ai.apiKeys has an unexpected non-array shape; dropping the ai block');
-    delete settings.ai;
+  const ai = omit(settings.ai, ['apiKeys', 'customEndpoints']);
+  if (ai.connections == null) return { ...settings, ai };
+  if (!Array.isArray(ai.connections)) {
+    // Fail closed: a shape this can't walk entry by entry might carry ciphertext.
+    logger.warn('stripConnectionKeys: settings.ai.connections is not an array; dropping the ai block');
+    return omit(settings, 'ai');
   }
+
+  const invalidatedAt = new Date().toISOString();
+  const lastError = t({
+    key: 'ai.connectionKeyNotInBackup',
+    locale: typeof settings.locale === 'string' ? settings.locale : undefined,
+  });
+  const connections = ai.connections.map((connection: unknown) =>
+    isRow(connection) && 'keyEncrypted' in connection
+      ? { ...omit(connection, 'keyEncrypted'), status: 'invalid', invalidatedAt, lastError }
+      : connection,
+  );
+
+  return { ...settings, ai: { ...ai, connections } };
+}
+
+function stripAiKeys({ rows }: { rows: Row[] }): void {
+  for (const row of rows) row.settings = stripConnectionKeys({ settings: row.settings });
 }
 
 /** Attach each row's MCC natural `code` (stored as a string) for restore remap. */
@@ -112,7 +133,7 @@ async function dumpTable({
   // strings, JSONB, arrays) and bypassing the @MoneyField getters is the point.
   const rows = (await def.model.findAll({ where, raw: true, paranoid: false })) as unknown as Row[];
 
-  if (def.stripSecret === 'aiApiKeys') stripAiApiKeys({ rows });
+  if (def.stripSecret === 'aiKeys') stripAiKeys({ rows });
   if (def.stripSecret === 'bankCredentials') {
     for (const row of rows) row.credentials = null;
   }

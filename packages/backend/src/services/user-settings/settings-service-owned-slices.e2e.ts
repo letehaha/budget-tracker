@@ -1,66 +1,47 @@
-import { AI_PROVIDER } from '@bt/shared/types';
-import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { encryptToken } from '@common/utils/encryption';
+import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
-import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
-import { getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
+import {
+  FIRST_CONNECTION_NAME,
+  createFirstConnection,
+  getTestUserId,
+  readStoredConnections,
+  readStoredFeatureConfigs,
+} from '@tests/helpers/user-settings';
+import { VALID_CUSTOM_ENDPOINT_API_KEY } from '@tests/mocks/openai-compatible/mock-api';
 
-const SEEDED_ENDPOINT_NAME = 'Home Ollama';
 /** Link-local metadata address that the outbound URL guard rejects. */
 const SMUGGLED_BASE_URL = 'http://169.254.169.254';
+const SMUGGLED_CONNECTION_ID = 'smuggled-not-a-uuid';
 
-/**
- * Writes an endpoint straight into settings, the state a create through the dedicated route
- * leaves behind, encrypted key included. Returns the stored ciphertext because `encryptToken`
- * uses a random IV, so a caller cannot recompute it.
- */
-async function seedCustomEndpoint({ userId }: { userId: number }): Promise<string> {
-  const [settings] = await UserSettings.findOrCreate({
-    where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
-  });
-
-  const now = new Date().toISOString();
-  const keyEncrypted = encryptToken('seeded-endpoint-key');
-
-  settings.settings = {
-    ...settings.settings,
-    ai: {
-      ...(settings.settings.ai ?? { apiKeys: [], featureConfigs: [] }),
-      customEndpoints: [
-        {
-          id: generateRandomRecordId(),
-          name: SEEDED_ENDPOINT_NAME,
-          baseUrl: 'https://llm.example.com/v1',
-          keyEncrypted,
-          defaultModel: 'llama3',
-          createdAt: now,
-          status: 'valid' as const,
-          lastValidatedAt: now,
-        },
-      ],
-    },
-  };
-
-  await settings.save();
-
-  return keyEncrypted;
-}
-
-/** Shaped like a stored endpoint, with a base URL the outbound guard rejects and an id no route can match. */
-function buildSmuggledEndpoint() {
+/** Shaped like a stored connection, with a base URL the outbound guard rejects and an id no route can match. */
+function buildSmuggledAiSettings() {
   const now = new Date().toISOString();
 
   return {
-    id: 'smuggled-not-a-uuid',
-    name: 'Metadata',
-    baseUrl: SMUGGLED_BASE_URL,
-    defaultModel: 'gpt-4o-mini',
-    createdAt: now,
-    status: 'valid' as const,
-    lastValidatedAt: now,
+    connections: [
+      {
+        id: SMUGGLED_CONNECTION_ID,
+        provider: AI_PROVIDER.custom,
+        name: 'Metadata',
+        baseUrl: SMUGGLED_BASE_URL,
+        model: 'gpt-4o-mini',
+        createdAt: now,
+        status: 'valid' as const,
+        lastValidatedAt: now,
+      },
+    ],
+    featureConfigs: [{ feature: AI_FEATURE.categorization, connectionId: SMUGGLED_CONNECTION_ID }],
   };
+}
+
+/** Goes through the connection route, so the stored row carries real ciphertext. */
+async function createConnectionWithKey() {
+  const connection = await createFirstConnection({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+  await helpers.setAiFeatureConfig({ feature: AI_FEATURE.categorization, connectionId: connection.id, raw: true });
+
+  return connection;
 }
 
 /** PUT with a body the typed helper cannot express, because the contract leaves these slices out. */
@@ -82,8 +63,11 @@ function collectKeyMaterial({ value }: { value: unknown }): string[] {
 }
 
 describe('Settings slices owned by their own endpoints', () => {
+  // The mock connection's host never resolves, so the outbound guard has to be off to save it.
+  useSelfHostWithoutServerAiKeys();
+
   describe('PUT /user/settings', () => {
-    it('ignores a smuggled ai.customEndpoints array', async () => {
+    it('ignores smuggled ai.connections and ai.featureConfigs', async () => {
       // A settings row already exists, so this exercises the merge branch.
       await helpers.updateUserSettings({ raw: true, settings: { locale: 'en' } });
 
@@ -91,41 +75,40 @@ describe('Settings slices owned by their own endpoints', () => {
         settings: {
           locale: 'uk',
           includeCreditLimitInStats: true,
-          ai: { customEndpoints: [buildSmuggledEndpoint()] },
+          ai: buildSmuggledAiSettings(),
         },
       });
       expect(response.statusCode).toBe(200);
 
-      const stored = await readStoredEndpoints({ userId: await getTestUserId() });
-      expect(stored).toHaveLength(0);
-
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(listed).toHaveLength(0);
+      const userId = await getTestUserId();
+      expect(await readStoredConnections({ userId })).toHaveLength(0);
+      expect(await readStoredFeatureConfigs({ userId })).toHaveLength(0);
+      expect(await helpers.getAiConnections({ raw: true })).toHaveLength(0);
 
       const fetched = await helpers.getUserSettings({ raw: true });
       expect(fetched.locale).toBe('uk');
       expect(fetched.includeCreditLimitInStats).toBe(true);
     });
 
-    it('ignores a smuggled ai.customEndpoints array on the very first write', async () => {
+    it('ignores smuggled ai.connections and ai.featureConfigs on the very first write', async () => {
       // The first write seeds the row straight from the payload, a separate branch from the merge.
       const response = await putRawSettings({
-        settings: { locale: 'en', ai: { customEndpoints: [buildSmuggledEndpoint()] } },
+        settings: { locale: 'en', ai: buildSmuggledAiSettings() },
       });
       expect(response.statusCode).toBe(200);
 
-      const stored = await readStoredEndpoints({ userId: await getTestUserId() });
-      expect(stored).toHaveLength(0);
-
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(listed).toHaveLength(0);
+      const userId = await getTestUserId();
+      expect(await readStoredConnections({ userId })).toHaveLength(0);
+      expect(await readStoredFeatureConfigs({ userId })).toHaveLength(0);
+      expect(await helpers.getAiConnections({ raw: true })).toHaveLength(0);
     });
 
     it('keeps every service-owned slice when the client sends settings back', async () => {
       // The wipe scenario: a page reads settings, changes one field and sends the whole cached object back.
       const userId = await getTestUserId();
-      await helpers.seedApiKey({ userId, provider: AI_PROVIDER.openai });
-      const keyEncrypted = await seedCustomEndpoint({ userId });
+      const connection = await createConnectionWithKey();
+      const keyEncrypted = (await readStoredConnections({ userId }))[0]?.keyEncrypted;
+      expect(keyEncrypted).toEqual(expect.any(String));
       await helpers.updateOnboarding({ raw: true, onboardingState: { isDismissed: true } });
 
       const fetched = await helpers.getUserSettings({ raw: true });
@@ -137,20 +120,20 @@ describe('Settings slices owned by their own endpoints', () => {
         },
       });
       expect(response.statusCode).toBe(200);
+      expect(collectKeyMaterial({ value: response.body })).toHaveLength(0);
 
-      const stored = await readStoredEndpoints({ userId });
+      const stored = await readStoredConnections({ userId });
       expect(stored).toHaveLength(1);
-      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(stored[0]!.name).toBe(FIRST_CONNECTION_NAME);
       expect(stored[0]!.keyEncrypted).toBe(keyEncrypted);
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([
+        { feature: AI_FEATURE.categorization, connectionId: connection.id },
+      ]);
 
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
+      const listed = await helpers.getAiConnections({ raw: true });
       expect(listed).toHaveLength(1);
-      expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(listed[0]!.name).toBe(FIRST_CONNECTION_NAME);
       expect(listed[0]!.hasApiKey).toBe(true);
-
-      const status = await helpers.getAiApiKeyStatus({ raw: true });
-      expect(status.hasApiKey).toBe(true);
-      expect(status.providers.map((entry) => entry.provider)).toContain(AI_PROVIDER.openai);
 
       const onboarding = await helpers.getOnboarding({ raw: true });
       expect(onboarding.isDismissed).toBe(true);
@@ -162,19 +145,21 @@ describe('Settings slices owned by their own endpoints', () => {
         raw: true,
         settings: {
           locale: 'en',
-          ai: { featureConfigs: [], customInstructions: 'Prefer concise answers' },
+          ai: { customInstructions: 'Prefer concise answers' },
         },
       });
 
       expect(updated.ai?.customInstructions).toBe('Prefer concise answers');
-      expect(updated.ai?.customEndpoints).toHaveLength(1);
+      expect(updated.ai?.connections).toHaveLength(1);
+      expect(updated.ai?.featureConfigs).toHaveLength(1);
+      expect(collectKeyMaterial({ value: updated })).toHaveLength(0);
 
       const afterSiblingUpdate = await helpers.getUserSettings({ raw: true });
       expect(afterSiblingUpdate.ai?.customInstructions).toBe('Prefer concise answers');
 
-      const storedAfterSiblingUpdate = await readStoredEndpoints({ userId });
+      const storedAfterSiblingUpdate = await readStoredConnections({ userId });
       expect(storedAfterSiblingUpdate).toHaveLength(1);
-      expect(storedAfterSiblingUpdate[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(storedAfterSiblingUpdate[0]!.name).toBe(FIRST_CONNECTION_NAME);
     }, 30_000);
 
     it('rejects a payload that is invalid outside the ignored slices', async () => {
@@ -187,18 +172,16 @@ describe('Settings slices owned by their own endpoints', () => {
   describe('GET /user/settings', () => {
     it('returns no encrypted key material anywhere', async () => {
       const userId = await getTestUserId();
-      await helpers.seedApiKey({ userId, provider: AI_PROVIDER.openai });
-      const keyEncrypted = await seedCustomEndpoint({ userId });
+      await createConnectionWithKey();
 
       const fetched = await helpers.getUserSettings({ raw: true });
 
-      // Both slices come back, so an empty scan isn't just the slices being missing.
-      expect(fetched.ai?.apiKeys).toHaveLength(1);
-      expect(fetched.ai?.customEndpoints).toHaveLength(1);
+      // The slice comes back, so an empty scan isn't just the slice being missing.
+      expect(fetched.ai?.connections).toHaveLength(1);
       expect(collectKeyMaterial({ value: fetched })).toHaveLength(0);
 
-      const stored = await readStoredEndpoints({ userId });
-      expect(stored[0]!.keyEncrypted).toBe(keyEncrypted);
+      const [stored] = await readStoredConnections({ userId });
+      expect(stored?.keyEncrypted).toEqual(expect.any(String));
     });
 
     it('returns no encrypted key material for a user who never stored any', async () => {
@@ -209,49 +192,54 @@ describe('Settings slices owned by their own endpoints', () => {
   });
 
   describe('PATCH /user/settings', () => {
-    it('never writes ai.customEndpoints, whatever the rest of the patch does', async () => {
+    it('never writes ai.connections or ai.featureConfigs, whatever the rest of the patch does', async () => {
       const userId = await getTestUserId();
 
       const response = await helpers.patchUserSettings({
         patch: {
           includeCreditLimitInStats: true,
-          ai: { customEndpoints: [buildSmuggledEndpoint()] },
+          ai: buildSmuggledAiSettings(),
         },
       });
       expect(response.statusCode).toBe(200);
 
       const patched = response.body.response;
       expect(patched.includeCreditLimitInStats).toBe(true);
-      expect(patched.ai?.customEndpoints ?? []).toHaveLength(0);
-      expect(await helpers.getAiCustomEndpoints({ raw: true })).toHaveLength(0);
-      expect(await readStoredEndpoints({ userId })).toHaveLength(0);
+      expect(patched.ai?.connections ?? []).toHaveLength(0);
+      expect(await helpers.getAiConnections({ raw: true })).toHaveLength(0);
+      expect(await readStoredConnections({ userId })).toHaveLength(0);
+      expect(await readStoredFeatureConfigs({ userId })).toHaveLength(0);
 
-      await seedCustomEndpoint({ userId });
+      const connection = await createConnectionWithKey();
 
       const replaceAttempt = await helpers.patchUserSettings({
-        patch: { ai: { customEndpoints: [buildSmuggledEndpoint()] } },
+        patch: { ai: buildSmuggledAiSettings() },
       });
       expect(replaceAttempt.statusCode).toBe(200);
 
-      const stored = await readStoredEndpoints({ userId });
+      const stored = await readStoredConnections({ userId });
       expect(stored).toHaveLength(1);
-      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
-      expect(stored.some((endpoint) => endpoint.baseUrl === SMUGGLED_BASE_URL)).toBe(false);
+      expect(stored[0]!.name).toBe(FIRST_CONNECTION_NAME);
+      expect(stored.some((candidate) => candidate.baseUrl === SMUGGLED_BASE_URL)).toBe(false);
+      expect(await readStoredFeatureConfigs({ userId })).toEqual([
+        { feature: AI_FEATURE.categorization, connectionId: connection.id },
+      ]);
 
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
+      const listed = await helpers.getAiConnections({ raw: true });
       expect(listed).toHaveLength(1);
-      expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(listed[0]!.name).toBe(FIRST_CONNECTION_NAME);
 
       const withSiblingKey = await helpers.patchUserSettings({
         raw: true,
         patch: { ai: { customInstructions: 'Prefer concise answers' } },
       });
       expect(withSiblingKey.ai?.customInstructions).toBe('Prefer concise answers');
-      expect(withSiblingKey.ai?.customEndpoints).toHaveLength(1);
+      expect(withSiblingKey.ai?.connections).toHaveLength(1);
+      expect(collectKeyMaterial({ value: withSiblingKey })).toHaveLength(0);
 
-      const storedAfterSiblingPatch = await readStoredEndpoints({ userId });
+      const storedAfterSiblingPatch = await readStoredConnections({ userId });
       expect(storedAfterSiblingPatch).toHaveLength(1);
-      expect(storedAfterSiblingPatch[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(storedAfterSiblingPatch[0]!.name).toBe(FIRST_CONNECTION_NAME);
     }, 30_000);
   });
 });
