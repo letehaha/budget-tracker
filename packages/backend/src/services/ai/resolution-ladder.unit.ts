@@ -1,42 +1,33 @@
-import { AIFeatureConfig, AIKeyProvider, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AIFeatureConfig, AI_FEATURE } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
-import { getDefaultModelForFeature } from './models-config';
-import { pickResolutionStep, type LadderEndpoint } from './resolution-ladder';
+import { SERVER_MODELS, pickResolutionStep, type LadderConnection } from './resolution-ladder';
 
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY'] as const;
 
 // Its default model is a Google one, so GEMINI_API_KEY is what backs the server arm here.
 const FEATURE = AI_FEATURE.categorization;
+const SERVER_MODEL = SERVER_MODELS[FEATURE];
 
-const ENDPOINT: LadderEndpoint = { id: 'ep-1', name: 'Home Ollama', defaultModel: 'llama3.2', status: 'valid' };
-const SECOND_ENDPOINT: LadderEndpoint = { id: 'ep-2', name: 'Studio vLLM', defaultModel: 'qwen2.5', status: 'valid' };
+const FIRST: LadderConnection = { id: 'conn-1', status: 'valid' };
+const SECOND: LadderConnection = { id: 'conn-2', status: 'valid' };
+const FLAGGED_FIRST: LadderConnection = { ...FIRST, status: 'invalid' };
 
-const CUSTOM_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'custom/llama3.2', customEndpointId: ENDPOINT.id };
-const ANTHROPIC_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'anthropic/claude-haiku-4-5' };
-const DEFAULT_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: getDefaultModelForFeature({ feature: FEATURE }) };
+const PICK_SECOND: AIFeatureConfig = { feature: FEATURE, connectionId: SECOND.id };
+const PICK_SERVER: AIFeatureConfig = { feature: FEATURE, connectionId: null };
 
 function pick({
   config = null,
-  keyProviders = [],
-  endpoints = [],
+  connections = [],
   serverKeysAllowed = true,
-  excludedEndpointIds,
+  excludedConnectionIds,
 }: {
   config?: AIFeatureConfig | null;
-  keyProviders?: AIKeyProvider[];
-  endpoints?: LadderEndpoint[];
+  connections?: LadderConnection[];
   serverKeysAllowed?: boolean;
-  excludedEndpointIds?: ReadonlySet<string>;
+  excludedConnectionIds?: ReadonlySet<string>;
 } = {}) {
-  return pickResolutionStep({
-    feature: FEATURE,
-    config,
-    keyProviders: new Set(keyProviders),
-    endpoints,
-    serverKeysAllowed,
-    excludedEndpointIds,
-  });
+  return pickResolutionStep({ feature: FEATURE, config, connections, serverKeysAllowed, excludedConnectionIds });
 }
 
 describe('pickResolutionStep', () => {
@@ -57,143 +48,110 @@ describe('pickResolutionStep', () => {
     }
   });
 
-  describe('configured custom model', () => {
-    it('picks the configured endpoint over everything else', () => {
-      process.env.GEMINI_API_KEY = 'server-key';
-
-      const step = pick({
-        config: CUSTOM_CONFIG,
-        keyProviders: [AI_PROVIDER.google],
-        endpoints: [SECOND_ENDPOINT, ENDPOINT],
+  describe('configured connection', () => {
+    it('picks the configured connection over the default one', () => {
+      expect(pick({ config: PICK_SECOND, connections: [FIRST, SECOND] })).toEqual({
+        kind: 'configured',
+        connection: SECOND,
       });
-
-      expect(step).toEqual({ kind: 'configured-custom', endpoint: ENDPOINT, modelId: 'custom/llama3.2' });
     });
 
-    it('still picks the configured endpoint when it is flagged invalid', () => {
-      const flagged = { ...ENDPOINT, status: 'invalid' as const };
+    it('still picks the configured connection when it is flagged invalid', () => {
+      const flagged = { ...SECOND, status: 'invalid' as const };
 
-      const step = pick({ config: CUSTOM_CONFIG, endpoints: [flagged] });
-
-      expect(step.kind).toBe('configured-custom');
+      expect(pick({ config: PICK_SECOND, connections: [FIRST, flagged] })).toEqual({
+        kind: 'configured',
+        connection: flagged,
+      });
     });
 
-    it('falls through to the ladder when the configured endpoint was deleted', () => {
-      const step = pick({ config: CUSTOM_CONFIG, endpoints: [SECOND_ENDPOINT] });
-
-      expect(step).toMatchObject({ kind: 'fallback-endpoint', endpoint: SECOND_ENDPOINT });
+    it('treats a config naming a deleted connection as automatic', () => {
+      expect(pick({ config: PICK_SECOND, connections: [FIRST] })).toEqual({
+        kind: 'default-connection',
+        connection: FIRST,
+      });
     });
   });
 
-  describe('configured catalog model', () => {
-    it('runs on the user key for the configured provider', () => {
-      const step = pick({ config: ANTHROPIC_CONFIG, keyProviders: [AI_PROVIDER.anthropic] });
+  describe('configured server model', () => {
+    it('runs the server model when the user can use it, even with connections of their own', () => {
+      process.env.GEMINI_API_KEY = 'server-key';
 
-      expect(step).toEqual({
-        kind: 'configured-catalog',
-        provider: AI_PROVIDER.anthropic,
-        modelId: ANTHROPIC_CONFIG.modelId,
-        usingUserKey: true,
+      expect(pick({ config: PICK_SERVER, connections: [FIRST] })).toMatchObject({
+        kind: 'configured-server',
+        model: SERVER_MODEL,
       });
     });
 
-    it('runs the feature default on the server key when the user picked it explicitly', () => {
+    it('falls through to the default connection once the plan no longer includes the server model', () => {
       process.env.GEMINI_API_KEY = 'server-key';
 
-      const step = pick({ config: DEFAULT_CONFIG });
-
-      expect(step).toEqual({
-        kind: 'configured-catalog',
-        provider: AI_PROVIDER.google,
-        modelId: DEFAULT_CONFIG.modelId,
-        usingUserKey: false,
+      expect(pick({ config: PICK_SERVER, connections: [FIRST], serverKeysAllowed: false })).toEqual({
+        kind: 'default-connection',
+        connection: FIRST,
       });
     });
 
-    it('drops a configured non-default model to the feature default when only the server key could pay', () => {
-      process.env.ANTHROPIC_API_KEY = 'server-key';
-      process.env.GEMINI_API_KEY = 'server-key';
-
-      const step = pick({ config: ANTHROPIC_CONFIG });
-
-      expect(step).toMatchObject({ kind: 'default-catalog', provider: AI_PROVIDER.google, usingUserKey: false });
-    });
-
-    it('falls through to the user endpoint when server keys are not allowed', () => {
-      process.env.ANTHROPIC_API_KEY = 'server-key';
-
-      const step = pick({ config: ANTHROPIC_CONFIG, endpoints: [ENDPOINT], serverKeysAllowed: false });
-
-      expect(step).toMatchObject({ kind: 'fallback-endpoint', endpoint: ENDPOINT });
-    });
-
-    it('falls through to the endpoint fallback when no key backs the configured provider', () => {
-      const step = pick({ config: ANTHROPIC_CONFIG, endpoints: [ENDPOINT] });
-
-      expect(step).toMatchObject({ kind: 'fallback-endpoint', endpoint: ENDPOINT });
+    it('falls through when no server key is set at all', () => {
+      expect(pick({ config: PICK_SERVER, connections: [FIRST] })).toEqual({
+        kind: 'default-connection',
+        connection: FIRST,
+      });
     });
   });
 
   describe('no usable config', () => {
-    it('prefers the feature default on the user key over the user endpoints', () => {
-      const step = pick({ keyProviders: [AI_PROVIDER.google], endpoints: [ENDPOINT] });
-
-      expect(step).toMatchObject({ kind: 'default-catalog', provider: AI_PROVIDER.google, usingUserKey: true });
-    });
-
-    it('dials the first endpoint not flagged invalid', () => {
-      const flagged = { ...ENDPOINT, status: 'invalid' as const };
-
-      const step = pick({ endpoints: [flagged, SECOND_ENDPOINT] });
-
-      expect(step).toEqual({
-        kind: 'fallback-endpoint',
-        endpoint: SECOND_ENDPOINT,
-        modelId: 'custom/qwen2.5',
+    it('dials the first connection not flagged invalid', () => {
+      expect(pick({ connections: [FLAGGED_FIRST, SECOND] })).toEqual({
+        kind: 'default-connection',
+        connection: SECOND,
       });
     });
 
-    it('refuses with all-endpoints-down even when a server key could answer', () => {
+    it('prefers the user connection over the server model', () => {
       process.env.GEMINI_API_KEY = 'server-key';
-      const flagged = { ...ENDPOINT, status: 'invalid' as const };
 
-      const step = pick({ endpoints: [flagged] });
-
-      expect(step).toEqual({ kind: 'all-endpoints-down', endpoint: flagged });
+      expect(pick({ connections: [FIRST] })).toEqual({ kind: 'default-connection', connection: FIRST });
     });
 
-    it('falls back to the server key when the user has no endpoints at all', () => {
+    it('refuses with all-connections-down even when the server model could answer', () => {
       process.env.GEMINI_API_KEY = 'server-key';
 
-      const step = pick({});
+      expect(pick({ connections: [FLAGGED_FIRST] })).toEqual({
+        kind: 'all-connections-down',
+        connection: FLAGGED_FIRST,
+      });
+    });
 
-      expect(step).toMatchObject({ kind: 'default-catalog', usingUserKey: false });
+    it('falls back to the server model when the user has no connections at all', () => {
+      process.env.GEMINI_API_KEY = 'server-key';
+
+      expect(pick()).toMatchObject({ kind: 'server-default', model: SERVER_MODEL });
     });
 
     it('reports unserved when nothing anywhere can answer', () => {
-      expect(pick({})).toEqual({ kind: 'unserved', reason: 'no-credentials' });
+      expect(pick()).toEqual({ kind: 'unserved' });
     });
 
     it('reports unserved when the server key exists but the plan does not include it', () => {
       process.env.GEMINI_API_KEY = 'server-key';
 
-      expect(pick({ serverKeysAllowed: false })).toEqual({ kind: 'unserved', reason: 'no-credentials' });
+      expect(pick({ serverKeysAllowed: false })).toEqual({ kind: 'unserved' });
     });
   });
 
-  describe('excluded endpoints', () => {
-    it('skips an excluded endpoint in both the configured and fallback arms', () => {
-      const excluded = new Set([ENDPOINT.id]);
+  describe('excluded connections', () => {
+    it('skips an excluded connection in both the configured and default arms', () => {
+      const excludedConnectionIds = new Set([SECOND.id]);
 
-      const configured = pick({
-        config: CUSTOM_CONFIG,
-        endpoints: [ENDPOINT, SECOND_ENDPOINT],
-        excludedEndpointIds: excluded,
+      expect(pick({ config: PICK_SECOND, connections: [SECOND, FIRST], excludedConnectionIds })).toEqual({
+        kind: 'default-connection',
+        connection: FIRST,
       });
-      expect(configured).toMatchObject({ kind: 'fallback-endpoint', endpoint: SECOND_ENDPOINT });
-
-      const fallback = pick({ endpoints: [ENDPOINT], excludedEndpointIds: excluded });
-      expect(fallback).toEqual({ kind: 'all-endpoints-down', endpoint: ENDPOINT });
+      expect(pick({ connections: [SECOND], excludedConnectionIds })).toEqual({
+        kind: 'all-connections-down',
+        connection: SECOND,
+      });
     });
   });
 });

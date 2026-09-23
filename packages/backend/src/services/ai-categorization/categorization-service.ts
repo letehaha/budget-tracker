@@ -15,18 +15,18 @@ import {
   AIClientResult,
   AI_MAX_OUTPUT_TOKENS,
   type AiCallFailureKind,
-  CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
   aiCallGuards,
-  buildModelNotServedMessage,
+  buildUnsupportedRequestMessage,
   classifyAiCallFailure,
   createAIClient,
   describeMissingAiConfiguration,
   hitOutputCeiling,
+  markConnectionRejected,
   markCustomEndpointUnreachable,
+  markModelNotServed,
 } from '@services/ai';
 import { sseManager } from '@services/common/sse';
-import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
-import { markCustomEndpointInvalid, markCustomEndpointValid } from '@services/user-settings/ai-custom-endpoint';
+import { markConnectionValid } from '@services/user-settings/ai-connections';
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
@@ -43,13 +43,6 @@ import {
 import { assignShortIds } from './utils/assign-short-ids';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
-
-const INVALID_KEY_ERROR_MESSAGE =
-  'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
-
-/** A local endpoint often has no key at all, so credits and permissions are the wrong advice. */
-const CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE =
-  'Your custom AI endpoint rejected the request. Please verify its URL, model name, and API key in AI settings.';
 
 const CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE =
   'Your custom AI endpoint address was rejected. Please point it at a publicly reachable address in AI settings.';
@@ -72,28 +65,33 @@ interface CategorizeBatchResult extends CategorizationBatchResult {
   };
 }
 
-function buildStopReason({
+async function resolveStopReason({
   failureKind,
+  reason,
+  userId,
   aiClient,
 }: {
   failureKind: Exclude<AiCallFailureKind, 'unknown'>;
+  /** The provider's own error message */
+  reason: string;
+  userId: number;
   aiClient: AIClientResult;
-}): string {
+}): Promise<string> {
   switch (failureKind) {
+    case 'unsupported-request':
+      return buildUnsupportedRequestMessage({ modelId: aiClient.modelId, reason });
+    case 'auth':
+      return markConnectionRejected({ userId, aiClient });
+    case 'model-not-found':
+      return markModelNotServed({ userId, aiClient });
+    case 'endpoint-down':
+      return markCustomEndpointUnreachable({ userId, aiClient });
     case 'blocked-address':
       return CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE;
-    case 'model-not-found':
-      return buildModelNotServedMessage({ modelId: aiClient.modelId });
-    case 'endpoint-down':
-      return CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE;
     case 'rate-limited':
       return RATE_LIMITED_ERROR_MESSAGE;
     case 'temporary':
       return TEMPORARY_ERROR_MESSAGE;
-    case 'auth':
-      return aiClient.provider === AI_PROVIDER.custom
-        ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE
-        : INVALID_KEY_ERROR_MESSAGE;
   }
 }
 
@@ -215,7 +213,7 @@ async function categorizeBatch({
   } catch (error) {
     const { kind, cause } = classifyAiCallFailure({ error });
 
-    // Only a custom endpoint can be down in a way the user can fix, so a catalog
+    // Only a custom endpoint can be down in a way the user can fix, so a native
     // provider that answers with nothing is downgraded to a temporary failure.
     const failureKind =
       kind === 'endpoint-down' && aiClient.provider !== AI_PROVIDER.custom ? ('temporary' as const) : kind;
@@ -374,9 +372,7 @@ async function selectCandidateTransactions({
 
 /**
  * Categorize transactions using AI, in batches of BATCH_SIZE. The first classified
- * failure stops the run and returns partial results with `stopReason` set. An auth
- * failure on a catalog user key retries once on the server key; a custom endpoint
- * never falls back.
+ * failure stops the run and returns partial results with `stopReason` set.
  */
 export async function categorizeTransactions({
   userId,
@@ -397,7 +393,7 @@ export async function categorizeTransactions({
   onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
-  let aiClient = await createAIClient({
+  const aiClient = await createAIClient({
     userId,
     feature: AI_FEATURE.categorization,
   });
@@ -502,9 +498,6 @@ export async function categorizeTransactions({
     }
   };
 
-  // Guards against an infinite fallback loop
-  let hasTriedFallback = false;
-
   // One stamp for the whole run: the history list groups transactions by it, so a
   // per-batch stamp would split a single run into several entries.
   const categorizedAt = new Date().toISOString();
@@ -524,50 +517,15 @@ export async function categorizeTransactions({
       customInstructions,
     });
 
-    // Auth on a catalog user key gets one shot at the server key. A user who
-    // configured their own endpoint chose where their data may go, so falling
-    // back would send payees, amounts and notes to a provider they never picked.
-    if (
-      batchResult.failureKind === 'auth' &&
-      aiClient.usingUserKey &&
-      aiClient.provider !== AI_PROVIDER.custom &&
-      !hasTriedFallback
-    ) {
-      logger.info('User AI credentials rejected, marking invalid', { userId, provider: aiClient.provider });
-
-      await markApiKeyInvalid({
-        userId,
-        provider: aiClient.provider,
-        errorMessage: INVALID_KEY_ERROR_MESSAGE,
-      });
-
-      // Re-resolve: the key is now flagged invalid, so this picks up the server key
-      const fallbackClient = await createAIClient({
-        userId,
-        feature: AI_FEATURE.categorization,
-      });
-
-      if (fallbackClient && !fallbackClient.usingUserKey) {
-        logger.info('Falling back to server API key', {
-          userId,
-          provider: fallbackClient.provider,
-        });
-
-        aiClient = fallbackClient;
-        customInstructions = undefined;
-        hasTriedFallback = true;
-
-        // Retry this batch with the fallback client
-        i -= BATCH_SIZE;
-        continue;
-      }
-      // No server key either: fall through to the stop block below
-    }
-
     // A classified failure holds for the whole run (the endpoint stays down, the model
     // stays missing), so the first one stops it. Unclassified ones may be batch-specific.
     if (batchResult.failureKind && batchResult.failureKind !== 'unknown') {
-      const stopReason = buildStopReason({ failureKind: batchResult.failureKind, aiClient });
+      const stopReason = await resolveStopReason({
+        failureKind: batchResult.failureKind,
+        reason: batchResult.errors?.[0] ?? '',
+        userId,
+        aiClient,
+      });
 
       logger.info(`Stopping AI categorization (${batchResult.failureKind}): ${stopReason}`, {
         userId,
@@ -575,20 +533,6 @@ export async function categorizeTransactions({
         modelId: aiClient.modelId,
         usingUserKey: aiClient.usingUserKey,
       });
-
-      if (batchResult.failureKind === 'endpoint-down') {
-        await markCustomEndpointUnreachable({ userId, aiClient });
-      } else if (
-        batchResult.failureKind === 'auth' &&
-        aiClient.provider === AI_PROVIDER.custom &&
-        aiClient.customEndpointId
-      ) {
-        await markCustomEndpointInvalid({
-          userId,
-          endpointId: aiClient.customEndpointId,
-          errorMessage: stopReason,
-        });
-      }
 
       allResults.failed.push(...transactions.slice(i).map((t) => t.id));
       allResults.errors!.push(stopReason);
@@ -604,16 +548,8 @@ export async function categorizeTransactions({
     }
 
     // Skips prove the credentials work just as well as categorizations do.
-    if (batchResult.successful.length > 0 || batchResult.skipped.length > 0) {
-      if (aiClient.usingUserKey) {
-        if (aiClient.provider === AI_PROVIDER.custom) {
-          if (aiClient.customEndpointId) {
-            await markCustomEndpointValid({ userId, endpointId: aiClient.customEndpointId });
-          }
-        } else {
-          await markApiKeyValid({ userId, provider: aiClient.provider });
-        }
-      }
+    if ((batchResult.successful.length > 0 || batchResult.skipped.length > 0) && aiClient.connectionId) {
+      await markConnectionValid({ userId, connectionId: aiClient.connectionId });
     }
 
     allResults.successful.push(...batchResult.successful);

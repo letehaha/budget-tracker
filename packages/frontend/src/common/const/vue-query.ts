@@ -216,10 +216,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   mcpConnectedApps: ['mcp-connected-apps'] as const,
 
   // AI settings
-  aiApiKeyStatus: ['ai-settings', 'api-keys'] as const,
   aiFeaturesStatus: ['ai-settings', 'features'] as const,
   aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
-  aiCustomEndpoints: ['ai-settings', 'custom-endpoints'] as const,
+  aiConnections: ['ai-settings', 'connections'] as const,
+  aiConnectionModels: ['ai-settings', 'connection-models'] as const,
 
   // A finished categorization run rewrites categories, so the transactionChange
   // invalidation refreshes the candidate list and its total.

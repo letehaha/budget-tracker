@@ -303,8 +303,8 @@
             "description": "Explore available AI capabilities"
           },
           "configure-ai": {
-            "title": "Set your own API key",
-            "description": "Use your AI API key for the unlimited and uninterrupted access"
+            "title": "Add your own AI model",
+            "description": "Connect OpenAI, Claude, Gemini or a local model."
           },
           "invite-household-member": {
             "title": "Invite a household member",

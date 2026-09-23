@@ -1,10 +1,13 @@
 import type { BackupRestoreProgress, BackupRestoreSummary, BackupRestoreWarning } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import { trackBackupRestored } from '@js/utils/posthog';
 import UserSettings, { ZodSettingsSchema } from '@models/user-settings.model';
 import Users from '@models/users.model';
+import { unifyAiConnections } from '@root/migrations/utils/unify-ai-connections';
 import { runUserDestroyLifecycle } from '@services/user/user-destroy-lifecycle';
 import { destroyUserOwnedData } from '@services/user/wipe-user-data.service';
 
+import { stripConnectionKeys } from '../dump-tables.service';
 import { BACKUP_TABLES } from '../registry';
 import { type ParsedArchive } from './load-archive';
 import { loadValidatedArchive } from './load-validated-archive';
@@ -98,8 +101,12 @@ async function upsertUserSettings({
     return;
   }
 
-  const parsed = ZodSettingsSchema.safeParse(src.settings);
+  // Legacy archives (API keys, custom endpoints) convert exactly like the DB rows did. Keys
+  // are stripped here too, so a hand-edited archive can't bring ciphertext in.
+  const settings = stripConnectionKeys({ settings: unifyAiConnections({ settings: src.settings }) });
+  const parsed = ZodSettingsSchema.safeParse(settings);
   if (!parsed.success) {
+    logger.warn('Backup restore: settings failed schema and were reset', { userId, issues: parsed.error.issues });
     // A backup taken across a settings-schema change can carry a blob the current
     // schema rejects. Reset to defaults and warn rather than aborting an otherwise
     // valid restore over a non-critical field.

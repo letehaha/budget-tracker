@@ -7,7 +7,6 @@
       "accountsGroups": "Групи рахунків",
       "importData": "Імпорт/Експорт",
       "ai": "AI",
-      "aiIntegrations": "AI-інтеграції",
       "security": "Безпека",
       "admin": "Адміністратор",
       "sharedWithMe": "Поділилися зі мною",
@@ -19,7 +18,8 @@
       "general": "Загальні",
       "payees": "Отримувачі",
       "subscriptions": "Регулярні платежі",
-      "planBilling": "План і оплата"
+      "planBilling": "План і оплата",
+      "collapse": "Згорнути"
     },
     "backToSettings": "Назад до налаштувань"
   }

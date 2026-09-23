@@ -175,8 +175,8 @@ multi-currency data.
 - **401 Unauthorized on tool calls**: the access token expired. The client
   should use the refresh token (granted via `offline_access` scope) to obtain
   a new access token.
-- **Revoking access**: user goes to MoneyMatter → Settings → AI Integrations
-  and removes the connected app.
+- **Revoking access**: user goes to MoneyMatter → Settings → AI → Connectors (MCP)
+  and removes it from Active connectors.
 
 ## Self-hosted deployments
 

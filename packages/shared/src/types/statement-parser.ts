@@ -113,9 +113,8 @@ export interface StatementCostEstimate {
   /** Estimated output tokens (based on expected transactions) */
   estimatedOutputTokens: number;
   /**
-   * Estimated cost in USD. Null when nobody can look the price up: a custom endpoint is
-   * billed by whoever runs it, and some catalog models publish no pricing. A free model
-   * is a known price of 0.
+   * Estimated cost in USD. Null when the public model catalog has no price for the model or
+   * can't be reached. A free model is a known price of 0.
    */
   estimatedCostUsd: number | null;
   /** Model that will be used */

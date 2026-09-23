@@ -1,7 +1,7 @@
-import { AI_FEATURE, API_ERROR_CODES, getModelNameFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, API_ERROR_CODES } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Users from '@models/users.model';
-import { getDefaultModelForFeature } from '@services/ai/models-config';
+import { SERVER_MODELS } from '@services/ai/resolution-ladder';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import type { ErrorResponse } from '@tests/helpers/common';
@@ -14,9 +14,7 @@ import {
 } from '@tests/mocks/gemini/mock-api';
 import { HttpResponse, http } from 'msw';
 
-const EXPECTED_MODEL = getModelNameFromModelId({
-  modelId: getDefaultModelForFeature({ feature: AI_FEATURE.categorization }),
-});
+const EXPECTED_MODEL = SERVER_MODELS[AI_FEATURE.categorization].model;
 
 /** Collects every `text` field of the Gemini request body (system + user parts). */
 function extractPromptText(body: unknown): string {

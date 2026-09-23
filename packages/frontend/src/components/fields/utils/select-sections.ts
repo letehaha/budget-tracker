@@ -4,7 +4,7 @@ export interface SelectPinnedGroup<T> {
   restLabel: string;
 }
 
-export interface SelectSection<T> {
+interface SelectSection<T> {
   /** Null for a plain, ungrouped list. */
   label: string | null;
   items: T[];

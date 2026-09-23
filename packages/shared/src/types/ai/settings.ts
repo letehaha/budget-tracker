@@ -1,16 +1,6 @@
 import { AI_FEATURE, AI_PROVIDER } from '../enums';
 import type { Equals, Expect } from '../type-testing';
 
-export type AIModelCapability =
-  | 'text-generation'
-  | 'structured-output'
-  | 'function-calling'
-  | 'vision'
-  | 'fast-inference'
-  | 'agents';
-
-export type AIModelCostTier = 'free' | 'low' | 'medium' | 'high';
-
 export interface AIModelPricing {
   /** Cost per 1M input tokens in USD */
   inputPerMillion: number;
@@ -18,129 +8,137 @@ export interface AIModelPricing {
   outputPerMillion: number;
 }
 
-/** Static config returned via API for frontend display. Not stored in DB. */
-export interface AIModelInfo {
-  /** Full model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
-  id: string;
-  name: string;
-  provider: AIKeyProvider;
-  description: string;
-  /** Maximum context window in tokens */
-  contextWindow: number;
-  capabilities: AIModelCapability[];
-  costTier: AIModelCostTier;
-  /** Pricing per 1M tokens (optional for free-tier models) */
-  pricing?: AIModelPricing;
+/** What the public model catalog lists for a model; a null field is not listed. */
+export interface AIModelCapabilities {
+  /** Input kinds the model accepts, e.g. `['text', 'image', 'pdf']` */
+  inputs: string[];
+  maxOutputTokens: number | null;
+  structuredOutput: boolean | null;
 }
 
-export interface AIModelInfoWithRecommendation extends AIModelInfo {
-  recommendedForFeature?: boolean;
-}
+/** Providers served through their native SDK at the official API; need an API key, take no base URL. */
+export type AINativeProvider = Exclude<AI_PROVIDER, AI_PROVIDER.custom>;
 
-/** Per-feature model configuration stored in UserSettings.settings.ai.featureConfigs[] */
-export interface AIFeatureConfig {
-  feature: AI_FEATURE;
-  /** Model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
-  modelId: string;
-  /**
-   * Present exactly when `modelId` is a `custom/*` ID. Kept separate from `modelId` because a
-   * custom model name may itself contain slashes.
-   */
-  customEndpointId?: string;
-}
-
-/**
- * Providers whose credentials are a plain API key in `UserSettings.settings.ai.apiKeys`.
- * `AI_PROVIDER.custom` is absent because it stores a base URL under `customEndpoints`, so it
- * must never appear in key CRUD, provider pickers or `defaultProvider`.
- */
-export type AIKeyProvider = Exclude<AI_PROVIDER, AI_PROVIDER.custom>;
-
-export const AI_KEY_PROVIDERS = [
-  AI_PROVIDER.anthropic,
+export const AI_NATIVE_PROVIDERS = [
   AI_PROVIDER.openai,
+  AI_PROVIDER.anthropic,
   AI_PROVIDER.google,
-  AI_PROVIDER.groq,
-] as const satisfies readonly AIKeyProvider[];
+] as const satisfies readonly AINativeProvider[];
 
 /**
- * Pins `AI_KEY_PROVIDERS` to list every key provider, which the `satisfies` above alone does
- * not. Exported only so the assertion isn't flagged as unused.
+ * Pins `AI_NATIVE_PROVIDERS` to list every native provider, which the `satisfies` above alone
+ * does not. Exported only so the assertion isn't flagged as unused.
  */
-export type AiKeyProvidersAreExhaustive = Expect<Equals<(typeof AI_KEY_PROVIDERS)[number], AIKeyProvider>>;
+export type AiNativeProvidersAreExhaustive = Expect<Equals<(typeof AI_NATIVE_PROVIDERS)[number], AINativeProvider>>;
 
-export type AIApiKeyStatus = 'valid' | 'invalid';
+export const MAX_AI_CONNECTIONS = 20;
 
-/** API key info returned to frontend, never the key value itself */
-export interface AIApiKeyInfo {
-  provider: AIKeyProvider;
-  createdAt: string;
-  status: AIApiKeyStatus;
-  lastValidatedAt: string;
-  lastError?: string;
-  invalidatedAt?: string;
-}
+export type AIConnectionStatus = 'valid' | 'invalid';
 
-/** Custom endpoint info returned to frontend (never carries key material) */
-export interface AICustomEndpointInfo {
+/** Connection info returned to frontend (never carries key material) */
+export interface AIConnectionInfo {
   id: string;
+  provider: AI_PROVIDER;
   name: string;
-  /** Endpoint root, normalized without a trailing slash */
-  baseUrl: string;
-  /** Free-text model name passed to the endpoint verbatim */
-  defaultModel: string;
+  /** Only for `custom`; normalized without a trailing slash */
+  baseUrl?: string;
+  /** Model name passed to the provider verbatim */
+  model: string;
   hasApiKey: boolean;
   createdAt: string;
-  status: AIApiKeyStatus;
+  status: AIConnectionStatus;
   lastValidatedAt: string;
   lastError?: string;
   invalidatedAt?: string;
 }
 
+/** Stored per feature. `connectionId: null` = explicitly the included server model. */
+export interface AIFeatureConfig {
+  feature: AI_FEATURE;
+  connectionId: string | null;
+}
+
 /**
- * Gate UI preselection on `isConfigured`, never on `customEndpointId` being present.
- * Every other field describes the model that would answer a call right now, which can
- * differ from the user's stored pick.
+ * Gate UI preselection on `isConfigured`. Every other field describes what would answer a
+ * call right now, which can differ from the user's stored pick.
  */
 export interface AIFeatureStatus {
   feature: AI_FEATURE;
-  /** Whether user has custom config (false = using default) */
+  /** Stored pick is honoured (a server pick the user can no longer use reports false). */
   isConfigured: boolean;
-  /** Model ID in 'provider/model' format */
+  /** The stored pick when `isConfigured`: a connection id, or null for the server model */
+  configuredConnectionId?: string | null;
+  /** `null` when nothing answers: no credentials at all, or every connection is down */
+  servedBy: 'connection' | 'server' | null;
+  /** `provider/model` of what answers (e.g. 'custom/llama3.2'), '' when nothing does */
   modelId: string;
   modelName: string;
-  /** Whether the user's own credentials (API key or custom endpoint) pay for the call */
+  /** Price of what answers, null when the public model catalog doesn't know it */
+  pricing: AIModelPricing | null;
+  /** Of what answers, null when the public model catalog doesn't know it */
+  capabilities: AIModelCapabilities | null;
   usingUserKey: boolean;
-  /** Set only when a `custom/*` model answers; names the endpoint serving it */
-  customEndpointId?: string;
-  endpointName?: string;
+  /** The answering connection; the first connection when all of them are down */
+  connectionId?: string;
+  connectionName?: string;
+  /** Display name of the included server model for this feature, null when the user can't use it */
+  serverModelName: string | null;
 }
 
-export interface AIFeatureDisplayInfo {
+/** POST /user/settings/ai/connections */
+export interface CreateAIConnectionBody {
+  provider: AI_PROVIDER;
   name: string;
-  description: string;
+  model: string;
+  /** Required for `custom`, rejected for native providers */
+  baseUrl?: string;
+  apiKey?: string;
+  /** Reuse the stored key of another connection of the same provider */
+  keyFromConnectionId?: string;
 }
+
+/** PUT /user/settings/ai/connections/:id. `apiKey` omitted keeps the key, `null` clears it (`custom` only). */
+export interface UpdateAIConnectionBody {
+  name?: string;
+  model?: string;
+  baseUrl?: string;
+  apiKey?: string | null;
+}
+
+/** POST /user/settings/ai/connections/test. With `connectionId`, omitted fields fall back to the stored ones. */
+export type TestAIConnectionBody =
+  | Omit<CreateAIConnectionBody, 'name'>
+  | {
+      connectionId: string;
+      model?: string;
+      baseUrl?: string;
+      apiKey?: string;
+    };
+
+export type TestAIConnectionResponse = { isValid: true; error?: undefined } | { isValid: false; error: string };
+
+/** POST /user/settings/ai/connections/models. `connectionId` supplies the stored key/baseUrl. */
+export interface ListAIConnectionModelsBody {
+  provider: AI_PROVIDER;
+  baseUrl?: string;
+  apiKey?: string;
+  connectionId?: string;
+}
+
+/** Live model ids, empty when the provider can't be listed */
+export interface ListAIConnectionModelsResponse {
+  models: string[];
+}
+
+/** PUT /user/settings/ai/features/:feature */
+export type SetAIFeatureConfigBody = Pick<AIFeatureConfig, 'connectionId'>;
 
 /** Maximum character length for custom AI categorization instructions */
 export const AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH = 2000;
 
-/**
- * Model ID prefix marking a model served by the user's own endpoint. Everything
- * after it is the free-text model name and may itself contain slashes.
- */
-export const AI_CUSTOM_MODEL_PREFIX = 'custom/';
+export const AI_MODEL_NAME_MAX_LENGTH = 200;
 
-export const AI_CUSTOM_MODEL_NAME_MAX_LENGTH = 200;
-
-export const AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH = 50;
-
-export function isCustomModelId({ modelId }: { modelId: string }): boolean {
-  return modelId.startsWith(AI_CUSTOM_MODEL_PREFIX);
-}
-
-export function buildCustomModelId({ modelName }: { modelName: string }): string {
-  return `${AI_CUSTOM_MODEL_PREFIX}${modelName}`;
-}
+export const AI_CONNECTION_NAME_MAX_LENGTH = 50;
 
 export function getModelNameFromModelId({ modelId }: { modelId: string }): string {
   const parts = modelId.split('/');

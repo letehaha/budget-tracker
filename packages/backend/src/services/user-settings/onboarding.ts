@@ -160,9 +160,7 @@ export const detectCompletedTasks = withTransaction(async ({ userId }: { userId:
   // Note: import-csv is NOT auto-detected because externalData is used for both
   // bank connections and imports. It's marked complete manually from the import stores.
 
-  // Check if AI is configured (has API keys)
-  const aiApiKeys = userSettings?.settings?.ai?.apiKeys;
-  if (aiApiKeys && aiApiKeys.length > 0) {
+  if (userSettings?.settings?.ai?.connections?.length) {
     completedTasks.push('configure-ai');
   }
 

@@ -1,85 +1,69 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
 import {
-  AICustomEndpointInfo,
+  AIConnectionInfo,
   AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
   AI_FEATURE,
-  AI_KEY_PROVIDERS,
+  AI_PROVIDER,
+  MAX_AI_CONNECTIONS,
   MAX_CATEGORY_MAPPING_PRESETS,
   NOTIFICATION_TYPES,
   RecordId,
   TRANSACTION_OPTIONAL_FIELDS,
   endpointsTypes,
-  isCustomModelId,
 } from '@bt/shared/types';
-import type { CategoryMappingPreset, Equals, Expect } from '@bt/shared/types';
+import type { CategoryMappingPreset, Equals, Expect, MutuallyAssignable } from '@bt/shared/types';
 import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { IdColumn } from '@common/types/id-column';
 import {
   baseUrlField,
-  defaultModelField,
+  modelField,
   nameField,
-} from '@controllers/user-settings/ai-custom-endpoint/endpoint-field-schemas';
+} from '@controllers/user-settings/ai-connections/connection-field-schemas';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import { z } from 'zod';
 
 import Users from './users.model';
 
-const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
-
-const ZodAiApiKeySchema = z.object({
-  provider: z.enum(AI_KEY_PROVIDERS),
-  keyEncrypted: z.string(),
-  createdAt: z.string().datetime(),
-  status: ZodAiApiKeyStatusSchema.optional(),
-  lastValidatedAt: z.string().datetime().optional(),
-  lastError: z.string().optional(),
-  invalidatedAt: z.string().datetime().optional(),
+/** `connectionId: null` is an explicit pick of the included server model. */
+const ZodAiFeatureConfigSchema = z.object({
+  feature: z.nativeEnum(AI_FEATURE),
+  connectionId: z.string().nullable(),
 });
 
-const ZodAiFeatureConfigSchema = z
+// Field constraints are shared with the create/update routes so a restored row can't be
+// shaped differently from a created one.
+const ZodAiConnectionSchema = z
   .object({
-    feature: z.nativeEnum(AI_FEATURE),
-    modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-5.6-terra'
-    customEndpointId: z.string().optional(),
+    id: z.string(),
+    provider: z.nativeEnum(AI_PROVIDER),
+    name: nameField,
+    baseUrl: baseUrlField.optional(),
+    keyEncrypted: z.string().optional(),
+    model: modelField,
+    createdAt: z.string().datetime(),
+    status: z.enum(['valid', 'invalid']),
+    lastValidatedAt: z.string().datetime(),
+    lastError: z.string().optional(),
+    invalidatedAt: z.string().datetime().optional(),
   })
-  .superRefine((config, ctx) => {
-    // A 'custom/*' model without its endpoint id is permanently undialable, and an endpoint id
-    // on a catalog model is dead weight. Rejecting both here keeps either out of storage.
-    if (isCustomModelId({ modelId: config.modelId }) !== Boolean(config.customEndpointId)) {
+  .superRefine((connection, ctx) => {
+    // Native providers always dial their official API, so a stored base URL would be dead weight.
+    if ((connection.provider === AI_PROVIDER.custom) !== Boolean(connection.baseUrl)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['customEndpointId'],
-        message: 'customEndpointId must be set exactly when modelId is a custom/* ID',
+        path: ['baseUrl'],
+        message: 'baseUrl must be set exactly when provider is custom',
       });
     }
   });
 
-/** Cap per user: each entry is a URL the server dials, and the whole list lives in one settings row. */
-export const MAX_CUSTOM_ENDPOINTS = 5;
-
-// One of the user's own OpenAI-compatible endpoints. Field constraints are shared with the
-// create/update routes so a restored row can't be shaped differently from a created one.
-const ZodAiCustomEndpointSchema = z.object({
-  id: z.string(),
-  name: nameField,
-  baseUrl: baseUrlField,
-  keyEncrypted: z.string().optional(),
-  defaultModel: defaultModelField,
-  createdAt: z.string().datetime(),
-  status: ZodAiApiKeyStatusSchema,
-  lastValidatedAt: z.string().datetime(),
-  lastError: z.string().optional(),
-  invalidatedAt: z.string().datetime().optional(),
-});
-
-export type StoredCustomEndpoint = z.infer<typeof ZodAiCustomEndpointSchema>;
+export type StoredConnection = z.infer<typeof ZodAiConnectionSchema>;
 
 const ZodAiSettingsSchema = z.object({
-  apiKeys: z.array(ZodAiApiKeySchema).default([]),
-  defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
-  featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
+  featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
   customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
-  customEndpoints: z.array(ZodAiCustomEndpointSchema).max(MAX_CUSTOM_ENDPOINTS).optional(),
+  /** List order is priority: the first dialable connection answers unconfigured features. */
+  connections: z.array(ZodAiConnectionSchema).max(MAX_AI_CONNECTIONS).optional(),
 });
 
 const ZodNotificationPreferencesSchema = z.object({
@@ -315,9 +299,6 @@ export const ZodSettingsPatchSchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES).optional(),
   ai: z
     .object({
-      apiKeys: z.array(ZodAiApiKeySchema).optional(),
-      defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
-      featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
       customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
     })
     .optional(),
@@ -414,7 +395,7 @@ type DeepPartial<T> = {
 };
 
 type PatchableSettings = Omit<SettingsSchema, 'onboarding' | 'ai'> & {
-  ai?: Omit<NonNullable<SettingsSchema['ai']>, 'customEndpoints'>;
+  ai?: Omit<NonNullable<SettingsSchema['ai']>, 'connections' | 'featureConfigs'>;
 };
 
 /**
@@ -456,13 +437,19 @@ export type SidebarSectionsSchemaIsInSync = Expect<
 >;
 
 /**
- * Compile-time drift guard: a stored custom endpoint and the `AICustomEndpointInfo` the API
- * returns declare the same fields apart from how the key is represented.
+ * Compile-time drift guard: a stored connection and the `AIConnectionInfo` the API returns
+ * declare the same fields apart from how the key is represented. `provider` is checked
+ * separately because Zod infers the enum member union, which `Equals` rejects.
  *
  * @public exported only so the assertion isn't flagged as unused.
  */
-export type AiCustomEndpointSchemaIsInSync = Expect<
-  Equals<Omit<StoredCustomEndpoint, 'keyEncrypted'>, Omit<AICustomEndpointInfo, 'hasApiKey'>>
+export type AiConnectionSchemaIsInSync = Expect<
+  Equals<Omit<StoredConnection, 'keyEncrypted' | 'provider'>, Omit<AIConnectionInfo, 'hasApiKey' | 'provider'>>
+>;
+
+/** @public exported only so the assertion isn't flagged as unused. */
+export type AiConnectionProviderIsInSync = Expect<
+  MutuallyAssignable<StoredConnection['provider'], AIConnectionInfo['provider']>
 >;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {

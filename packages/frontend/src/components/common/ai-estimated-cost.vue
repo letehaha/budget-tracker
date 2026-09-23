@@ -1,6 +1,8 @@
 <template>
-  <!-- A custom endpoint publishes no prices, so there is a label instead of a number. -->
-  <span v-if="estimate.estimatedCostUsd === null">{{ $t('ai.estimatedCost.setByEndpoint') }}</span>
+  <!-- A model outside the catalog has no known price. -->
+  <span v-if="estimate.estimatedCostUsd === null">
+    {{ estimate.usingUserKey ? $t('ai.estimatedCost.setByEndpoint') : '—' }}
+  </span>
   <template v-else>
     ${{ estimate.estimatedCostUsd.toFixed(COST_FRACTION_DIGITS) }}
     <span v-if="estimate.usingUserKey" class="text-muted-foreground text-sm">

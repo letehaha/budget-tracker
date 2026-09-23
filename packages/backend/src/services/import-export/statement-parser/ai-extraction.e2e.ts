@@ -5,8 +5,16 @@ import {
   readStatementPdfFixture,
 } from '@tests/fixtures/statement-parser-fixtures';
 import * as helpers from '@tests/helpers';
-import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
-import { createFirstEndpoint, errorMessage, getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
+import { enableServerModel, useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
+import {
+  createFirstConnection,
+  createOpenAiConnection,
+  errorMessage,
+  getTestUserId,
+  readStoredConnections,
+} from '@tests/helpers/user-settings';
+import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
+import { createCallsCounter } from '@tests/mocks/helpers';
 import {
   CUSTOM_ENDPOINT_MODEL,
   getCustomEndpointAuthErrorMock,
@@ -16,6 +24,7 @@ import {
   getCustomEndpointOfflineMock,
   getCustomEndpointWebPageMocks,
 } from '@tests/mocks/openai-compatible/mock-api';
+import { createOpenAiAuthErrorMock } from '@tests/mocks/openai/mock-api';
 
 const STATEMENT_CSV = ['date;description;amount', '2026-06-01;Grocery store;-42.10', '2026-06-02;Salary;2500.00'].join(
   '\n',
@@ -28,7 +37,7 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
 
   it('names the endpoint and flags it when the server is gone', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    await createFirstConnection();
     global.mswMockServer.use(getCustomEndpointOfflineMock());
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
@@ -36,27 +45,27 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(errorMessage({ response })).toMatch(/did not respond/i);
     expect(errorMessage({ response })).not.toContain(CUSTOM_ENDPOINT_MODEL);
 
-    const [stored] = await readStoredEndpoints({ userId });
+    const [stored] = await readStoredConnections({ userId });
     expect(stored?.status).toBe('invalid');
     expect(stored?.lastError).toMatch(/did not respond/i);
   });
 
   it('flags the endpoint when a web page answers instead of the API', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    await createFirstConnection();
     global.mswMockServer.use(...getCustomEndpointWebPageMocks());
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
     expect(errorMessage({ response })).toMatch(/did not respond/i);
 
-    const [stored] = await readStoredEndpoints({ userId });
+    const [stored] = await readStoredConnections({ userId });
     expect(stored?.status).toBe('invalid');
   });
 
   it('names the rejection and flags the endpoint when it answers 401', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    await createFirstConnection();
     global.mswMockServer.use(getCustomEndpointAuthErrorMock());
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
@@ -64,14 +73,32 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(errorMessage({ response })).toMatch(/rejected the request/i);
     expect(errorMessage({ response })).toContain('AI settings');
 
-    const [stored] = await readStoredEndpoints({ userId });
+    const [stored] = await readStoredConnections({ userId });
     expect(stored?.status).toBe('invalid');
     expect(stored?.lastError).toMatch(/rejected the request/i);
   });
 
-  it('names the model and leaves the endpoint alone when the model is not served', async () => {
+  // Falling back to the server model would send the statement to a provider the user never picked.
+  it('names the key and flags a native connection whose key is rejected, without the server model', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
+    await createOpenAiConnection();
+    global.mswMockServer.use(createOpenAiAuthErrorMock(), createGeminiMock());
+    const geminiCalls = createCallsCounter(global.mswMockServer, /generativelanguage\.googleapis\.com/);
+
+    const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
+
+    expect(errorMessage({ response })).toMatch(/API key is not working/);
+
+    const [stored] = await readStoredConnections({ userId });
+    expect(stored?.status).toBe('invalid');
+    expect(stored?.lastError).not.toMatch(/endpoint/i);
+    expect(geminiCalls.count).toBe(0);
+  });
+
+  it('names the model and flags the connection when the model is not served', async () => {
+    const userId = await getTestUserId();
+    await createFirstConnection();
     global.mswMockServer.use(getCustomEndpointModelNotFoundMock());
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
@@ -79,19 +106,20 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(errorMessage({ response })).toContain(CUSTOM_ENDPOINT_MODEL);
     expect(errorMessage({ response })).toContain('AI settings');
 
-    const [stored] = await readStoredEndpoints({ userId });
-    expect(stored?.status).toBe('valid');
+    const [stored] = await readStoredConnections({ userId });
+    expect(stored?.status).toBe('invalid');
+    expect(stored?.lastError).toContain(CUSTOM_ENDPOINT_MODEL);
   });
 
   // Once flagged, the endpoint is the only thing that may answer: falling through to the
   // server key would send the statement to a provider the user never picked.
   it('refuses to extract at all once every endpoint is flagged, even with a server key', async () => {
     const userId = await getTestUserId();
-    await createFirstEndpoint();
+    await createFirstConnection();
     global.mswMockServer.use(getCustomEndpointOfflineMock());
     await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
-    const [stored] = await readStoredEndpoints({ userId });
+    const [stored] = await readStoredConnections({ userId });
     expect(stored?.status).toBe('invalid');
 
     // The endpoint would answer now and a server key exists, so the counter below proves
@@ -104,7 +132,7 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
         },
       }),
     );
-    process.env.GEMINI_API_KEY = 'server-side-gemini-key';
+    enableServerModel();
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
@@ -112,10 +140,10 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(endpointCalls).toBe(0);
   });
 
-  it('tells a user with no endpoints and no keys to configure a provider', async () => {
+  it('tells a user with no AI models to add one', async () => {
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
-    expect(errorMessage({ response })).toMatch(/no ai provider configured/i);
+    expect(errorMessage({ response })).toMatch(/no ai model configured/i);
   });
 });
 
@@ -134,7 +162,7 @@ describe('Statement parser extraction of an encrypted PDF', () => {
 
   // Retyping the password fixes this, so it must not answer as a server fault.
   it('answers 422 and names the password when none was sent and when it was rejected', async () => {
-    await createFirstEndpoint();
+    await createFirstConnection();
 
     const missingPassword = await helpers.statementExtract({ payload: { fileBase64: encryptedPdfBase64() } });
 
@@ -150,7 +178,7 @@ describe('Statement parser extraction of an encrypted PDF', () => {
   });
 
   it('extracts the statement once the correct password is supplied', async () => {
-    await createFirstEndpoint();
+    await createFirstConnection();
     global.mswMockServer.use(getCustomEndpointContentMock({ content: AI_CSV_REPLY }));
 
     const result = await helpers.statementExtract({

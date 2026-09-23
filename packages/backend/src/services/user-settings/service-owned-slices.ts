@@ -4,10 +4,11 @@ import omit from 'lodash/omit';
 
 /**
  * Settings paths writable only through their own endpoints, which enforce invariants a
- * wholesale write cannot, such as the outbound URL guard and key encryption on custom AI
- * endpoints. `PUT /user/settings` and `PATCH /user/settings` drop these paths from the request.
+ * wholesale write cannot, such as the outbound URL guard and key encryption on AI connections,
+ * or a feature pick naming a connection that exists. `PUT /user/settings` and
+ * `PATCH /user/settings` drop these paths from the request.
  */
-const SERVICE_OWNED_SETTING_PATHS = ['onboarding', 'ai.customEndpoints'] as const;
+const SERVICE_OWNED_SETTING_PATHS = ['onboarding', 'ai.connections', 'ai.featureConfigs'] as const;
 
 export const stripServiceOwnedSlices = <T extends object>({ settings }: { settings: T }): T =>
   omit(settings, [...SERVICE_OWNED_SETTING_PATHS]) as unknown as T;
@@ -15,8 +16,8 @@ export const stripServiceOwnedSlices = <T extends object>({ settings }: { settin
 /**
  * Deep-merges into the stored settings: an absent key never erases one, and the customizer
  * replaces arrays wholesale so an incoming array is the full list. A shallow spread would be
- * wrong here, because a request carrying a partial `ai` object would drop the stored keys and
- * endpoints alongside it.
+ * wrong here, because a request carrying a partial `ai` object would drop the stored connections
+ * alongside it.
  */
 export const mergeIntoStoredSettings = ({
   stored,

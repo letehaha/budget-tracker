@@ -15,4 +15,6 @@ declare global {
   var APP_AUTH_COOKIES: string | null;
   // eslint-disable-next-line no-var
   var DEFAULT_CATEGORY_ID: RecordId;
+  // eslint-disable-next-line no-var
+  var closeE2eResources: (() => Promise<void>) | undefined;
 }

@@ -119,7 +119,7 @@ export interface BackupTableDef {
   /** Self-referential parent column needing the two-pass restore. */
   selfRefColumn?: string;
   /** Encrypted blob to blank before writing (undecryptable on another instance). */
-  stripSecret?: 'bankCredentials' | 'aiApiKeys';
+  stripSecret?: 'bankCredentials' | 'aiKeys';
   /** Attach the MCC's natural `code` so restore can remap the integer `mccId`. */
   enrichMccCode?: boolean;
   /** Drop a row on restore whose `currencyCode` isn't seeded on the target instance. */
@@ -150,7 +150,7 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
     tier: 2,
     scope: { strategy: 'userColumn', column: 'userId' },
     restoreMode: 'zodSettings',
-    stripSecret: 'aiApiKeys',
+    stripSecret: 'aiKeys',
   },
   {
     fileName: 'users-currencies',

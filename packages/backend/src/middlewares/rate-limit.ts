@@ -1,4 +1,3 @@
-import { isCustomModelId } from '@bt/shared/types';
 import { errorHandler } from '@controllers/helpers';
 import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
@@ -288,34 +287,32 @@ export const shareInvitationSendRateLimit = createRateLimit({
 });
 
 /**
- * Custom AI endpoint probe rate limit (per user, 15 attempts per minute). One budget shared
- * by create, update, test and feature-config writes, since each makes the server dial a
+ * AI connection probe rate limit (per user, 15 attempts per minute). One budget shared by
+ * create, update and test, since each makes the server call a provider, sometimes at a
  * user-supplied URL. Fail-open, so a Redis blip can't break the settings page, where saving
- * an endpoint depends on a probe succeeding.
+ * a connection depends on a probe succeeding.
  */
-export const aiCustomEndpointTestRateLimit = createRateLimit({
+export const aiConnectionProbeRateLimit = createRateLimit({
   windowSeconds: 60,
   maxAttempts: 15,
   keyGenerator: (req: Request) => {
     const user = req.user as Users;
-    return `ai-custom-endpoint-test:user:${user.id}`;
+    return `ai-connection-probe:user:${user.id}`;
   },
 });
 
 /**
- * Applies the probe budget to a feature-config write only when the body carries a `custom/*`
- * model, the only case that dials the user's endpoint. Runs ahead of schema validation, so
- * the body is still unvalidated input here.
+ * AI model listing rate limit (per user, 60 per minute). The model-name field asks while the
+ * user types, so it gets the logo-search budget rather than the probe one.
  */
-export const aiCustomModelProbeRateLimit = (req: Request, res: Response, next: NextFunction) => {
-  const modelId = (req.body as { modelId?: unknown } | undefined)?.modelId;
-
-  if (typeof modelId !== 'string' || !isCustomModelId({ modelId })) {
-    return next();
-  }
-
-  return aiCustomEndpointTestRateLimit(req, res, next);
-};
+export const aiConnectionModelsRateLimit = createRateLimit({
+  windowSeconds: 60,
+  maxAttempts: 60,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `ai-connection-models:user:${user.id}`;
+  },
+});
 
 /**
  * Logo search rate limit (per user, 60 searches per minute). Each call hits logo.dev's Brand

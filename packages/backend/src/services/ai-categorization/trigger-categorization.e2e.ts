@@ -16,8 +16,8 @@ const RUN_SETTLE_TIMEOUT_MS = 15_000;
 const TEST_TIMEOUT_MS = 60_000;
 
 /**
- * Answers any Gemini model, unlike `createGeminiMock`, so a case can save a user API key
- * (validated against a different model) and run categorization behind the same handler.
+ * Answers any Gemini model, unlike `createGeminiMock`, which pins the server categorization
+ * model, so a user connection on another Gemini model can run behind it.
  * The default text categorizes nothing, leaving the transactions eligible for a re-trigger.
  */
 function geminiTextMock({ text = '# No categorizations', delayMs = 0 }: { text?: string; delayMs?: number } = {}) {
@@ -265,11 +265,13 @@ describe('POST /user/ai/categorization/trigger', () => {
       delete process.env.GEMINI_API_KEY;
       global.mswMockServer.use(geminiTextMock());
 
-      const keyResponse = await helpers.setAiApiKey({
-        apiKey: VALID_GEMINI_API_KEY,
+      const connectionResponse = await helpers.createAiConnection({
         provider: AI_PROVIDER.google,
+        name: 'Gemini',
+        model: 'gemini-3.5-flash-lite',
+        apiKey: VALID_GEMINI_API_KEY,
       });
-      expect(keyResponse.statusCode).toBe(200);
+      expect(connectionResponse.statusCode).toBe(201);
 
       // One past the server-key budget of 3: enough to prove the limiter is not applied.
       for (let attempt = 0; attempt < 4; attempt++) {

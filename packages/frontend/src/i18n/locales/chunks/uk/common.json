@@ -432,7 +432,7 @@
   "ai": {
     "estimatedCost": {
       "yourApiKey": "(ваш API-ключ)",
-      "setByEndpoint": "Визначається вашим ендпоінтом"
+      "setByEndpoint": "Вартість визначає ваш провайдер"
     }
   },
   "transactionGroups": {
