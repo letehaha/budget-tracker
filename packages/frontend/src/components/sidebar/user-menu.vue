@@ -6,6 +6,7 @@ import { useLogout } from '@/composable/actions/logout';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useUserStore } from '@/stores';
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { BookOpenIcon, ChevronUpIcon, ExternalLinkIcon, LogOutIcon, UserIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
@@ -59,7 +60,7 @@ const isRealCommit = /^[0-9a-f]{40}$/.test(commitHash);
           </UiButton>
         </router-link>
 
-        <a href="https://docs.moneymatter.app" target="_blank" rel="noopener noreferrer" @click="isOpen = false">
+        <a :href="EXTERNAL_URLS.docs" target="_blank" rel="noopener noreferrer" @click="isOpen = false">
           <UiButton variant="ghost" class="w-full justify-start gap-2 px-3" size="default">
             <BookOpenIcon class="size-4" />
             <span>{{ t('navigation.helpAndDocs') }}</span>

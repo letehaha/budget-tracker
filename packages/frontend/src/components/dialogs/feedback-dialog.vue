@@ -17,6 +17,12 @@
         value-key="value"
       />
 
+      <i18n-t keypath="feedback.dialog.docsHint" tag="p" class="text-muted-foreground text-xs">
+        <template #link>
+          <DocsLink path="/">{{ $t('feedback.dialog.docsHintLink') }}</DocsLink>
+        </template>
+      </i18n-t>
+
       <TextareaField
         v-model="message"
         :label="$t('feedback.dialog.messageLabel')"
@@ -59,6 +65,7 @@
 </template>
 
 <script lang="ts" setup>
+import DocsLink from '@/components/common/docs-link.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';

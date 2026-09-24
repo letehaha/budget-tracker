@@ -95,6 +95,7 @@
 
 <script setup lang="ts">
 import { getOAuthClientName, submitOAuthConsent } from '@/api/mcp';
+import { HIDDEN_OAUTH_SCOPES } from '@/common/const/oauth-scopes';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -114,10 +115,6 @@ interface ScopeMeta {
   defaultOn: boolean;
   destructive?: boolean;
 }
-
-// `claudeai` is a Claude.ai client-registration workaround and has no user-visible
-// meaning — hide it from the consent UI but still auto-grant it if requested.
-const HIDDEN_SCOPES = new Set(['claudeai']);
 
 const KNOWN_SCOPES: ScopeMeta[] = [
   {
@@ -181,7 +178,7 @@ const requestedScopes = computed<string[]>(() => {
 
 const scopeItems = computed<ScopeMeta[]>(() =>
   requestedScopes.value
-    .filter((s) => !HIDDEN_SCOPES.has(s))
+    .filter((s) => !HIDDEN_OAUTH_SCOPES.has(s))
     .map(
       (s): ScopeMeta =>
         SCOPE_META_BY_KEY[s] ?? {
@@ -206,7 +203,7 @@ initApprovals();
 
 const approvedScopeString = computed(() => {
   const approved = requestedScopes.value.filter((s) => {
-    if (HIDDEN_SCOPES.has(s)) return true;
+    if (HIDDEN_OAUTH_SCOPES.has(s)) return true;
     const meta = SCOPE_META_BY_KEY[s];
     if (!meta) return true;
     if (!meta.togglable) return true;

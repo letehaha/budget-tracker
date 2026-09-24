@@ -102,6 +102,7 @@
       "recordList": {},
       "form": {
         "payeeLabel": "Payee",
+        "outOfWalletDocsLink": "What is Out of Wallet?",
         "destinationGroupLabel": "Where the money goes",
         "paymentTypeLabel": "Payment type",
         "noteLabel": "Note",

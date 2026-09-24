@@ -5,6 +5,7 @@
  * the parent store owns the value (seeded from the persisted
  * `import.recalculateAccountBalance` user setting and written back on execute).
  */
+import DocsLink from '@/components/common/docs-link.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 
 const model = defineModel<boolean>({ required: true });
@@ -31,7 +32,10 @@ withDefaults(
       />
       <span class="grid gap-0.5">
         <span class="text-sm font-medium">{{ $t('importShared.recalculateBalance.label') }}</span>
-        <span class="text-muted-foreground text-xs">{{ $t('importShared.recalculateBalance.hint') }}</span>
+        <span class="text-muted-foreground text-xs">
+          {{ $t('importShared.recalculateBalance.hint') }}
+          <DocsLink path="/import/import-from-csv/#how-an-import-affects-balances" @click.stop />
+        </span>
         <span v-if="settingsLoadFailed" class="text-warning-text text-xs">
           {{ $t('importShared.recalculateBalance.loadFailedHint') }}
         </span>

@@ -106,7 +106,10 @@
       </div>
     </div>
 
-    <p class="text-muted-foreground text-xs">{{ $t('settings.security.backup.attachmentsNotIncluded') }}</p>
+    <p class="text-muted-foreground text-xs">
+      {{ $t('settings.security.backup.attachmentsNotIncluded') }}
+      <DocsLink path="/settings/security-and-account/#backup-and-restore" />
+    </p>
 
     <input ref="fileInput" type="file" accept=".zip,application/zip" class="hidden" @change="handleFileSelected" />
 
@@ -120,6 +123,7 @@
 
 <script setup lang="ts">
 import PlanRestricted from '@/components/billing/plan-restricted.vue';
+import DocsLink from '@/components/common/docs-link.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';

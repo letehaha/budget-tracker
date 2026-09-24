@@ -102,6 +102,7 @@
       "recordList": {},
       "form": {
         "payeeLabel": "Отримувач платежу",
+        "outOfWalletDocsLink": "Що таке «Поза гаманцем»?",
         "destinationGroupLabel": "Куди йдуть гроші",
         "paymentTypeLabel": "Тип платежу",
         "noteLabel": "Примітка (необов'язково)",

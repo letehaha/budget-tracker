@@ -1,5 +1,11 @@
 <template>
   <div class="flex max-w-2xl flex-col gap-8">
+    <p class="text-sm">
+      <DocsLink path="/import/other-import-sources/#which-importer-to-use">
+        {{ $t('settings.dataManagement.import.whichImporterHint') }}
+      </DocsLink>
+    </p>
+
     <section v-for="group in groups" :key="group.id" class="flex flex-col gap-3">
       <span class="text-muted-foreground text-xs font-medium tracking-wider uppercase">
         {{ $t(`settings.dataManagement.import.groups.${group.id}`) }}
@@ -45,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import { ROUTES_NAMES } from '@/routes';
 import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { DatabaseIcon, FileTextIcon, FileSpreadsheetIcon, HistoryIcon, PlusIcon, SparklesIcon } from '@lucide/vue';

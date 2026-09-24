@@ -54,6 +54,8 @@
       },
       "scopes": {
         "financeRead": "Read financial data",
+        "financeWrite": "Edit financial data",
+        "financeDelete": "Delete financial data",
         "profileRead": "Read profile",
         "offlineAccess": "Offline access"
       }

@@ -14,7 +14,10 @@
 
         <h2 class="text-destructive-text mb-2 text-xl font-semibold">{{ t('pages.bankCallback.error.title') }}</h2>
 
-        <p class="text-muted-foreground mb-6 text-sm">{{ error }}</p>
+        <p class="text-muted-foreground mb-2 text-sm">{{ error }}</p>
+        <p class="mb-6 text-sm">
+          <DocsLink path="/import/bank-connections/#connect-with-enable-banking" />
+        </p>
         <button
           @click="goToIntegrations"
           class="bg-primary hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium text-white"
@@ -44,6 +47,7 @@
 <script lang="ts" setup>
 import { completeEnableBankingOAuth } from '@/api/bank-data-providers';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import DocsLink from '@/components/common/docs-link.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { ROUTES_NAMES } from '@/routes/constants';

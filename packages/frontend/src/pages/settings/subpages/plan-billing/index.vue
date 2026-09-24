@@ -76,7 +76,7 @@
         </div>
 
         <p
-          v-if="view.status.note"
+          v-if="view.status.note || showReadOnlyHelp"
           :class="
             cn(
               'text-sm',
@@ -86,6 +86,9 @@
           "
         >
           {{ view.status.note }}
+          <DocsLink v-if="showReadOnlyHelp" path="/settings/plans-and-billing/#read-only-mode">
+            {{ $t('settings.planBilling.current.readOnlyHelp') }}
+          </DocsLink>
         </p>
       </section>
 
@@ -233,6 +236,7 @@ import {
   liveSubscription,
   yearlySavings,
 } from '@/common/const/billing';
+import DocsLink from '@/components/common/docs-link.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
@@ -270,6 +274,9 @@ const opening = ref<BillingTier | 'portal' | null>(null);
 const checkoutSucceeded = ref(route.query.checkout === 'success');
 const activationOutcome = ref<'timedOut' | 'unreachable' | null>(null);
 const selectedCycle = ref<BillingCycle>('year');
+const showReadOnlyHelp = computed(
+  () => Boolean(entitlements.value?.readOnly) && !checkoutSucceeded.value && !activationOutcome.value,
+);
 
 // Entitlements arrive after the first render, so the toggle follows the paid cycle once it lands.
 watch(
