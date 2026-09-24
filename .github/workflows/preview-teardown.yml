@@ -63,6 +63,7 @@ jobs:
               # Remove Docker images
               docker rmi "letehaha/budget-tracker-fe:pr-$PR_NUMBER" 2>/dev/null || true
               docker rmi "letehaha/budget-tracker-be:pr-$PR_NUMBER" 2>/dev/null || true
+              docker rmi "letehaha/budget-tracker-docs:pr-$PR_NUMBER" 2>/dev/null || true
 
               # Prune dangling images
               docker image prune -f 2>/dev/null || true

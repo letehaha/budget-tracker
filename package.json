@@ -5,7 +5,10 @@
   "license": "AGPL-3.0-only",
   "author": "letehaha",
   "workspaces": [
-    "packages/*"
+    "packages/backend",
+    "packages/frontend",
+    "packages/landing",
+    "packages/shared"
   ],
   "scripts": {
     "lint": "npm -w budget-tracker-be run lint && npm -w budget-tracker-fe run lint",

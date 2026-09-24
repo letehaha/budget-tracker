@@ -1,0 +1,171 @@
+---
+title: Analytics reports
+description: What each report in Analytics answers, the controls it offers, and which rules shape its numbers.
+sidebar:
+  order: 30
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+Analytics has the reports for questions the dashboard can't answer at a glance: how this year compares with last, where your money went month by month, and how your net worth has grown. Open **Analytics** in the sidebar.
+
+## Find your way around
+
+The reports are listed on the left:
+
+- **Trends Comparison**, **Cash Flow**, **Net Worth History** and **Pivot**
+- The **Investments** reports (**Net Worth Drivers**, **Contributions** and **Investment Projection**) are for investment portfolios.
+
+On a wide screen, Analytics opens on **Trends Comparison**. Click **Collapse** to shrink the list and give the report more room. On a narrow screen you see the list first; open a report, then click the back arrow (‹) next to the report's title to return. Some controls fold away behind an **Options** or **Filters** button.
+
+Every report follows the rules in [How stats are calculated](/stats/how-stats-are-calculated/). Transfers between your own accounts (except loan payments), **Out of Wallet** transfers and balance adjustments are never income or expenses. Accounts with **Exclude from statistics** on are left out.
+
+## Trends Comparison
+
+**Answers:** Am I spending more, earning more or saving more than in the previous period?
+
+<Screenshot
+  src="/screenshots/stats/analytics-trends-comparison.png"
+  alt="The Trends Comparison report with the Expenses metric selected, showing the summary cards, the Monthly Comparison chart and the Cumulative Progress chart."
+  hint="Open /analytics/trends-comparison on a wide screen with the default period (last 12 months) and the Expenses metric selected, on a user profile (or demo data) with at least two years of data. Capture the top half of the page including the left navigation, the summary cards, Monthly Comparison and Cumulative Progress."
+/>
+
+### Controls
+
+- Period: the last 12 months up to today by default.
+- Metric: **Expenses**, **Income** or **Savings**. Savings is income minus expenses.
+- **Filters**: narrow the report by **Categories**, **Payees** and **Tags** (each can **Include** or **Exclude**) and by **Accounts**. **Reset** clears them.
+
+### What you see
+
+- Summary cards: the total for your metric, the **Previous period** total, and the change **vs previous period**. The previous period is your period moved back by the number of calendar months it touches. For whole months (for example January to December) that is the period just before yours. The default range starts partway through a month, touches 13 months, and so is compared with the range 13 months earlier. For expenses, an increase shows in red.
+- **Monthly Comparison**: a bar for each month, split by category, with the **Average** and **Total**. Click a category in the legend to hide it from the chart, which adds it to your filters. Click a bar (or a segment of a bar) to open the matching transactions. On a touch screen, tap the bar, then tap **View transactions**.
+- **Cumulative Progress**: your running total through the period, drawn against the previous period's. Months that haven't happened yet are never shown.
+- **Category Breakdown**: your top categories, with **View all categories** for the rest. It's hidden when the metric is **Savings**.
+
+<Aside type="note" title="Why numbers on this page can differ">
+The charts don't all count things the same way:
+
+- **Monthly Comparison** leaves out [savings categories](/stats/how-stats-are-calculated/#savings-categories). The summary cards and **Category Breakdown** count that money as spending.
+- **Monthly Comparison** and **Category Breakdown** count planned transactions. The summary cards and **Cumulative Progress** don't.
+- A [refund](/stats/how-stats-are-calculated/#refunds) lowers **Category Breakdown** in the month of the purchase, but **Monthly Comparison** and the summary cards in the month the money came back.
+- With a **Categories** filter, [split transactions](/transactions/split-a-transaction/) count differently. The summary cards and **Cumulative Progress** go by each transaction's main category and count its full amount, split parts included. **Category Breakdown** counts each split part under its own category. **Monthly Comparison** counts only the parts in the categories your filter keeps, and with **Include** it also skips a transaction whose main category isn't one you picked.
+- **Monthly Comparison** always shows whole calendar months, so it can include days before your start date and after today. The summary cards and **Category Breakdown** use your exact dates.
+</Aside>
+
+## Cash Flow
+
+**Answers:** How much came in, how much went out, and how much did I keep?
+
+<Screenshot
+  src="/screenshots/stats/analytics-cash-flow.png"
+  alt="The Cash Flow report showing the Income, Expenses, Net Savings and Savings Rate cards above a mirrored monthly chart."
+  hint="Open /analytics/cash-flow with Last 12 months, Monthly and Mirrored selected, and the trend line on. Capture the controls row, the four summary cards and the chart."
+/>
+
+### Controls
+
+- Period: **Last 3 months**, **Last 6 months**, **Last 12 months** (the default), **This year**, **Previous year** or **All time**.
+- Granularity: **Monthly**, **Bi-weekly** or **Weekly**. Weeks start on Monday.
+- Chart type: **Stacked**, **Mirrored** (the default) or **Grouped**.
+- **Settings** (the sliders icon): **Show trend line** adds a smoothed average of your net cash flow.
+
+### What you see
+
+- **Income**, **Expenses**, **Net Savings** and **Savings Rate** for the whole period. Each card shows the change against the same length of time just before.
+- **Savings Rate** is net savings divided by income. It's 0% when there's no income in the period.
+- A chart of income against expenses for each month, fortnight or week.
+
+### Where the money went
+
+Below the chart, a flow diagram shows where income came from and where it went, for one period at a time. It starts on the current month. Click a bar in the chart above to switch to that period.
+
+- **Detail** (the button shows, for example, "Sources L2 · Expenses L1") sets how deep each side goes. Pick a level for **Sources** (income) and for **Expenses**: **Level 1** shows top-level categories, and higher levels break them into subcategories.
+- The **Top** control (for example **Top 8**) sets how many categories each side shows. Smaller ones are grouped into **Other**.
+- When the section is narrow, for example on a phone, **Detail** and **Top** move into the sliders icon button (**Chart settings**) next to the period.
+- Money moved into categories you count as savings (see [General settings](/settings/general-settings/)), or into investment portfolios, shows as its own savings destination, not as an expense. Whatever is left of what you saved shows as **Kept as cash**.
+- A **Deficit** appears when your expenses plus the money moved into those savings destinations are more than your income. Its note says where the gap was covered from, for example "Expenses exceeded income by 200 EUR. The gap was covered from existing account balances."
+
+The diagram counts a refund against the original purchase's category and period, and leaves out uncategorized transactions, so its totals can differ slightly from the chart above.
+
+<Screenshot
+  src="/screenshots/stats/analytics-cash-flow-money-flow.png"
+  alt="The money flow diagram in the Cash Flow report, showing income sources on the left and expense categories and Kept as cash on the right."
+  hint="On /analytics/cash-flow, scroll to the flow diagram under the chart and click the bar of a month where income was higher than expenses, so a Kept as cash node appears. Crop to the flow diagram with its Detail and Top controls."
+/>
+
+<Aside type="note" title="Good to know">
+- Categories you set in **Count categories as savings** under [General settings](/settings/general-settings/) are left out of income and expenses here, so they count toward **Net Savings** and the **Savings Rate**.
+- This report always counts planned transactions.
+- In the cards and the chart, a linked refund lowers expenses in the period the money came back, as long as the original purchase is within the selected dates. Otherwise it counts as income. See [Refunds](/stats/how-stats-are-calculated/#refunds).
+</Aside>
+
+## Net Worth History
+
+**Answers:** How have my assets, debts and net worth changed over time?
+
+<Screenshot
+  src="/screenshots/stats/analytics-net-worth-history.png"
+  alt="The Net Worth History report showing the Current net worth and Period change cards and a chart of assets, liabilities and net worth."
+  hint="Open /analytics/net-worth-history with the default period (last 12 months) on a profile that has at least one credit card account with a negative balance, so liabilities show on the chart. Capture the controls, the cards and the chart."
+/>
+
+### Controls
+
+- Period: the last 12 months by default.
+- Asset types: **All assets**, or pick from **Cash & accounts**, **Investments**, **Vehicles** and **Ventures**.
+- Liability types: **All liabilities**, or pick from **Credit card**, **Loan** and **Overdraft**.
+- Granularity: **Weekly**, **Monthly**, **Quarterly** or **Yearly**. MoneyMatter picks one to suit the period's length. If you choose one yourself, it's remembered in this browser. Options that would draw too many points for the period are disabled.
+- **Chart settings**: **Zoom liabilities scale** enlarges small debts so they stay visible next to large assets.
+
+### What you see
+
+- **Current net worth**: your net worth at the last point on the chart.
+- **Period change**: the difference between the first and last points, with the percentage. When the first and last points on the chart are at least a year apart and your net worth is positive at both, you'll also see a yearly rate, such as "≈ 8% / yr". A 12-month period is just short of that, so choose a longer range (for example **All time**) to see it.
+- A line about your liabilities, such as "You have an average of 1,200 EUR in liabilities during the selected period."
+
+Each point is your balance at the end of its week, month, quarter or year. The last point is at the end of your period.
+
+<Aside type="note" title="Good to know">
+- A credit card or overdraft account with a positive balance counts as cash, and an overdrawn ordinary account counts as an **Overdraft** liability. See [Balances and net worth](/stats/how-stats-are-calculated/#balances-and-net-worth).
+- The **Include credit limits in balance** setting applies here.
+- If you see **Some values are estimated**, something couldn't be valued exactly. For example, when an exchange rate is missing, those amounts use a 1:1 rate.
+</Aside>
+
+## Pivot
+
+**Answers:** How did spending on each category, payee or tag change from one month (or week, quarter, year) to the next?
+
+<Screenshot
+  src="/screenshots/stats/analytics-pivot.png"
+  alt="The Pivot report with categories and subcategories as rows, months as columns and the heatmap turned on."
+  hint="Open /analytics/pivot-report. Set Rows to + Subcategory, Columns to Months, and turn on Heatmap under Settings → Display options. Expand one or two categories. Capture the controls and the table."
+/>
+
+### Controls
+
+- **Rows**: **Category**, **+ Subcategory**, **Payee** or **Tag**.
+- **Columns**: **Years**, **Quarters**, **Months** or **Weeks**.
+- **Measure**: **Expenses** or **Income**.
+- **Filters**: the **Period** (**Last 6 months**, **Last 12 months**, **This year**, **Previous year**, **Last 3 years**, **Last 5 years** or **All time**), plus **Categories**, **Payees** and **Accounts**. **Reset** goes back to the defaults.
+- **Settings** (the sliders icon at the top right of the report): under **Views**, **Save current view** stores your layout and filters under a **View name**, and you can pick a saved view from the list. Under **Display options**, turn **Heatmap** and **% change** on or off. **% change** is on by default.
+
+A view remembers the exact dates of its period. Opening it later shows those same dates, not the latest months.
+
+In the table, use **Expand all** and **Collapse all** to open or close subcategories.
+
+<Aside type="note" title="Good to know">
+- Pivot opens with the same layout every time: categories by month, expenses, over the last 12 months. To keep a layout, save it as a view.
+- Transactions without a payee appear under **Unassigned**, and those without a tag under **Untagged**.
+- A transaction with several tags appears under each of its tags.
+- Rows by **Payee** or **Tag** use whole transactions, because split parts don't have their own payee or tags.
+- Planned transactions are never included.
+- A linked refund lowers **Expenses** in the column where the money came back. It uses the original purchase's payee and tags.
+</Aside>
+
+## Related
+
+- [How stats are calculated](/stats/how-stats-are-calculated/)
+- [Dashboard](/stats/dashboard/)
+- [General settings](/settings/general-settings/)

@@ -1,0 +1,201 @@
+---
+title: Payees
+description: Keep a clean list of the shops and people you deal with, let payees fill in categories and tags for you, and control how payees are detected from bank transactions.
+sidebar:
+  order: 6
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+A payee is who you paid or who paid you: a supermarket, your landlord, your employer. Linking transactions to payees lets you see how much goes to each one, and lets a payee fill in the category and tags for you.
+
+Payees come from three places:
+
+- You pick or create one in the [transaction form](/transactions/add-and-edit/#payee).
+- You create one on the **Payees** page.
+- MoneyMatter creates them automatically from the merchant names on bank-synced and imported transactions. See [automatic payee detection](#automatic-payee-detection).
+
+## Open your payees
+
+<Steps>
+
+1. Click the gear button (**Settings**) at the top right of the app.
+2. Under **Workspace**, choose **Payees**.
+
+</Steps>
+
+The page has two tabs: **Manage**, the list of your payees, and **Settings**, which controls automatic detection.
+
+## The payee list
+
+The **Manage** tab lists every payee with these columns:
+
+- **Name**
+- **# tx**: how many transactions are linked to it.
+- **Net flow**: money received minus money spent with this payee, in your base currency. Spending shows as a negative number.
+- **Category**: the payee's default category if it has one, otherwise the category you use most often with it.
+- **Default tags**: its auto-apply tags.
+
+Click a column header to sort, or use **Search payees…** to find one. The list starts sorted by **# tx**, busiest payee first.
+
+The numbers only count real income and expenses. Transfers between your accounts, balance adjustments and accounts you've excluded from stats are left out, because none of them is money you actually exchanged with the payee.
+
+<Screenshot
+  src="/screenshots/transactions/payees-list.png"
+  alt="The Manage tab of the Payees page, listing several payees with their transaction counts, net flow, category and default tags."
+  hint="Open /settings/payees/manage on an account with at least 6 payees (e.g. Lidl, Netflix, Landlord, Employer, Shell, Amazon) that have transactions, default categories on some and default tags on one or two. Crop to the search box, New Payee button and the table."
+/>
+
+## Create a payee
+
+<Steps>
+
+1. On the **Manage** tab, click **New Payee**.
+2. Enter the **Name**.
+3. Optionally pick a **Logo**. Typing the company's website, such as amazon.com, finds the right brand.
+4. Optionally choose a **Default category** (see [below](#default-category-and-auto-apply-tags)).
+5. Click **Save**.
+
+</Steps>
+
+You can also create a payee straight from the transaction form: type a name in **Payee** and click **Create payee "…"**.
+
+Payee names must be unique. When comparing names, MoneyMatter ignores upper and lower case, accents and punctuation, so "Café-Bar #1" and "cafe bar 1" count as the same name.
+
+## The payee page
+
+Click a payee in the list to open its page. It shows:
+
+- **# tx**, **Net flow** and **Top category** (the category you use most with this payee). Click **# tx** to see the linked transactions.
+- The **Categorization** section: **Default category**, the categorization setting, **Auto-apply tags** and **Default location**.
+- **Aliases**: other spellings that link to this payee.
+- An **Actions** menu with **Rename**, **Merge into…**, **Delete** and **Delete & ignore**.
+- The logo, which you can replace with **Change logo**.
+
+Changes in the **Categorization** section save as soon as you make them. There's no Save button.
+
+<Screenshot
+  src="/screenshots/transactions/payee-detail-page.png"
+  alt="A payee's page with its transaction count, net flow and top category, the Categorization section with a default category and auto-apply tags, and two aliases."
+  hint="Open /settings/payees and click a payee such as 'Lidl' that has transactions. Set Default category 'Groceries', keep the mode on 'Always use payee category', add one auto-apply tag, and make sure the Aliases card shows two aliases (e.g. 'LIDL SAGT DANKE', 'LIDL 1234'). Crop to the stat tiles, the Categorization section and the Aliases card."
+/>
+
+## Default category and auto-apply tags
+
+### Default category
+
+A payee's **Default category** is used for new transactions linked to it, whether you add them by hand, they arrive from your bank, or you import them (unless the imported file already sets a category for that row, in which case the file's category is kept). How strictly depends on the setting below it, labelled **AI categorization**:
+
+- **Always use payee category** (the default): new transactions get the default category, and AI categorization leaves them alone.
+- **Use as a hint**: new transactions get the default category too, but AI categorization can still replace it based on the transaction's details. This suits catch-all shops like a big online store.
+- **Off**: the default category is never applied automatically. Picking the payee in the transaction form still suggests it, and you can change it before saving.
+
+In the transaction form, picking a payee fills in its default category, or its **Top category** if it has no default. That only happens if you haven't chosen a category yourself yet.
+
+<Aside type="caution" title="The default category wins when you save">
+With **Always use payee category** or **Use as a hint**, the payee's default category is applied when a new transaction is saved, even if you picked a different category in the form. If a payee covers many kinds of purchases, like a big online store, and you'd rather pick the category yourself, leave its **Default category** empty or set **AI categorization** to **Off**.
+
+Editing a transaction later never re-applies the payee's category, so you can always fix a single transaction by hand.
+</Aside>
+
+To switch every payee to the same mode at once, go to the **Settings** tab, pick a mode under **Apply categorization mode to all payees** and click **Apply to all**. You can still change individual payees afterwards.
+
+### Auto-apply tags
+
+**Auto-apply tags** are added to new transactions linked to the payee, including bank-synced and imported ones. They're also added when you pick the payee in the transaction form, where you can remove them before saving.
+
+To tag the payee's past transactions too, click **Apply to existing transactions**. It only adds the tags; it never removes tags a transaction already has.
+
+### Default location
+
+Transactions linked to the payee that have no location of their own get the **Default location**, both when they're created and when they arrive through bank sync. Removing it doesn't change transactions that already have it.
+
+## Automatic payee detection
+
+When a transaction arrives from a bank connection or an import, MoneyMatter reads the merchant name and tries to link it to a payee:
+
+1. **Exact match.** If the name matches a payee's name or one of its aliases, ignoring case, accents and punctuation, it's linked.
+2. **Ignored names.** If the name is on your ignored list, it stops here and the transaction is left without a payee. Because the exact match comes first, an ignored name that exactly matches an existing payee or alias still links to it.
+3. **Close match.** If the name is very similar to an existing payee, it's linked, and the new spelling is saved as an alias so it matches exactly next time.
+4. **New payee.** Otherwise, once enough transactions share the same unknown name, a new payee is created and all of those transactions are linked to it.
+
+Detection never touches:
+
+- **Transfers you create between your own accounts** aren't matched to a payee. A transaction that already has a payee keeps it if you turn it into a transfer, but transfers never count toward a payee's **# tx** or **Net flow**.
+- **Transactions whose payee you set or cleared yourself.** Your choice is locked on that transaction.
+
+### Detection settings
+
+On the **Settings** tab of the **Payees** page:
+
+- **Detect payees from transaction descriptions:** some banks don't send a separate merchant name. Turn this on to use the transaction's description instead. Off by default. This also applies to transactions you add by hand without choosing a payee: their note is used to find or create a payee, and that payee's default category is then applied as described [above](#default-category).
+- **Create a payee after N occurrences:** how many transactions must share an unknown name before a payee is created: 1, 2 or 3. The default is 2, which avoids creating a payee for a one-off name. Choose 1 to create payees from the first transaction.
+- **Ignored merchant names:** names that should never turn into a payee automatically, such as "Card transfer". Type the name and click **Add**. You can still link transactions with that name to a payee by hand.
+
+If you add an ignored name that matches an existing payee, MoneyMatter offers **Delete Payee and ignore**. The payee is deleted; its transactions stay but lose the link.
+
+<Screenshot
+  src="/screenshots/transactions/payee-detection-settings.png"
+  alt="The Settings tab of the Payees page with the description detection toggle, the occurrence threshold, the bulk categorization mode and the ignored merchant names list."
+  hint="Open /settings/payees/settings. Show 'Detect payees from transaction descriptions' (off), 'Create a payee after N occurrences' set to 2, 'Apply categorization mode to all payees', and the Ignored merchant names section with two entries (e.g. 'Card transfer', 'Top-up'). Crop to the content area."
+/>
+
+## Aliases
+
+An alias is another spelling of a payee's name, such as "AMZN Mktp" for Amazon. Bank transactions that match an alias link to the payee automatically.
+
+To add one, click **Add** in the **Aliases** card, type the **Merchant name** and confirm. It works for future transactions only; past transactions aren't changed.
+
+- An alias can belong to only one payee.
+- The alias that matches the payee's own name can't be removed. Rename the payee instead.
+- Removing an alias keeps the transactions that are already linked.
+
+## Rename a payee
+
+Open **Actions** → **Rename**, change the **Name** and click **Save**. The old name is kept as an alias, so bank transactions that still use it keep linking to this payee.
+
+If another payee already uses the new name, you'll be asked to merge them instead.
+
+## Merge payees
+
+When the same shop ended up as two payees, merge them.
+
+<Steps>
+
+1. Open the payee you want to get rid of.
+2. Click **Actions** → **Merge into…**.
+3. Pick the payee to keep and click **Merge**.
+
+</Steps>
+
+What happens:
+
+- All transactions of the merged payee move to the one you keep, and so do templates that used it.
+- Its name and aliases become aliases of the payee you keep, so future bank transactions link correctly.
+- Its auto-apply tags are added to the kept payee's tags.
+- The kept payee's default category stays; the other one's is dropped.
+- The merged payee is deleted.
+
+## Delete a payee
+
+Open **Actions** and choose one of:
+
+- **Delete**: removes the payee and its aliases. Its transactions stay, with their categories, but no longer have a payee. If new bank or imported transactions keep arriving with this merchant name, MoneyMatter can create the payee again and re-link the old transactions. Use **Delete & ignore** to stop that.
+- **Delete & ignore**: does the same, and also adds the payee's name and all its aliases to your ignored names, so automatic detection won't create it again.
+
+Neither can be undone.
+
+## Unlink a transaction
+
+To take one transaction away from a payee, open the payee page, click **# tx**, and click **Unlink from payee** next to the transaction. Future bank syncs won't link it back.
+
+You can also change or clear the **Payee** in the [transaction form](/transactions/add-and-edit/#payee).
+
+## Related
+
+- [Add and edit transactions](/transactions/add-and-edit/)
+- [Categories](/transactions/categories/)
+- [Tags](/transactions/tags/)
+- [Bank connections](/import/bank-connections/)
+- [Import from CSV](/import/import-from-csv/)

@@ -165,6 +165,8 @@ packages/frontend/playwright-results.json
 
 # Astro generated files
 packages/landing/.astro/
+packages/docs/.astro/
+packages/docs/scripts/capture/.state.json
 
 # i18next dev-mode auto-written files for keys missing from the base locale
 packages/backend/src/i18n/locales/*.missing.json

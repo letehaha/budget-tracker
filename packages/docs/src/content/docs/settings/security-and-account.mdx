@@ -1,0 +1,249 @@
+---
+title: Security and account
+description: Manage how you sign in, see and sign out your active sessions, change your password, back up and restore your data, and wipe your data or delete your account.
+sidebar:
+  order: 30
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+The **Security** settings page covers everything about your login and your account as a whole: how you sign in, where you're signed in, your password, full backups, and deleting your data.
+
+## Open Security settings
+
+<Steps>
+
+1. Click the gear button (**Settings**) at the top right of the app.
+2. Under **Personal**, choose **Security**.
+
+</Steps>
+
+You can also open the user menu in the sidebar, the one showing your email, and choose **Account details**.
+
+The page has five tabs: **Login Methods**, **Active Sessions**, **Password**, **Backup & restore** and **Danger Zone**.
+
+## Login methods
+
+You can sign in to MoneyMatter with any of these, and you can have several at once:
+
+- email and password
+- **Google**
+- **GitHub**
+- a passkey saved on your device
+
+The **Login Methods** tab shows each one and whether it's set up.
+
+<Screenshot
+  src="/screenshots/settings/login-methods.png"
+  alt="The Login Methods tab showing Google and GitHub with Connect buttons, a password that is set, and one registered passkey."
+  hint="Open /settings/security/login-methods on an account with Google connected, GitHub not connected, a password set and one passkey added. Crop to the tab content, from the Google card down to the Passkeys card."
+/>
+
+### Connect Google or GitHub
+
+On the provider's card, click **Connect**. You're sent to Google or GitHub to approve, then back to MoneyMatter. The card then shows "Connected as" with that account's email.
+
+The Google or GitHub account must use the same email address as your MoneyMatter account. If the emails differ, connecting fails and you'll see an error.
+
+To remove it, click **Disconnect**.
+
+If you sign in with Google or GitHub using the same email as your existing MoneyMatter account, it's linked to that account automatically.
+
+### Add a passkey
+
+<Steps>
+
+1. In the **Passkeys** card, click **Add Passkey**.
+2. Follow your browser's or device's prompt to create the passkey.
+
+</Steps>
+
+The new passkey appears in the list with the date you added it. Use the pencil icon to give it a name you'll recognize, like "Work laptop", or the trash icon to remove it.
+
+If adding fails, check that your device and browser support passkeys.
+
+<Aside type="note" title="You can't remove your last login method">
+**Disconnect** and the passkey trash icon are turned off when that method is your only way in. Google, GitHub, your password and each passkey each count as a separate method. To switch methods, add the new one first, then remove the old one.
+</Aside>
+
+## Active sessions
+
+The **Active Sessions** tab lists every device where you're signed in. For each one you see the browser, the type of device, the IP address, and when it was last active. The device you're using now is at the top with a **Current** badge.
+
+- **Sign out one device:** click the sign-out icon on its row.
+- **Sign out everywhere else:** click **Sign out of all other sessions**. The device you're using stays signed in.
+
+If you don't recognize a device, sign it out and [change your password](#change-or-set-your-password).
+
+<Screenshot
+  src="/screenshots/settings/active-sessions.png"
+  alt="The Active Sessions tab with the current session marked Current, another device below it, and the Sign out of all other sessions button."
+  hint="Open /settings/security/sessions while signed in on at least two devices or browsers, so another session is listed and the Sign out of all other sessions button shows. Blur the IP addresses. Crop to the tab content."
+/>
+
+## Change or set your password
+
+### Change your password
+
+<Steps>
+
+1. Open the **Password** tab.
+2. Enter your **Current Password**.
+3. Enter a **New Password** and type it again in **Confirm Password**.
+4. Click **Change Password**.
+
+</Steps>
+
+Passwords need at least 8 characters. A strength meter shows how strong your new password is, from "Very weak" to "Very strong". Longer passwords with upper and lower case letters, numbers and symbols score higher.
+
+If you're changing your password because you think someone else has access, also use **Sign out of all other sessions** on the [Active Sessions](#active-sessions) tab.
+
+<Screenshot
+  src="/screenshots/settings/change-password.png"
+  alt="The Password tab with the current, new and confirm password fields filled in, the strength meter, and the password requirements box."
+  hint="Open /settings/security/password on an account that has a password. Type something into all three fields so the strength meter shows (fields stay masked). Crop to the tab content, including the Password requirements box."
+/>
+
+### Add a password to a Google or GitHub account
+
+If you signed up with Google or GitHub, you don't have a password yet. You can add one:
+
+<Steps>
+
+1. Open the **Password** tab.
+2. Enter a **Password** and type it again in **Confirm Password**.
+3. Click **Set Password**.
+
+</Steps>
+
+You don't need a current password for this. Afterwards, you can sign in with your email and password as well as with Google or GitHub.
+
+## Backup and restore
+
+A backup is a complete copy of your MoneyMatter data in a single zip file. You can restore it later to put your account back exactly as it was.
+
+Backups are included in the Essential and Plus plans. During the free trial you can download backups but not restore them. See [Plans and billing](/settings/plans-and-billing/).
+
+<Screenshot
+  src="/screenshots/settings/backup-and-restore.png"
+  alt="The Backup & restore tab with the Download backup and Restore from backup rows, the Has limitations popover open, and the note about attachments."
+  hint="Open /settings/security/backup on an account with a paid plan. Click Has limitations so the 'What a backup leaves out' popover is open. Show both rows (Download backup and Restore from backup) and the attachments note underneath. Crop to the tab content plus the popover."
+/>
+
+### Download a backup
+
+<Steps>
+
+1. Open the **Backup & restore** tab.
+2. Next to **Download backup**, click **Download**.
+
+</Steps>
+
+Your browser saves a file named like `backup-yourname-2026-03-15.zip`. Keep it somewhere safe. If nothing downloads, your browser may have blocked it: check your download settings and try again.
+
+### What a backup leaves out
+
+Nearly everything is included: accounts, transactions, categories, tags, payees, your settings and all the rest. A few things can't be included:
+
+- **Bank connections.** You'll reconnect each bank after restoring.
+- **Your own AI keys.** You'll enter them again after restoring.
+- **Transaction attachments,** such as receipts and invoices. They're not in the backup and aren't restored.
+
+### Restore from a backup
+
+<Aside type="caution" title="A restore replaces everything">
+Restoring deletes **all** the data currently in your account and replaces it with the backup. This can't be undone. If you're unsure, download a fresh backup first.
+</Aside>
+
+Before you start, check that:
+
+- the backup was made from an account with the same email address as this one.
+- the file is a `.zip` backup of 40 MB or less.
+
+<Steps>
+
+1. Open the **Backup & restore** tab.
+2. Next to **Restore from backup**, click **Select backup file** and choose your backup zip.
+3. Read the **Restore from backup?** dialog and click **Restore**.
+4. Wait while **Restoring your data** runs. Keep the window open.
+5. When you see **Restore complete**, click **Done**. The app reloads with your restored data.
+
+</Steps>
+
+After restoring, reconnect your banks and enter your AI keys again if you use them.
+
+- The restore happens all at once. If it fails, you'll see **Restore failed**.
+- While the restore runs, the rest of the app is locked, the same way it is during a [base currency change](/settings/base-currency-and-currencies/#change-your-base-currency).
+- If other people have access to your accounts, the restore removes that access. MoneyMatter asks you to confirm this before it starts.
+
+### Backup or export?
+
+The **Import/Export** settings page also lets you export your data. The two do different jobs:
+
+- A **backup** is a full copy you can restore into MoneyMatter.
+- An **export** is for spreadsheets, taxes, or moving to another app. It still works when your account is [read-only](/settings/plans-and-billing/#read-only-mode), when backups don't.
+
+## Danger zone
+
+The **Danger Zone** tab has two ways to clear out your account. Both are permanent.
+
+<Screenshot
+  src="/screenshots/settings/danger-zone.png"
+  alt="The Danger Zone tab with the Wipe all data section and the Delete your account section."
+  hint="Open /settings/security/danger. Show both sections, Wipe all data with its Wipe data button and Delete your account with its Delete my account button. Do not open either dialog. Crop to the tab content."
+/>
+
+### Wipe all data
+
+This deletes everything in your workspace but keeps your login, so you can start over.
+
+<Steps>
+
+1. On the **Danger Zone** tab, click **Wipe data**.
+2. Read the **Wipe all your data?** dialog.
+3. Type **WIPE MY DATA** in the box and click **Wipe data**.
+
+</Steps>
+
+If other people have access to your accounts, a **You're sharing data with other users** dialog lists what they'll lose access to. Click **Wipe anyway** to go ahead. Wiping also removes your access to anything others shared with you.
+
+The wipe deletes your accounts and balances, transactions, categories, tags, payees, bank connections, settings, and your base currency and exchange rates. The app then reloads into the start-up flow, where you choose a base currency again. You start with the same default categories and tags as a new account.
+
+Your login, profile and plan stay as they were. Wiping doesn't restart your free trial.
+
+### Delete your account
+
+This deletes your account and all your data for good, including your login.
+
+<Steps>
+
+1. On the **Danger Zone** tab, click **Delete my account**.
+2. In the **Are you absolutely sure?** dialog, type your email address to confirm.
+3. Click **Delete my account**.
+
+</Steps>
+
+If you have a paid subscription, it's cancelled first, so you're never left paying for an account that no longer exists. If the cancellation fails, your account isn't deleted. Try again, or first cancel your subscription on the **Plan & billing** page (see [Cancel](/settings/plans-and-billing/#cancel)).
+
+Once your account is deleted, you're signed out and taken to the sign-in page. Anyone you shared accounts with loses access.
+
+| | Wipe all data | Delete your account |
+|---|---|---|
+| Your accounts, transactions and settings | Deleted | Deleted |
+| Your login | Kept | Deleted |
+| Your plan or subscription | Kept as is | Cancelled |
+| Afterwards | Start over from the setup screen | Signed out |
+
+## Good to know
+
+- **Download a backup before wiping or deleting.** Neither can be undone.
+- **In read-only mode** you can still delete your account, but you can't wipe your data or download or restore a backup. Use **Import/Export** to take a copy of your data. See [read-only mode](/settings/plans-and-billing/#read-only-mode).
+- **You can't delete your account while a base currency change or a restore is running.** Wait until it finishes.
+- **Backups are limited to 5 downloads and 5 restores every 15 minutes.**
+
+## Related
+
+- [Plans and billing](/settings/plans-and-billing/)
+- [Base currency and currencies](/settings/base-currency-and-currencies/)
+- [General settings](/settings/general-settings/)

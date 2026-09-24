@@ -1,0 +1,163 @@
+---
+title: Refunds
+description: Link a refund to the purchase it reverses so your stats show what you really spent, including partial, split and cross-currency refunds.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+When a shop gives you money back, the refund lands in your account as income. But it isn't really income: it undoes part of a purchase. Linking the refund to the original purchase tells MoneyMatter to take it off your spending instead of counting it as money earned.
+
+## What a refund link does
+
+A refund link connects a refund to the transaction it reverses. Usually that's an income refunding an expense. It works the other way round too: an expense that pays back money you received, for example returning part of a payment a customer made.
+
+- **It doesn't change any balance.** The refund already changed your account balance when you recorded it. The link doesn't move money again.
+- **It changes your stats.** The refunded amount comes off the original purchase's spending, and doesn't count as income. See [How refunds affect your stats](#how-refunds-affect-your-stats).
+
+Once linked, both transactions show a small circular-arrow icon in the transaction list. Hover over it to see **Refund**.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/refund-icon-in-list.png"
+  alt="Two rows in the transaction list (list view), a 100 EUR purchase and its 30 EUR refund, each with the circular-arrow refund icon, and the Refund tooltip showing on one of them."
+  hint="Open /transactions in list view with a 100 EUR expense and a 30 EUR income linked to it as a refund, both visible next to each other. Hover the refund icon on one row so the 'Refund' tooltip shows. Crop to the two rows."
+/>
+
+To find refunds in the list, open the **Filters** menu above it and add **Refunds**. Choose **Only** to see linked refunds and their purchases, or **Exclude** to hide them. See [Search and filter](/transactions/search-and-filter/#available-filters).
+
+## Link a refund
+
+You can start from either transaction. Both ways use the **Link refund** button under **More options** in the transaction dialog. On a computer, **More options** is the right-hand column; on a phone, it's a button at the bottom of the dialog.
+
+### Start from the refund
+
+<Steps>
+
+1. Open the refund in the transaction list, or add it with **Add transaction**.
+2. Under **More options**, click **Link refund**.
+3. Make sure **Refunds a transaction** is selected. It's already selected for an income or a new transaction. This entry is the refund, and you pick the one transaction it refunds.
+4. Select the original purchase in the list.
+5. Click **Save**.
+6. Back in the transaction dialog, **Linked refunds** shows your pick. Click **Edit** (the save button at the bottom of the dialog), or **Create** for a new transaction, to save the link.
+
+</Steps>
+
+### Start from the purchase
+
+<Steps>
+
+1. Open the original purchase in the transaction list.
+2. Under **More options**, click **Link refund**. For a saved expense, the dialog opens on **Refunded by**.
+3. Select every transaction that refunds this one. You can pick several. The footer keeps a running total, for example "2 selected · €50.00 of €100.00".
+4. Click **Save**.
+5. Back in the transaction dialog, click **Edit** to save the links.
+
+</Steps>
+
+**Refunded by** is turned off while you're adding a new transaction. It becomes available once the transaction is saved.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/refund-picker-refunded-by.png"
+  alt="The Link refund dialog on the Refunded by tab, with two incomes of 20 and 30 selected and the footer reading 2 selected, €50.00 of €100.00, next to the Save button."
+  hint="Have a 100 EUR expense and two incomes of 20 EUR and 30 EUR. Open the expense, click Link refund under More options, stay on Refunded by and select both incomes. Show the whole dialog including the mode tabs, the list with both selected, and the footer '2 selected · €50.00 of €100.00' with Save."
+/>
+
+<Aside type="caution" title="Don't forget the last click">
+**Save** in the **Link refund** dialog only fills in the form. The link is stored when you click **Edit** or **Create** in the transaction dialog. If you close the transaction dialog first, the link is lost.
+</Aside>
+
+### Find the right transaction
+
+- **Recommended** at the top suggests up to 5 transactions from the last six months whose amount is within 50 of this one's in your [base currency](/settings/base-currency-and-currencies/), for example within 50 EUR either way if your base currency is EUR.
+- **All transactions** lists the rest. Use the **Search notes…** box, or **Filters** to narrow it by **From date**, **To date**, **Amount from (gte)** and **To (lte)**.
+
+The list only shows transactions of the opposite type, from any of your accounts. Transfers, planned transactions and transactions that are already a refund of something else aren't listed. A purchase that already has a partial refund stays in the list, so you can add more refunds to it.
+
+## Partial and multiple refunds
+
+A purchase can have several refunds, but each refund belongs to one purchase. For example, you order three items for 100 EUR and return two of them separately, getting 20 EUR and 30 EUR back. Link both refunds to the same purchase, and 50 EUR of it is treated as refunded.
+
+**When the purchase and its refunds use the same currency**, the refunds together can't be more than the purchase. If your selection goes over, the footer says it "exceeds the original" and **Save** is turned off. In the same way, you can't link a refund to a purchase that's smaller than the refund.
+
+**When the currencies differ**, there's no limit. Each side is converted at the exchange rate for its own date, so a genuine refund can be worth more than the purchase once converted. The dialog only warns you. Refunds in a different currency also don't count toward the limit for same-currency refunds.
+
+## Refund part of a split purchase
+
+If the purchase is [split across categories](/transactions/split-a-transaction/), you can say which part the refund is for. For example, a supermarket receipt split between Groceries and Household, where you returned a household item.
+
+<Steps>
+
+1. Open the refund, click **Link refund** and keep **Refunds a transaction** selected.
+2. Select the split purchase. **Select which part to refund** opens.
+3. Pick the main category, marked **(main)** and shown with the amount left for it after the splits, or one of the splits.
+4. Click **Confirm**, then **Save**, then **Edit** in the transaction dialog.
+
+</Steps>
+
+When both are in the same currency, parts smaller than your refund are turned off. If you picked a split, the linked row shows "Refunds _category_ portion" below it.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/refund-split-part.png"
+  alt="The Select which part to refund dialog, listing the main category (Groceries, marked (main)) with its remaining amount and a split category (Home, garden), with the Confirm button."
+  hint="Have a split expense of 120 EUR (main category Groceries 80, split Home, garden 40) and a 25 EUR income. Open the income, click Link refund, stay on Refunds a transaction and select the split expense. Show the 'Select which part to refund' dialog with the (main) row, the split row and Confirm."
+/>
+
+**Refunded by** can't target a single split: refunds linked from the purchase always apply to the whole purchase. To refund one part, start from the refund.
+
+If you edit the purchase's splits later:
+
+- You can't lower a refunded split below what's been refunded. You'll see "This split has refunds totaling … You cannot reduce it below the refunded amount. To reduce further, first unlink the refunds."
+- If you remove a refunded split, or remove all splits, its refunds move to the purchase as a whole.
+
+## Rules for refund links
+
+- **Opposite types.** An income refunds an expense, and an expense refunds an income.
+- **Any account.** The refund can land on a different account from the purchase, for example a refund paid back to a different card.
+- **No transfers.** Neither side can be a transfer, including Out of Wallet ones. The **Link refund** button doesn't appear on the **Transfer** tab.
+- **No planned transactions.**
+- **No refunds of refunds.** A transaction that is itself a refund can't be refunded.
+- **A refund belongs to one transaction.** A transaction that is already a refund can't be linked as a refund again. In the **Link refund** dialog, switching between **Refunds a transaction** and **Refunded by** replaces the links you had on this transaction.
+- **Changing the type removes the link.** If you switch a transaction between **Expense** and **Income**, its refund links are cleared and you'll see "Refund link removed because the transaction type changed." The links are removed when you save.
+
+## How refunds affect your stats
+
+A linked refund is treated as money you never really spent, rather than money you earned.
+
+**Spending by category.** The refund comes off the category of the original purchase, or of the split you picked. The refund's own category is ignored. Say you spend 200 on a laptop under Electronics, then get 50 back as income filed under Other. Electronics shows 150 spent, and Other shows no income from it.
+
+**Cash flow.** On the **Cash Flow** page in [Analytics](/stats/analytics-reports/) and the **Cash Flow** widget on the [dashboard](/stats/dashboard/), the refund lowers your expenses instead of raising your income. Your net result is the same either way; only where the money shows up changes. You pay 100 EUR on 10 January and get 30 EUR back on 20 January: January shows 70 EUR of expenses, no income, and a net of −70 EUR.
+
+**Refunds in a later month.** In Cash Flow, the reduction lands in the month the money came back. You pay 100 EUR in January and get 30 EUR back on 5 February. If you view January and February together, January shows 100 EUR of expenses, February shows −30 EUR of expenses, and the two months together show 70 EUR. If you view February on its own, the purchase is outside the period, so the 30 EUR shows up as ordinary income.
+
+<Aside type="note" title="Both sides need to be in view">
+Cash flow only nets a refund against its purchase when both are inside the period and filters you're looking at. If the purchase happened before the selected period, the refund shows up as ordinary income. If you filter to one account and the refund went to a different account, that account's figures aren't adjusted either.
+</Aside>
+
+**Category charts use the purchase's period.** In spending-by-category charts, such as the **Expenses Structure** widget on the [dashboard](/stats/dashboard/), a refund is always taken off the period that contains the original purchase, even if the money came back later. In the example above, January shows 70 EUR for the category and February shows no change. This is why Cash Flow and category charts can disagree for a refund that crosses months.
+
+**Category charts never go below zero.** A category's spending stops at zero, and a refund only reduces a category that has spending in the period shown.
+
+For more on how each report is calculated, see [How stats are calculated](/stats/how-stats-are-calculated/).
+
+## Unlink or delete a refund
+
+**To unlink**, open either transaction, click the ✕ (**Unlink refund**) on the row under **Linked refunds**, then click **Edit**. Both transactions stay, and any other refunds of the same purchase stay linked.
+
+<Aside type="caution" title="Refunds of one part of a split purchase">
+If a refund was linked to one part of a split purchase, change or unlink refunds from the refund's side. Editing the refund list from the purchase (**Refunded by**) re-links every remaining refund to the whole purchase.
+</Aside>
+
+**To delete**, delete either transaction as usual. Its refund links are removed automatically, and the confirmation dialog says so. If you delete a purchase, its refunds become ordinary income in your stats.
+
+## Refunds vs transfers
+
+A refund is money coming back from a purchase. A transfer is money moving between your own accounts. The two don't mix: a transfer can't be linked as a refund, and transactions linked as refunds aren't offered when you look for the other side of a transfer. If money you moved to another account came back, that's a transfer, see [How transfers work](/transfers-and-refunds/how-transfers-work/).
+
+## Related
+
+- [How transfers work](/transfers-and-refunds/how-transfers-work/)
+- [Split a transaction](/transactions/split-a-transaction/)
+- [How stats are calculated](/stats/how-stats-are-calculated/)
+- [Categories](/transactions/categories/)

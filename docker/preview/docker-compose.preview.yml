@@ -59,6 +59,27 @@ services:
       - 'traefik.http.routers.preview-pr-${PR_NUMBER}-be.tls.certresolver=letsencrypt'
       - 'traefik.http.services.preview-pr-${PR_NUMBER}-be.loadbalancer.server.port=8080'
 
+  docs:
+    image: letehaha/budget-tracker-docs:pr-${PR_NUMBER}
+    container_name: preview-pr-${PR_NUMBER}-docs
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - 'traefik.enable=true'
+      # HTTP → HTTPS redirect
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs-http.rule=Host(`docs-pr-${PR_NUMBER}.preview.moneymatter.app`)'
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs-http.entrypoints=web'
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs-http.middlewares=preview-pr-${PR_NUMBER}-docs-redirect'
+      - 'traefik.http.middlewares.preview-pr-${PR_NUMBER}-docs-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.middlewares.preview-pr-${PR_NUMBER}-docs-redirect.redirectscheme.permanent=true'
+      # HTTPS
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs.rule=Host(`docs-pr-${PR_NUMBER}.preview.moneymatter.app`)'
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs.entrypoints=websecure'
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs.tls=true'
+      - 'traefik.http.routers.preview-pr-${PR_NUMBER}-docs.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.preview-pr-${PR_NUMBER}-docs.loadbalancer.server.port=8080'
+
   db:
     image: postgres:16
     container_name: preview-pr-${PR_NUMBER}-db
