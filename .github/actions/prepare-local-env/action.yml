@@ -12,7 +12,7 @@ runs:
       run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
       id: nvm
     - name: Use Node.js (.nvmrc)
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '${{ steps.nvm.outputs.NVMRC }}'
     - name: Get npm cache directory
@@ -20,7 +20,7 @@ runs:
       id: npm-cache-dir
       run: |
         echo "::set-output name=dir::$(npm config get cache)"
-    - uses: actions/cache@v3
+    - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       id: npm-cache
       with:
         path: |
