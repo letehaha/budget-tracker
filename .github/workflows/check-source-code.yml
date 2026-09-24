@@ -133,7 +133,7 @@ jobs:
       # behind a green check. Only test:unit reads them; lint and knip do not.
       - name: Cache MS Money fixtures
         if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test:unit'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/src/tests/fixtures/ms-money-import
           key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
@@ -209,7 +209,7 @@ jobs:
       # image build context is the repo root, so fixtures fetched here get copied in.
       - name: Cache MS Money fixtures
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/src/tests/fixtures/ms-money-import
           key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
@@ -237,7 +237,7 @@ jobs:
       # wins and the rest log a harmless "unable to reserve cache" warning.
       - name: Cache migrated template DB dump
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/.e2e-template-cache
           key: template-db-pg16-${{ hashFiles('packages/backend/src/migrations/**', 'packages/backend/src/tests/test-exchange-rates.json', 'packages/backend/src/resources/mcc-codes.json') }}
