@@ -7,7 +7,8 @@ license it lands under, and the one-time agreement you sign.
 ## License and the CLA (please read before your first PR)
 
 MoneyMatter is distributed to the public under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). Your
+[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0; see
+[LICENSING.md](./LICENSING.md) for the relicensing history). Your
 contributions reach everyone under that same license.
 
 In addition, before your first pull request can be merged, you sign a
