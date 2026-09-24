@@ -18,7 +18,7 @@ This guide will walk you through setting up the Budget Tracker project on your l
 
 ### Required Software
 
-- **Node.js**: v23.10.0
+- **Node.js**: v24.21.0
 - **npm**: Comes with Node.js
 - **Docker & Docker Compose**: For containerized development (essencial)
 
