@@ -57,7 +57,7 @@
     "typescript": "^5.9.3"
   },
   "volta": {
-    "node": "23.10.0"
+    "node": "24.21.0"
   },
   "//oxlint-pin": "oxlint is pinned to an exact version because packages/backend/lint/transactions-boundary-plugin.mjs uses its jsPlugins API, which is alpha and not covered by semver. Upgrade deliberately and re-verify the boundary rules still load."
 }

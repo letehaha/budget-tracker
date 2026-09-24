@@ -143,8 +143,8 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
 
 ## Apps, languages, sign-in
 
-- Web app only. No iOS, Android or desktop app. It can be added to a phone home screen, but there
-  is no offline mode.
+- Web app only today. An iOS app is under development, with no release date yet. No Android or
+  desktop app. The web app can be added to a phone home screen as a PWA, but there is no offline mode.
 - Languages: English, Ukrainian, Spanish, Indonesian, Russian. Spanish, Indonesian and Russian
   are community translations. Dark mode is supported.
 - Sign in with email and password, Google, GitHub or passkeys. You can see and log out active

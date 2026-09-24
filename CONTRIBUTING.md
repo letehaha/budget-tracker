@@ -7,7 +7,8 @@ license it lands under, and the one-time agreement you sign.
 ## License and the CLA (please read before your first PR)
 
 MoneyMatter is distributed to the public under the
-[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). Your
+[GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0; see
+[LICENSING.md](./LICENSING.md) for the relicensing history). Your
 contributions reach everyone under that same license.
 
 In addition, before your first pull request can be merged, you sign a
@@ -36,32 +37,121 @@ That's it – you sign once and it covers all your future contributions.
 > CLA isn't enough – please have someone authorized at your employer contact the
 > maintainer so a corporate agreement can be arranged before you contribute.
 
-## How to contribute
+## Before you start
 
-1. **Open an issue first** for anything non-trivial (new feature, larger
-   refactor, behavior change). It saves you building something that doesn't fit
-   the project's direction. Small fixes can go straight to a PR.
-2. **Fork the repo** and create a branch for your change.
-3. **Make your change**, following the conventions already in the codebase.
-4. **Run the checks** before opening the PR:
-   - Lint / type-check and tests should pass locally.
-   - The CI workflow (`.github/workflows/check-source-code.yml`) runs the same
-     checks on your PR.
-5. **Open a pull request** against the default branch. Describe what changed and
-   why, and link the related issue.
-6. **Sign the CLA** when the bot asks (see above).
+- **Bugs**: open a [bug report](https://github.com/letehaha/budget-tracker/issues/new/choose).
+  Say whether it happened on moneymatter.app or self-hosted, and how to reproduce it.
+- **Feature ideas**: post or vote on the [Featurebase board](https://moneymatter.featurebase.app/).
+  Most requests already live there.
+- **Anything non-trivial you want to build** (new feature, larger refactor, behavior change): open
+  an issue first so we agree on the direction before you spend time on it. Small fixes can go
+  straight to a PR.
+- **Security issues**: report privately via
+  [GitHub security advisories](https://github.com/letehaha/budget-tracker/security/advisories/new),
+  never in a public issue.
+- **Questions**: [Discussions Q&A](https://github.com/letehaha/budget-tracker/discussions/categories/q-a).
 
-## Commit and PR conventions
+MoneyMatter is maintained by Dmytro Svyrydenko, who decides scope and merges.
 
-- Keep pull requests focused – one logical change per PR is easier to review.
-- Write clear commit messages describing what changed and why.
-- Don't include unrelated formatting churn or dependency bumps in a feature PR.
+## Local setup
 
-## Reporting bugs and requesting features
+- Node version from [`.nvmrc`](./.nvmrc) (nvm, fnm, volta, ...) and Docker.
+- Full walkthrough: [docs/application-setup.md](./docs/application-setup.md). The short version:
 
-- Use GitHub Issues. Include steps to reproduce, what you expected, and what
-  actually happened. For UI issues, a screenshot or short recording helps a lot.
+```bash
+npm install
+npm run generate-ssl-certs    # dev runs over HTTPS
+cp .env.template .env.development   # then fill in what you need
+npm run docker:dev            # Postgres, Redis, backend, frontend
+npm run docker:dev:migrate    # in a second terminal, first run only
+```
 
-## Questions
+## Branches and pull requests
 
-Open an issue or start a discussion. Thanks for helping make MoneyMatter better.
+- Fork the repo, branch from `dev`, and open the PR against `dev`. `main` is release-only: the
+  maintainer merges `dev` into `main` when cutting a release.
+- Commit messages and the PR title follow [Conventional Commits](https://www.conventionalcommits.org/):
+  `type(scope): summary`, for example `fix(transactions): keep refund link on edit`. Types in use:
+  `feat`, `fix`, `chore`, `docs`, `test`, `ci`.
+- Contributor PRs are squash-merged, so the PR title becomes the commit message. Your own commits do
+  not need to be signed.
+- One logical change per PR. No unrelated formatting churn or dependency bumps.
+- Describe what changed and why, link the issue, and add screenshots for UI changes.
+  What to expect on a PR from a fork:
+
+- The CLA bot asks you to sign once (see above).
+- CI may wait for the maintainer to approve the run on your first PR.
+- Preview deployments are only built for branches inside this repo, so a fork PR does not get one.
+
+## AI-assisted contributions
+
+Using AI tools to write code is fine. Submitting code you do not understand is not. An AI-assisted
+PR is welcome when:
+
+- You can explain every change in it and why it is there. Expect review questions and answer them
+  yourself, not by pasting them into a model.
+- You ran it: the app works, the checks pass, the tests you added actually exercise the change.
+- It follows the conventions in this file and in the codebase: no invented abstractions, no
+  defensive code for cases that cannot happen, no restating-the-code comments, no unrelated
+  rewrites.
+- It is scoped like a human PR: one logical change, sized so a person can review it.
+- You say in the PR description that AI was involved and which tool you used.
+
+PRs that read as unreviewed model output (generic boilerplate, hallucinated APIs, comments and
+docstrings on every line, tests that assert nothing, changes nobody asked for) will be closed
+without a detailed review. The maintainer's time goes to contributors who engage with their own
+code.
+
+## Checks before opening a PR
+
+```bash
+npm run lint
+npm run typecheck
+npm run format
+npm run knip
+```
+
+Tests:
+
+```bash
+npm -w packages/backend run test:unit
+npm -w packages/frontend run test:unit
+cd packages/backend && npm run test:e2e -- --testPathPattern='<file-or-folder>'   # needs Docker
+```
+
+The backend e2e suite runs against a Docker Postgres, so run it one file or folder at a time. CI
+(`.github/workflows/check-source-code.yml`) runs the same checks on every PR.
+
+## Tests you are expected to write
+
+- **New backend endpoint**: an e2e test that goes through the HTTP helpers (never call services
+  directly) covering the happy path, the empty state and at least one error case.
+- **Bug fix**: a test that reproduces the bug first, then the fix. Backend bugs get an e2e test;
+  frontend utils and composables get a unit test.
+
+## Code conventions
+
+The full conventions are written for AI coding agents but apply to everyone:
+[backend](./.claude/docs/backend-conventions.md) and
+[frontend](./.claude/skills/frontend-rules/SKILL.md). The short list:
+
+- File names are kebab-case.
+- Functions take a single object parameter: `fn({ a, b })`, never `fn(a, b)`.
+- Money is a `Money` instance on the backend and a decimal in the API and the frontend. Never
+  convert cents by hand in frontend code.
+- Comments describe the current code, not its history. Most code needs none.
+- One migration per PR. Edit it while the PR is open instead of adding a second one.
+
+## Translations
+
+- Add or change strings in `en` only: `packages/frontend/src/i18n/locales/chunks/en/` and
+  `packages/backend/src/i18n/locales/en.json`.
+- Every other language is translated on [Crowdin](https://crowdin.com/project/moneymatter). Do not
+  edit those files in a PR: the next Crowdin download overwrites them.
+- To fix or add a translation, do it on Crowdin.
+
+## Documentation
+
+- User docs live in [`packages/docs`](./packages/docs) (a standalone Astro Starlight project,
+  published at [docs.moneymatter.app](https://docs.moneymatter.app)).
+- Self-hosting docs live in [`self-hosting/docs`](./self-hosting/docs).

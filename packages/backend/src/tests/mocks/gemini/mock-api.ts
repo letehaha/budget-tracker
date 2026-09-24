@@ -1,6 +1,6 @@
 import { AI_FEATURE } from '@bt/shared/types';
 import { SERVER_MODELS } from '@services/ai/resolution-ladder';
-import { HttpResponse, http } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 
 // Gemini API uses a different URL pattern, with the model name baked into the
 // path. Wildcard the model segment so swapping the configured default model
@@ -94,6 +94,14 @@ interface MockCategorizationOptions {
   errorStatus?: number;
   /** Model the request must target; defaults to the categorization feature's model */
   expectedModel?: string;
+  /**
+   * Let requests for other models fall through to the next handler instead of answering a 400.
+   * Always register a handler for that other model after this one: msw runs with
+   * `onUnhandledRequest: 'bypass'`, so an unmatched request goes to the real Gemini API.
+   */
+  passthroughOtherModels?: boolean;
+  /** Hold the response for this long, simulating a slow model */
+  delayMs?: number;
 }
 
 /**
@@ -109,11 +117,15 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     shouldFail = false,
     errorStatus = 500,
     expectedModel = DEFAULT_EXPECTED_MODEL,
+    passthroughOtherModels = false,
+    delayMs = 0,
   } = options;
 
-  return http.post(GEMINI_API_URL, ({ request }) => {
+  return http.post(GEMINI_API_URL, async ({ request }) => {
     const modelMismatch = rejectIfWrongModel({ request, expectedModel });
-    if (modelMismatch) return modelMismatch;
+    if (modelMismatch) return passthroughOtherModels ? undefined : modelMismatch;
+
+    if (delayMs) await delay(delayMs);
 
     if (readApiKey({ request }) === INVALID_GEMINI_API_KEY) {
       return invalidKeyResponse();

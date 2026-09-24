@@ -1,0 +1,63 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+labels: ['bug', 'needs-triage']
+body:
+  - type: checkboxes
+    attributes:
+      label: Before you start
+      options:
+        - label: >-
+            I searched existing [issues](https://github.com/letehaha/budget-tracker/issues),
+            [discussions](https://github.com/letehaha/budget-tracker/discussions) and the
+            [Featurebase board](https://moneymatter.featurebase.app/) and found nothing matching.
+          required: true
+  - type: dropdown
+    attributes:
+      label: Where does this happen?
+      options:
+        - moneymatter.app (cloud)
+        - Self-hosted (Docker)
+        - Local development
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version
+      description: >-
+        Self-hosted: expand the sidebar and copy the "App version" line under your user menu
+        (release + commit), or your `IMAGE_TAG`. Cloud: leave empty.
+      placeholder: v0.29.6 (72520a8)
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include the exact error text if there is one. Screenshots or a short recording help a lot.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What did you expect?
+  - type: input
+    attributes:
+      label: Bank sync provider
+      description: Only if the bug involves a connected bank.
+      placeholder: SimpleFIN / LunchFlow (bank name)
+  - type: textarea
+    attributes:
+      label: Logs or errors
+      description: >-
+        Self-hosted: `docker compose logs backend --since 10m`. Any setup: errors from the browser
+        console (F12 → Console). Remove tokens and personal data.
+      render: shell
+  - type: input
+    attributes:
+      label: Browser / device
+      placeholder: Chrome 130 on macOS, Safari on iPhone 15, ...
