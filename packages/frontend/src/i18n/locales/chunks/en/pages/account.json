@@ -101,6 +101,7 @@
       "archive": {
         "title": "Archive Account",
         "description": "Archiving preserves all transactions but removes the account from your active list. Bank connections and group memberships will be disconnected.",
+        "compareOptionsLink": "Archive, exclude or delete?",
         "archiveButton": "Archive Account",
         "confirmTitle": "Archive Account",
         "confirmDescription": "Are you sure you want to archive \"{name}\"? This will:",

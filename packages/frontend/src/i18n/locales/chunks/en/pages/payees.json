@@ -124,6 +124,7 @@
     "settings": {
       "title": "Payee detection settings",
       "description": "Control how the app auto-detects Payees from your synced transactions.",
+      "howDetectionWorks": "How detection works",
       "payeeFromDescription": {
         "label": "Detect payees from transaction descriptions",
         "description": "When your bank doesn't provide a dedicated merchant field, fall back to the transaction description (note) to auto-detect Payees. Useful for bank connections that have merchant fields empty or absent. May produce noisier Payee names (e.g. installment-payment prefixes) which you can rename or merge afterwards.",

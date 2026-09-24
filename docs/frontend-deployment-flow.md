@@ -54,7 +54,7 @@ published image can be deployed with different settings without a rebuild.
 `self-hosting/frontend/docker-entrypoint.sh` runs before nginx and:
 
 1. **Writes `/app/config.js`** exposing `window.__APP_CONFIG__` — `API_HTTP`,
-   `API_VER`, `MCP_BASE_URL`, PostHog, logo.dev, and Sentry values read from the
+   `API_VER`, `MCP_BASE_URL`, `DOCS_URL`, PostHog, logo.dev, and Sentry values read from the
    container's env. Both bundles read it at runtime: nginx serves it from an
    exact-match `/config.js` location rooted at `/app`, which resolves from the
    landing routes too, so the SPA and the Astro landing share one config. An

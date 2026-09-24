@@ -1,0 +1,106 @@
+---
+title: Key concepts
+description: The ideas behind MoneyMatter explained in short, from accounts and balances to transfers, refunds, currencies and what counts in your stats.
+sidebar:
+  order: 3
+---
+
+MoneyMatter uses a handful of ideas throughout the app. Knowing them makes your balances and reports much easier to read. Each section below is a short summary, with a link to the full article.
+
+## Accounts and balances
+
+### Account
+
+An account is anywhere you keep money: a bank account, a credit card, a cash wallet or a savings pot. Each account has one currency and its own balance. It's either **manual**, where you add the transactions yourself, or **connected to your bank**, where transactions arrive on their own. On a bank-connected account, transactions come only from your bank. You can't add your own (except planned ones) or delete synced ones, and you can't change a synced transaction's amount, date, type or account.
+
+Read more: [Create an account](/accounts/create-an-account/), [Bank connections](/import/bank-connections/).
+
+### Balance
+
+A manual account's balance is its initial balance, plus all money coming in, minus all money going out, including transfers to and from your other accounts. An account connected to your bank takes its balance from the bank. If a manual account's balance drifts from what your bank shows, use **Adjust balance** to set it right. The difference is recorded as a balance adjustment, which doesn't count as income or spending in your stats.
+
+Read more: [Manage accounts](/accounts/manage-accounts/).
+
+## Money in and out
+
+### Transaction
+
+A transaction is a single movement of money in one account. An **Expense** is money going out and an **Income** is money coming in. You always enter the amount as a positive number, and the type decides the direction.
+
+Read more: [Add and edit transactions](/transactions/add-and-edit/).
+
+### Transfer
+
+A transfer moves money from one of your accounts to another, such as paying off a credit card from your current account. It's recorded as a pair of linked transactions, one leaving the first account and one arriving in the second. Transfers don't count as spending or income, because the money is still yours. The exception is a payment to a loan you track: the money leaving your account counts as spending.
+
+A transfer can also go to or come from **Out of Wallet**, meaning somewhere you don't track in MoneyMatter, such as an account at another bank. These are left out of income and spending too.
+
+Read more: [How transfers work](/transfers-and-refunds/how-transfers-work/).
+
+### Refund
+
+A refund is an income linked to the expense it pays back, using **Link refund** in the transaction dialog. In your spending reports, a linked refund lowers the spending in the original purchase's category instead of counting as income. For example, you pay 100 EUR for groceries and get 30 EUR back the same month: your groceries spending shows 70 EUR, not 100 EUR of spending plus 30 EUR of income. If the money comes back in a later month, reports handle it in two ways. Category breakdowns take it off the purchase's own month, so January shows 70 EUR of groceries. Cash-flow reports take it off the month the money came back, as long as the dates you're viewing include both months. See [How stats are calculated](/stats/how-stats-are-calculated/#when-the-refund-arrives-in-a-later-period).
+
+Several refunds can be linked to one purchase. When they're in the same currency as the purchase, together they can't add up to more than the original amount.
+
+Read more: [Refunds](/transfers-and-refunds/refunds/).
+
+### Split
+
+A split divides one transaction between several categories, such as a supermarket receipt that covers food and household items. The split parts can't add up to more than the transaction amount. Whatever isn't split off stays in the transaction's main category.
+
+Read more: [Split a transaction](/transactions/split-a-transaction/).
+
+## Organizing your transactions
+
+### Category
+
+You give each income and expense one category, such as **Food & Drinks**, and categories can have subcategories, such as **Groceries**. Transfers don't need one. New accounts start with a ready-made set of categories that you can rename, change or delete, except the system category **Other**.
+
+Read more: [Categories](/transactions/categories/).
+
+### Tag
+
+A tag is an optional label, and a transaction can have up to 20 of them. Use tags for anything that cuts across categories, such as a trip or a project. New accounts start with three tags: **Want**, **Need** and **Must**.
+
+Read more: [Tags](/transactions/tags/).
+
+### Payee
+
+A payee is who you paid, or who paid you. When you pick a payee on a new transaction, MoneyMatter can fill in its category, tags and location for you, based on the payee's defaults or the category you use most with it.
+
+Read more: [Payees](/transactions/payees/).
+
+## Currencies
+
+### Base currency
+
+Your base currency is the one every total, chart and report is shown in. You choose it when you sign up, and accounts in other currencies are converted into it. You can change it later in **Settings** → **Currencies**, but every transaction is then recalculated.
+
+Read more: [Base currency and currencies](/settings/base-currency-and-currencies/).
+
+### Exchange rate
+
+A transaction in another currency is converted to your base currency at the exchange rate for that transaction's date. That way, a purchase from last year keeps last year's value in your reports. Account balances, on the other hand, are converted at the latest rate, so they show what your money is worth today. Rates update automatically from market rates, and you can set your own rate for a currency instead.
+
+Read more: [Base currency and currencies](/settings/base-currency-and-currencies/).
+
+## Your numbers
+
+### Net worth
+
+Net worth is the value of everything you track, in your base currency. Accounts with money in them count as assets. Accounts with a negative balance, such as a credit card you owe on, count as debts. Investments, loans and [vehicles](/accounts/vehicles/) you track are included too.
+
+Read more: [Dashboard](/stats/dashboard/), [Analytics reports](/stats/analytics-reports/).
+
+### What counts in your stats
+
+Income and spending reports show real money coming in and going out. So they leave out:
+
+- transfers between your own accounts, and **Out of Wallet** transfers. The exception is a payment to a loan you track: the money leaving your account counts as spending.
+- balance adjustments
+- accounts with **Exclude from statistics** turned on (a switch on the account's **Settings** tab). They're also left out of the balance and net worth figures on the dashboard and in reports. The **Total balance** on the Accounts page still includes them.
+
+Refunds reduce the spending they belong to, and splits are counted in each of their categories.
+
+Read more: [How stats are calculated](/stats/how-stats-are-calculated/).

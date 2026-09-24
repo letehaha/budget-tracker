@@ -13,12 +13,16 @@
     </PopoverTrigger>
 
     <PopoverContent class="max-w-90 text-sm leading-6" align="start">
-      {{ $t('settings.currencies.howItWorks.body') }}
+      <p>{{ $t('settings.currencies.howItWorks.body') }}</p>
+      <p class="mt-2">
+        <DocsLink path="/settings/base-currency-and-currencies/" />
+      </p>
     </PopoverContent>
   </Popover>
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { InfoIcon } from '@lucide/vue';

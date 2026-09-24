@@ -1,0 +1,132 @@
+---
+title: Tags
+description: Label transactions with tags across categories, manage your tag list, and set tag reminders that notify you about spending or activity.
+sidebar:
+  order: 5
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+A category says *what* a transaction was. A tag adds any other angle you care about: a trip, a project, whether a purchase was a need or a want. A transaction has one category but can have up to 20 tags, and the same tag can sit on transactions from any category.
+
+For example, tag your flights, hotel and restaurant bills with "Rome 2026" to see what the whole trip cost, while each still counts under its own category.
+
+## The tags you start with
+
+New accounts come with three tags to help you judge your spending:
+
+- **Want**: nice-to-have purchases and discretionary spending.
+- **Need**: important but not urgent expenses.
+- **Must**: essential expenses that cannot be avoided.
+
+Rename, change or delete them like any other tag.
+
+## Open your tags
+
+<Steps>
+
+1. Click the gear button (**Settings**) at the top right of the app.
+2. Under **Workspace**, choose **Tags**.
+
+</Steps>
+
+Each tag shows its color, icon, name and description. A bell with a number means the tag has reminders.
+
+<Screenshot
+  src="/screenshots/transactions/tags-page.png"
+  alt="The Tags settings page listing Want, Need and Must, with one tag showing a bell icon and a reminder count."
+  hint="Open /settings/tags on an account with the default Want, Need and Must tags plus one custom tag 'Rome 2026'. Give 'Want' one reminder so the bell with '1' shows. Crop to the content area."
+/>
+
+## Create a tag
+
+<Steps>
+
+1. On the **Tags** page, click **Add Tag**.
+2. Enter a **Name** (up to 100 characters). Each tag name must be unique.
+3. Pick a **Color** and, if you like, an **Icon**.
+4. Optionally add a **Description** (up to 500 characters), to remind yourself what the tag is for.
+5. Check the preview and click **Save**.
+
+</Steps>
+
+## Tag a transaction
+
+In the transaction form, open **More options** and pick one or more tags in **Tags**. See [add and edit transactions](/transactions/add-and-edit/#more-options).
+
+A few other ways tags get added:
+
+- **From a payee.** Tags set as a payee's **Auto-apply tags** are added when you pick that payee, and to new bank-synced and imported transactions linked to it. See [payees](/transactions/payees/#default-category-and-auto-apply-tags).
+- **In bulk.** Select several transactions and use **Edit** to add, replace or remove tags on all of them. See [edit several transactions at once](/transactions/search-and-filter/#edit-several-transactions-at-once).
+
+You can't create a new tag from the transaction form. Create it on the **Tags** page first.
+
+<Aside type="note" title="Tags belong to the whole transaction">
+On a [split transaction](/transactions/split-a-transaction/), tags apply to the whole transaction, not to individual split parts.
+</Aside>
+
+## Find tagged transactions
+
+On the **All Transactions** page, use the **Tags** filter. It shows transactions that have **any** of the tags you pick. Choose **No tags** to find transactions without a tag. See [search and filter](/transactions/search-and-filter/#available-filters).
+
+## Edit or delete a tag
+
+Click a tag in the list to open **Edit Tag**. Change what you need and click **Save**.
+
+To delete it, click **Delete** in the same window and confirm. The tag is removed from every transaction that had it; the transactions themselves stay. This can't be undone.
+
+## Tag reminders
+
+A reminder lets MoneyMatter keep an eye on a tag for you, for example to warn you when "Eating out" goes over 200 EUR in a month.
+
+### Add a reminder
+
+<Steps>
+
+1. On the **Tags** page, click the tag to open **Edit Tag**.
+2. Open the **Reminders** tab. (It only appears for a tag that's already saved.)
+3. Click **Add Reminder**.
+4. Choose the **Reminder Type**:
+   - **Amount Threshold** notifies you when the total for this tag goes over an amount you set. Enter it in **Amount Threshold**, in your base currency.
+   - **Activity Check** notifies you when there are transactions with this tag.
+5. Choose the **Frequency** (see below). For **Monthly**, **Quarterly** and **Yearly**, also pick the **Day of month**.
+6. Leave **Enabled** on and click **Save**.
+
+</Steps>
+
+<Screenshot
+  src="/screenshots/transactions/tag-reminder-form.png"
+  alt="The Create Reminder form with Amount Threshold selected, a threshold of 200, Monthly frequency and day 1 of the month."
+  hint="Open /settings/tags, click a tag (e.g. 'Want'), switch to the Reminders tab and click Add Reminder. Choose Reminder Type 'Amount Threshold', enter 200, Frequency 'Monthly', Day of month 1, Enabled on. Crop to the form."
+/>
+
+### How often reminders check
+
+| Frequency | When it checks | Period it looks at |
+| --- | --- | --- |
+| **Immediate** | Shortly after a transaction gets the tag, at most once every 24 hours | The current month so far |
+| **Daily** | Every day | Yesterday and today |
+| **Weekly** | Every Monday | The last 7 days |
+| **Monthly** | On the day of the month you pick | The last month |
+| **Quarterly** | On your chosen day in January, April, July and October | The last 3 months |
+| **Yearly** | On your chosen day in January | The last year |
+
+If you pick a day that a month doesn't have, such as the 31st, the last day of that month is used.
+
+An **Amount Threshold** reminder adds up every transaction with the tag in that period, converted to your base currency, and compares the total with your threshold. Every tagged transaction counts toward the total, including income, refunds and transfers, so keep the tag on expenses only if you want a pure spending limit. An **Activity Check** only counts transactions dated after it last notified you, so it doesn't repeat itself.
+
+### Where reminders show up
+
+When a reminder fires, you get an in-app notification. Open it from the bell (**Notifications**) in the header at the top of the app. A threshold reminder is titled **Tag Spending Alert** and says how much you spent against your threshold; an activity check is titled **Tag Activity Summary**.
+
+To pause a reminder without deleting it, edit it and turn off **Enabled**. The list shows each reminder as **Enabled** or **Disabled**.
+
+You can have up to 50 reminders in total, and a tag can't have two identical reminders.
+
+## Related
+
+- [Categories](/transactions/categories/)
+- [Payees](/transactions/payees/)
+- [Search and filter](/transactions/search-and-filter/)
+- [Add and edit transactions](/transactions/add-and-edit/)

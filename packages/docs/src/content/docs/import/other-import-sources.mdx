@@ -1,0 +1,246 @@
+---
+title: Other import sources
+description: Import bank statements (PDF, CSV or TXT), OFX and QFX files, and data from YNAB, Wallet by BudgetBakers and Microsoft Money, and learn what each importer brings in.
+sidebar:
+  order: 2
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+import TryMoneyMatter from '~/components/try-moneymatter.astro';
+
+Besides [CSV files](/import/import-from-csv/), MoneyMatter can read bank statements, OFX and QFX files, and exports from YNAB, Wallet by BudgetBakers and Microsoft Money. This page explains which file to get for each one and what comes across.
+
+All of them are in the same place: click the gear button (**Settings**), then under **Workspace** choose **Import/Export**. Pick the importer on the **Import** tab.
+
+## Which importer to use
+
+| You have | Use | Can add to accounts you already have? |
+|---|---|---|
+| A bank statement as a PDF, or text from an email | [Import from any Text Source](#import-from-any-text-source) | Yes |
+| A CSV file from your bank | [Import CSV](/import/import-from-csv/) | Yes |
+| An .ofx or .qfx file from your bank | [OFX or QFX statement](#ofx-or-qfx-statement) | Yes |
+| Your YNAB budget | [Import from YNAB](#ynab) | No, it always creates new accounts |
+| Your data from the Wallet app | [Wallet (BudgetBakers)](#wallet-by-budgetbakers) | Yes |
+| A Microsoft Money file | [Microsoft Money](#microsoft-money) | Yes |
+
+Don't see your app? Click **Want more options? Request here** at the bottom of the **From other apps** list to ask for it on the roadmap.
+
+## Import from any Text Source
+
+This importer uses AI to read a bank statement and pull out the transactions. It's handy when your bank only gives you PDFs.
+
+### Before you start
+
+- Files can be **PDF**, **CSV** or **TXT**. You can add several at once. Keep each file under about **7.5 MB**, because larger files fail to analyze. Split a bigger statement into several files.
+- Have the text somewhere else, such as an email? Paste it into a plain-text (.txt) file and upload that.
+- It needs AI. On the Plus plan and during your trial, it can use the AI included with MoneyMatter, which has usage limits. On any plan, you can add your own AI model in **Settings** → **AI**. Without either, you'll see "No AI model configured". See [plans and billing](/settings/plans-and-billing/).
+
+### Import a statement
+
+<Steps>
+
+1. On the **Import** tab, click **Import from any Text Source**.
+2. Drag your statement onto the upload area.
+3. Click **Analyze File**. You'll see the AI **Model** that will be used, the **Estimated Cost** and the **Estimated Tokens**. If the PDF is password-protected, you'll be asked for the **PDF password**. Enter it and click **Unlock and analyze**.
+4. Click **Extract Transactions**. This usually takes 30 to 60 seconds, longer for big files.
+5. Check what was found and click **Continue to Account**.
+6. If MoneyMatter couldn't detect the statement's currency, choose it under **Select currency** first. Then choose **Select existing account**, or click **Create New** to make an account for this statement. Only accounts in the statement's currency can be picked, and a new account is locked to it.
+7. Click **Check for Duplicates** (for an existing account) or **Import Transactions** (for a new one).
+8. For an existing account, check the list. Duplicates start unchecked, so tick one to import it anyway. Then click **Continue to Import**.
+9. On **Ready to Import**, click **Import N Transactions**.
+
+</Steps>
+
+**Estimated Cost** is what the AI provider charges to read the file. If it's marked **(your API key)**, your own AI provider bills you. Otherwise, the AI included with MoneyMatter is used. **Estimated Tokens** is a measure of how much text the AI has to read.
+
+<Screenshot
+  src="/screenshots/import/text-source-estimate.png"
+  alt="The Statement Parser after analyzing a text statement file, showing the Model, Estimated Cost and Estimated Tokens, and the Extract Transactions button."
+  hint="Open /settings/data-management/import/text-source. Upload a PDF, CSV or TXT bank statement and click Analyze File. Crop to the upload card so the Model, Estimated Cost and Estimated Tokens values and the Extract Transactions button are visible."
+/>
+
+### What gets imported
+
+- The date, amount, direction (income or expense) and a note. A payee is linked from the merchant name the same way as for bank transactions, so a name that appears only once may not get a payee. See [automatic payee detection](/transactions/payees/#automatic-payee-detection).
+- **Transactions start in your default category** (usually **Other**). MoneyMatter then tries to categorize them automatically with AI, and a payee's [default category](/transactions/payees/#default-category) can also set one. Review the categories after importing.
+- Transactions dated more than about a day in the future are rejected.
+
+### Good to know
+
+- **Accounts connected to a bank can't be picked.** Statement import only works with accounts you update yourself.
+- **Imported transactions change the account's balance.** Every transaction you import into an existing account moves its current balance, even old ones. There's no option to keep the balance as it is, so [adjust the balance](/accounts/manage-accounts/#adjust-a-balance) afterwards if needed.
+- **Only accounts in the statement's currency can be picked.** Accounts in other currencies are greyed out under **Different Currency**. If MoneyMatter can't detect the currency and you don't choose one, any account can be picked, and the transactions are imported in that account's currency with the same numbers.
+- **Duplicates** are transactions already in the account on the same day, with the same amount and direction. The description isn't compared. Duplicates start unchecked, so they're skipped unless you tick them.
+- **AI can miss lines.** If some of the AI's answer couldn't be read, you'll see how many lines were skipped. Compare the imported count with your statement.
+
+## OFX or QFX statement
+
+OFX and QFX are statement files that many banks and credit card companies let you download.
+
+### Before you start
+
+- One **.ofx** or **.qfx** file, up to **10 MB**, with up to 100,000 transactions.
+- Only bank account and credit card statements are supported. Investment statements aren't.
+
+### Import the file
+
+<Steps>
+
+1. On the **Import** tab, click **OFX or QFX statement**.
+2. Select your file and click **Continue**.
+3. On **Map accounts**, choose an **Action** for each account in the file: **Create new** (you can change its **Account name**), **Link to existing** (same currency only) or **Skip**. Each account shows its type (**Bank account** or **Credit card**), how many transactions it has and the statement balance from the file. If you link to an existing account, decide whether to tick **Update account balances from imported transactions** (see [how an import affects balances](/import/import-from-csv/#how-an-import-affects-balances)).
+4. For a new account, optionally fill in **Current balance**. Leave it blank to use the sum of the imported transactions.
+5. On **Review**, check possible duplicates and any warnings, then click **Import N transactions**.
+
+</Steps>
+
+<Screenshot
+  src="/screenshots/import/ofx-map-accounts.png"
+  alt="The Map accounts step of the OFX importer, showing an account from the file with its type, transaction count, statement balance, account name and current balance fields."
+  hint="Open /settings/data-management/import/ofx and upload an OFX file with one bank account. On Map accounts, keep the account set to create a new account so the Account name and Current balance fields show, with the 'Statement balance: … on …' hint visible. Crop to the Accounts card."
+/>
+
+### What gets imported
+
+- Each transaction's date, amount and direction.
+- The **payee** comes from the name in the file. The **note** comes from the memo, or from the name if there's no memo.
+- OFX files don't include categories, so plan to categorize these transactions afterwards.
+
+### Duplicates
+
+OFX files usually give each transaction its own ID. MoneyMatter remembers it, so if you import an overlapping statement into the same account later, transactions you already imported are marked **ID match** and can't be imported again. Transactions without an ID are compared by account, day, amount and direction instead, like the [CSV importer](/import/import-from-csv/#how-duplicates-are-detected).
+
+### Good to know
+
+- **Your upload expires.** If you leave the import idle for 30 minutes (or it runs over 4 hours in total), you'll see "Your uploaded file is no longer available". Click **Start over** and upload the file again.
+- **Correction records aren't supported.** Files with them are rejected.
+
+## YNAB
+
+This moves your YNAB (You Need A Budget) history into MoneyMatter: accounts, transactions, categories, payees and flags.
+
+### Get your file from YNAB
+
+In YNAB, go to Budget → Export budget. Unzip the download and use the **Register.csv** file inside it. The file can be up to 10 MB.
+
+### Import it
+
+<Steps>
+
+1. On the **Import** tab, under **From other apps**, click **Import from YNAB**.
+2. Drop your **Register.csv** file and click **Continue**.
+3. On **Review**, go through the **Accounts** list. Confirm the **Currency** of each account: pick it from the list (you can search by code, such as USD). If the account's name in YNAB ends with a code like "(EUR)", it's filled in for you. To leave an account out, click the **Skip** button (the crossed-circle icon) on its row. Click it again (**Include in import**) to bring the account back.
+4. Check the other tabs (**Categories**, **Payees**, **Tags**, **Transactions**, **Transfers**) and any **Warnings**.
+5. Click **Start import**.
+
+</Steps>
+
+<Screenshot
+  src="/screenshots/import/ynab-review.png"
+  alt="The Review step of the YNAB importer with the Accounts tab open, showing each account's currency field and starting balance."
+  hint="Open /settings/data-management/import/ynab and upload a Register.csv with 2–3 accounts, at least one without a currency suffix in its name. On the Review step, keep the Accounts tab open so the Currency fields and Starting balance values show. Crop to the review card."
+/>
+
+### What gets imported
+
+- **Accounts**: every YNAB account becomes a **new** MoneyMatter account. YNAB's "Starting Balance" entry becomes the account's initial balance.
+- **Categories**: YNAB's "Group: Category" becomes a category with a subcategory. If you already have categories with the same names, they're reused. "Inflow: Ready to Assign" isn't turned into a category.
+- **Payees**: reused if one with the same name exists, created otherwise.
+- **Flags**: each flag colour becomes a tag, such as "YNAB Red" or "YNAB Blue".
+- **Transfers**: YNAB transfers between two of your accounts become [transfers](/transfers-and-refunds/how-transfers-work/) in MoneyMatter when both sides have the same date and matching amounts. A side without a match is imported as a regular expense or income, and you'll see a warning.
+- **Split transactions**: each part is imported as its own transaction. The summary shows how many split groups were found.
+
+### Good to know
+
+- **Dates are read the same way for the whole file.** MoneyMatter works out whether your dates are day-first or month-first. If it can't tell, it assumes month-first (MM/DD/YYYY) and warns you, so check a few transactions afterwards.
+- **Importing twice creates a second set of accounts.** There's no duplicate check, because every import makes new accounts. Undo an extra import from [Import History](/import/import-from-csv/#undo-an-import).
+- **Transfers between currencies** keep the same number on both sides. Fix the amount on one side after importing.
+- **Skipping an account** also drops any transfers to or from it.
+
+## Wallet by BudgetBakers
+
+This imports your records from the Wallet app, including transfers between your Wallet accounts.
+
+### Before you start
+
+- Export your records from Wallet as a CSV file. You can upload several files if they have the same columns. Together they can be up to about 10 MB and 100,000 rows.
+- **Wallet must be set to English or Spanish when you export.** Wallet writes some values in the app's language, and MoneyMatter can only read English and Spanish ones for now. With another language, the import stops and suggests requesting your language on the roadmap.
+
+### Import it
+
+<Steps>
+
+1. On the **Import** tab, under **From other apps**, click **Wallet (BudgetBakers)**.
+2. Upload your Wallet CSV file or files and click **Continue**.
+3. On **Resolve**, under **Accounts**, choose an **Action** for each Wallet account: **Create new** (you can fill in **Current balance (optional)**), **Link to existing** (same currency only) or **Skip**.
+4. Map each Wallet category to one of yours, or create it. The same [bulk actions](/import/import-from-csv/#bulk-actions) as in the CSV importer are available.
+5. On **Review**, check possible duplicates, then click **Import N transactions**.
+
+</Steps>
+
+### What gets imported
+
+- Transactions with their category and payee.
+- **Labels become tags.** A record with several labels gets several tags.
+- **Transfers**: Wallet stores a transfer as two records. MoneyMatter pairs them into one [transfer](/transfers-and-refunds/how-transfers-work/) when they have the same date and time, are in different accounts, and their amounts are within 1% of each other.
+- A transfer record without a partner is imported as an [Out of Wallet](/transfers-and-refunds/how-transfers-work/#out-of-wallet-transfers) transaction (money moved to or from somewhere you don't track in MoneyMatter).
+
+### Good to know
+
+- **Duplicates** are only checked in accounts you link. Paired transfers aren't checked. The rule is the same as for [CSV imports](/import/import-from-csv/#how-duplicates-are-detected).
+- **Skipping an account** also drops every transfer to or from it, including the side in accounts you import. Those accounts may then show a different balance than in Wallet.
+- **Balances of linked accounts** follow the **Update account balances from imported transactions** checkbox on **Resolve**. See [how an import affects balances](/import/import-from-csv/#how-an-import-affects-balances).
+
+## Microsoft Money
+
+This reads the .mny file that Microsoft Money saves on your computer.
+
+### Before you start
+
+- One **.mny** file, up to **50 MB**, with up to 100,000 transactions.
+- If you protected the file with a password in Microsoft Money, you'll need it. Otherwise leave **File password (optional)** empty.
+
+### Import it
+
+<Steps>
+
+1. On the **Import** tab, under **From other apps**, click **Microsoft Money**.
+2. Select your .mny file, enter the password if it has one, and click **Continue**.
+3. On **Map data**, choose an **Action** for each account: **Create new** (optionally with a **Current balance**), **Link to existing** (same currency only) or **Skip**. If you link to an existing account, decide whether to tick **Update account balances from imported transactions** (see [how an import affects balances](/import/import-from-csv/#how-an-import-affects-balances)). Then map the categories.
+4. On **Review**, check what was left out and any possible duplicates. If the file has voided transactions, tick **Import N voided transaction(s)** to import them too.
+5. Click **Import N transactions**.
+
+</Steps>
+
+### What gets imported
+
+- **Account types**: banking, credit card, cash, asset and liability accounts. Investment and loan accounts are skipped, with a warning.
+- **Accounts without a currency** in the file are treated as USD, with a warning. The importer can't change this. If an account isn't really in USD, skip it on **Map data**.
+- **Split transactions**: each line of the split is imported as its own transaction.
+- **Transfers** are imported once, as a [transfer](/transfers-and-refunds/how-transfers-work/) between both accounts. If the other account isn't in the file (for example an investment or loan account), that side becomes an [Out of Wallet](/transfers-and-refunds/how-transfers-work/#out-of-wallet-transfers) transaction.
+- **Voided transactions** are left out unless you tick the box. If you include them, they're imported with an amount of zero and tagged "Void", keeping their date, payee, category, memo and cheque number. Microsoft Money never counted them in your balance, so neither does MoneyMatter.
+
+### Good to know
+
+- **Accounts without a name** are called "Account" plus a number. Accounts with the same name get a number added, like "Savings (2)".
+- **Your upload expires** after 30 minutes without activity (or 4 hours in total). Click **Start over** and upload the file again.
+- **Duplicates** are only checked in accounts you link, using the same rule as [CSV imports](/import/import-from-csv/#how-duplicates-are-detected). Paired transfers aren't checked.
+- **Skipping an account** also drops every transfer to or from it, including the side in accounts you import. Those accounts may then show a different balance than in Microsoft Money.
+
+## Things all importers share
+
+- **They run in the background.** You can watch the progress until the import finishes.
+- **They show a summary at the end**, with what was created, skipped or failed.
+- **With the CSV, OFX, Wallet and Microsoft Money importers, existing accounts keep their balance by default.** They all have the **Update account balances from imported transactions** checkbox, on the step where you map accounts (on **Review** for CSV). See [how an import affects balances](/import/import-from-csv/#how-an-import-affects-balances). [Statement imports](#import-from-any-text-source) always change the balance.
+- **Every import can be undone** from **Import History**, as long as its accounts haven't been connected to a bank since. See [undo an import](/import/import-from-csv/#undo-an-import).
+- **Imports need an active plan.** In read-only mode you can export your data but not import. See [plans and billing](/settings/plans-and-billing/#read-only-mode).
+
+<TryMoneyMatter />
+
+## Related
+
+- [Import from CSV](/import/import-from-csv/)
+- [Bank connections](/import/bank-connections/)
+- [How transfers work](/transfers-and-refunds/how-transfers-work/)
+- [Create an account](/accounts/create-an-account/)

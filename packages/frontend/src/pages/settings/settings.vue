@@ -75,6 +75,29 @@
             </li>
           </ul>
         </div>
+
+        <div class="border-border border-t pt-2">
+          <DesktopOnlyTooltip :content="$t('navigation.helpAndDocs')" :disabled="!isIconOnly" side="right">
+            <a
+              :href="config.docsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :class="
+                cn(
+                  'text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 whitespace-nowrap transition-colors',
+                  'hover:bg-accent hover:text-foreground',
+                  isCompactLayout ? 'text-sm md:gap-4 md:text-base' : 'text-sm',
+                )
+              "
+            >
+              <BookOpenIcon :class="cn('size-4 shrink-0', isCompactLayout && 'md:size-5')" />
+              <span :class="['transition-opacity duration-200', isIconOnly ? 'opacity-0' : 'opacity-100']">
+                {{ $t('navigation.helpAndDocs') }}
+              </span>
+              <ExternalLinkIcon v-if="!isIconOnly" class="text-muted-foreground ml-auto size-3" />
+            </a>
+          </DesktopOnlyTooltip>
+        </div>
       </div>
     </nav>
 
@@ -91,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { config } from '@/common/config';
 import BackLink from '@/components/common/back-link.vue';
 import NewBadge from '@/components/common/new-badge.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -101,10 +125,12 @@ import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
 import { useElementSize, useLocalStorage } from '@vueuse/core';
 import {
+  BookOpenIcon,
   CalendarClockIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
   CreditCardIcon,
+  ExternalLinkIcon,
   HomeIcon,
   KeyRoundIcon,
   LanguagesIcon,

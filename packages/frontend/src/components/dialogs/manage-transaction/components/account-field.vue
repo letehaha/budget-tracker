@@ -12,6 +12,11 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template v-if="account?.id === OUT_OF_WALLET_ACCOUNT_MOCK.id" #label-right>
+            <DocsLink :path="OUT_OF_WALLET_DOCS_PATH" class="text-xs">
+              {{ $t('dialogs.manageTransaction.form.outOfWalletDocsLink') }}
+            </DocsLink>
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="w-full justify-start" variant="ghost-primary" size="sm">
@@ -46,6 +51,11 @@
               :model-value="toAccount"
               @update:model-value="updateToAccount"
             >
+              <template v-if="toAccount?.id === OUT_OF_WALLET_ACCOUNT_MOCK.id" #label-right>
+                <DocsLink :path="OUT_OF_WALLET_DOCS_PATH" class="text-xs">
+                  {{ $t('dialogs.manageTransaction.form.outOfWalletDocsLink') }}
+                </DocsLink>
+              </template>
               <template #select-bottom-content>
                 <CreateAccountDialog>
                   <UiButton type="button" class="w-full justify-start" variant="ghost-primary" size="sm">
@@ -150,6 +160,7 @@
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -168,6 +179,8 @@ import DestinationPanel from './destination-panel.vue';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();
+
+const OUT_OF_WALLET_DOCS_PATH = '/transfers-and-refunds/how-transfers-work/#out-of-wallet-transfers';
 
 const DESTINATION_TYPE_META: Record<TransferDestinationType, { labelKey: string; icon: Component }> = {
   account: { labelKey: 'dialogs.manageTransaction.form.destinationTypeAccount', icon: WalletIcon },

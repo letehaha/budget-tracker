@@ -1,0 +1,196 @@
+---
+title: Base currency and currencies
+description: What your base currency is used for, how to add currencies, where exchange rates come from, how custom rates work, and what happens when you change your base currency.
+sidebar:
+  order: 10
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+You can keep accounts in as many currencies as you like. To add them all up, MoneyMatter converts everything into one currency, your **base currency**. This page explains what the base currency affects, where exchange rates come from, and what to think about before you change it.
+
+## What the base currency is used for
+
+You choose your base currency when you sign up, on the **Select Base Currency** screen. Pick the one you use most often, because every total in the app is shown in it:
+
+- the dashboard, stats and reports
+- account group totals in the sidebar
+
+<Aside type="tip" title="Choose carefully">
+At sign-up you can pick any currency, but switching later only works for [a limited list of currencies](#change-your-base-currency).
+</Aside>
+
+Some things always stay in their own currency:
+
+- **Account balances.** Each account in the sidebar shows its balance in the account's own currency.
+- **Transaction amounts.** A transaction always keeps the amount you entered, in its account's currency.
+
+### How a transaction gets its base-currency amount
+
+When you add a transaction in another currency, MoneyMatter converts it with the exchange rate **for the transaction's date** and saves the converted amount next to the original. Your stats count the converted amount.
+
+For example, your base currency is EUR and you pay 50 USD on 3 March. If 1 USD was worth 0.92 EUR that day, the transaction is saved as 50 USD with a base amount of 46 EUR.
+
+The converted amount is saved once and kept, so your past spending and income don't shift when rates move later. Last month's report shows the same numbers today as it did last month.
+
+When you edit and save a transaction in another currency, its base amount is worked out again with the rate for its date.
+
+On the transactions page, switch to [**Table view**](/transactions/search-and-filter/) to see the **Base amount** column with each transaction's converted value. You can hide it in **Table settings**.
+
+## Open the Currencies page
+
+<Steps>
+
+1. Click the gear button (**Settings**) at the top right of the app.
+2. Under **Workspace**, choose **Currencies**.
+
+</Steps>
+
+Your base currency is always first in the list, with a **Base** badge. Every other currency shows today's exchange rate in both directions, plus two badges:
+
+- **Live** or **Custom**: whether the currency uses market rates or a rate you set yourself.
+- The number of accounts that use it, or **Unused** if none do.
+
+Click **How it works?** at the top of the page for a short reminder of how this all fits together.
+
+<Screenshot
+  src="/screenshots/settings/currencies-overview.png"
+  alt="The Currencies settings page with the base currency (USD) pinned first and two other currencies (EUR, PLN) showing their Live rates and account counts."
+  hint="Open /settings/currencies on an account with base currency EUR, plus USD (live rate, used by at least one account), one currency with a custom rate, and one currency no account uses (Unused badge). Keep all rows collapsed. Show the page header with the Add a currency button and the How it works? link, and every row. Crop to the currencies card."
+/>
+
+## Add a currency
+
+<Steps>
+
+1. On the **Currencies** page, click **Add a currency**.
+2. Search for the currency in the **Select currency** field and pick it. Currencies you already have aren't listed.
+3. Click **Add**.
+
+</Steps>
+
+You can also add a currency while creating an account. The **Currency** field only lists your currencies, so scroll to the bottom of its list and click **Add new currency +**.
+
+When a bank connection or an import creates an account in a currency you don't have yet, that currency is added to your list automatically.
+
+## Where exchange rates come from
+
+MoneyMatter uses market exchange rates and updates them **once a day, at 18:00 UTC**. That's after the European Central Bank publishes its daily rates.
+
+Each daily update also refreshes how much your foreign-currency accounts are worth in your base currency. So on balance charts, a USD account's value in EUR moves with the exchange rate, even when you haven't added any transactions.
+
+- **Past dates:** if you add a transaction for a date MoneyMatter doesn't have a rate for yet, it fetches the rate for that date.
+- **No rate for that exact day** (for example, a date in the future): the most recent rate available is used.
+
+## Set a custom exchange rate
+
+If you'd rather use your own rate, for example the one your bank actually charged you, you can replace the market rate for any currency except your base currency.
+
+<Steps>
+
+1. On the **Currencies** page, click the currency's row to expand it.
+2. Uncheck **Live update**. The two rate fields become editable and a **Save** button appears.
+3. Type the rate in either field: **1 USD =** (how many EUR one dollar buys) or **1 EUR =**. The other fills in automatically.
+4. Click **Save**.
+
+</Steps>
+
+The row now shows a **Custom** badge. Rates must be greater than zero.
+
+In a narrow window, the row's buttons read **Delete** and **Set as base** instead of **Delete currency** and **Set as base currency**.
+
+To go back to market rates, expand the row, check **Live update** again and click **Save**. Your custom rate is removed and the row shows **Live** again.
+
+<Screenshot
+  src="/screenshots/settings/custom-exchange-rate.png"
+  alt="An expanded currency row with Live update unchecked, a custom rate typed in, and the Save, Set as base currency and Delete currency buttons."
+  hint="Open /settings/currencies and expand a non-base currency row (for example USD with base EUR). Uncheck Live update and type a new rate in the '1 USD =' field so the inverse fills in and the Save button is enabled. Crop to the expanded row, including the Set as base currency and Delete currency buttons at the bottom."
+/>
+
+### What a custom rate changes
+
+| | Uses the custom rate? |
+|---|---|
+| Current balances of accounts in that currency, converted to your base currency | Yes, straight away |
+| Balance history of manually tracked accounts in that currency | Yes, the whole history is redrawn at the custom rate |
+| New transactions, and transactions you edit and save | Yes, whatever their date |
+| Transactions you already saved | No. Their base amounts stay as they were |
+
+That last row is on purpose: your past spending and income reports stay stable when you change a rate.
+
+<Aside type="note" title="Good to know">
+- **A custom rate applies to every date.** It isn't tied to a day. Say you set 1 USD = 0.90 EUR: every new or edited USD transaction converts at 0.90, even one you back-date to last year.
+- **It's set against your current base currency.** A custom rate only applies when converting into the base currency you set it against. After you change your base currency, most custom rates stop applying and those currencies show **Live** again. They aren't deleted, so if you switch back to your old base currency, they apply again. One exception: if your new base is a currency you had set a custom rate for, your old base currency now uses the reverse of that rate and shows **Custom**. To use market rates for it instead, expand its row, check **Live update** and click **Save**. This also removes the custom rate you'd set for the new base currency, so it won't come back if you switch back later.
+- If some balances can't be refreshed with the new rate yet, a warning tells you how many. They update on their own once a rate is available.
+</Aside>
+
+## Delete a currency
+
+<Steps>
+
+1. On the **Currencies** page, expand the currency's row.
+2. Click **Delete currency**.
+3. Confirm in the **Delete currency?** dialog.
+
+</Steps>
+
+You can only delete a currency that no account uses. While any account is still in that currency, the button is turned off. This includes archived accounts. An account's currency can't be changed, so delete every account that uses it first. A currency used by an investment can't be deleted either: you'll see an error when you confirm. Your base currency can't be deleted.
+
+## Change your base currency
+
+Changing your base currency recalculates every converted amount in your account. It's safe, but it's a big operation, so ideally you do it once.
+
+<Steps>
+
+1. On the **Currencies** page, add the new currency if it isn't in your list yet.
+2. Expand its row and click **Set as base currency**.
+3. Read the **Change Base Currency?** dialog, then click **Change Base Currency**.
+
+</Steps>
+
+<Aside type="note" title="Not every currency can become your base">
+You can only switch to a currency that MoneyMatter has long-term exchange-rate history for. This covers many major currencies, such as USD, EUR, GBP, PLN, UAH, CHF, JPY, CAD and AUD. If you pick one that isn't supported, you'll see an error that lists the currencies you can switch to.
+</Aside>
+
+<Screenshot
+  src="/screenshots/settings/change-base-currency-dialog.png"
+  alt="The Change Base Currency? confirmation dialog with its warnings and the rounding explanation expanded."
+  hint="Open /settings/currencies, expand a non-base currency row and click Set as base currency. In the Change Base Currency? dialog, expand 'How exactly is rounding calculated?'. Do NOT confirm. Crop to the dialog."
+/>
+
+### What gets recalculated
+
+- **Every transaction** gets a new base amount, using the market exchange rate for its own date.
+- **Account balances and credit limits** are converted at today's rate.
+- **Balance history** is rebuilt in the new base currency.
+- The new currency gets the **Base** badge. Your old base currency stays in your list as a regular currency.
+
+The original amounts of your transactions are never touched. Only the converted amounts change.
+
+### While it runs
+
+The change runs in the background and can take a few minutes. It may take longer for currencies that aren't widely used.
+
+- A **Changing your base currency** screen covers the app and shows each step as it finishes. Keep the tab open.
+- You can't add or change anything that involves amounts until it's done, such as accounts or transactions. This applies on all your devices.
+- When the change finishes, the app reloads with everything in the new currency.
+
+If something goes wrong, you'll see **Base currency change failed**. Your transactions and balances are recalculated all at once, so you never end up with only some of them converted. A failed change isn't retried automatically. Click **Dismiss** to close it. Nothing was converted, so you can try again from the **Currencies** page.
+
+<Aside type="caution" title="Changing more than once can cause small rounding differences">
+Each change recalculates every converted amount from the original amounts. Because of rounding and small differences between exchange rates, switching back and forth several times can leave your converted totals a few cents different from where they started.
+</Aside>
+
+If you share accounts with other people or belong to a household, you can't change your base currency until you stop sharing. The error message tells you what to do.
+
+## Good to know
+
+- **Balances and spending can use different rates for the same period.** Transactions keep the rate from their own date. Account balances are re-valued every day at the current rate. So a balance chart and a spending report for the same month can convert USD at different rates. Both are correct for what they measure.
+- **In read-only mode** you can't add or delete currencies, save rates or change your base currency. See [read-only mode](/settings/plans-and-billing/#read-only-mode).
+
+## Related
+
+- [Create an account](/accounts/create-an-account/)
+- [How stats are calculated](/stats/how-stats-are-calculated/)
+- [General settings](/settings/general-settings/)

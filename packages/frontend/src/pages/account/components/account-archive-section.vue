@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { Button } from '@/components/lib/ui/button';
@@ -64,6 +65,9 @@ const unarchiveAccount = async () => {
         <p class="mb-2 font-bold">{{ t('pages.account.archive.title') }}</p>
         <p class="text-muted-foreground text-xs">
           {{ t('pages.account.archive.description') }}
+          <DocsLink path="/accounts/manage-accounts/#archive-exclude-or-delete">
+            {{ t('pages.account.archive.compareOptionsLink') }}
+          </DocsLink>
         </p>
       </div>
 

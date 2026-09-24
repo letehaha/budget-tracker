@@ -211,6 +211,7 @@ import { Separator } from '@/components/lib/ui/separator';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { HIDDEN_OAUTH_SCOPES } from '@/common/const/oauth-scopes';
 import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
 import ClaudeLogo from '@/assets/icons/logos/claude.svg';
@@ -278,10 +279,15 @@ function formatRelative(dateStr: string) {
 function formatScopes(scopes: string[]) {
   const labels: Record<string, string> = {
     'finance:read': t('settings.aiIntegrations.scopes.financeRead'),
+    'finance:write': t('settings.aiIntegrations.scopes.financeWrite'),
+    'finance:delete': t('settings.aiIntegrations.scopes.financeDelete'),
     'profile:read': t('settings.aiIntegrations.scopes.profileRead'),
     offline_access: t('settings.aiIntegrations.scopes.offlineAccess'),
   };
-  return scopes.map((s) => labels[s] || s).join(', ');
+  return scopes
+    .filter((s) => !HIDDEN_OAUTH_SCOPES.has(s))
+    .map((s) => labels[s] || s)
+    .join(', ');
 }
 
 function handleRevoke(clientId: string) {

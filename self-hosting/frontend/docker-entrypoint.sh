@@ -17,6 +17,7 @@ API_VER="${API_VER:-/api/v1}"
 # "true" — including unset, as on the hosted deployment — means not self-hosted.
 IS_SELF_HOST="${IS_SELF_HOST:-}"
 MCP_BASE_URL="${MCP_BASE_URL:-}"
+DOCS_URL="${DOCS_URL:-}"
 POSTHOG_KEY="${POSTHOG_KEY:-}"
 POSTHOG_HOST="${POSTHOG_HOST:-}"
 LOGO_DEV_TOKEN="${LOGO_DEV_TOKEN:-}"
@@ -72,6 +73,7 @@ window.__APP_CONFIG__ = {
   API_VER: "$(js_escape "$API_VER")",
   IS_SELF_HOST: "$(js_escape "$IS_SELF_HOST")",
   MCP_BASE_URL: "$(js_escape "$MCP_BASE_URL")",
+  DOCS_URL: "$(js_escape "$DOCS_URL")",
   POSTHOG_KEY: "$(js_escape "$POSTHOG_KEY")",
   POSTHOG_HOST: "$(js_escape "$POSTHOG_HOST")",
   LOGO_DEV_TOKEN: "$(js_escape "$LOGO_DEV_TOKEN")",

@@ -89,6 +89,13 @@ jobs:
           docker-hub-access-token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           push: 'true'
 
+      - name: Build and push docs image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./packages/docs
+          push: true
+          tags: letehaha/budget-tracker-docs:pr-${{ env.PR_NUMBER }}
+
       # ── Copy compose file to VPS ──────────────────────────────────────
       - name: Create PR directory on VPS
         uses: appleboy/ssh-action@v1.2.5
@@ -160,10 +167,10 @@ jobs:
               echo "=== UPDATE DEPLOY ==="
 
               # Pull new images
-              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER pull frontend backend
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER pull frontend backend docs
 
-              # Restart only frontend and backend (DB stays untouched)
-              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d --no-deps frontend backend
+              # Restart only the app services (DB stays untouched)
+              docker compose -f docker-compose.preview.yml -p preview-pr-$PR_NUMBER up -d --no-deps frontend backend docs
 
               echo "Preview environment updated successfully!"
             else
@@ -291,6 +298,7 @@ jobs:
             | Frontend | https://pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
             | API | https://api-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
             | MCP | https://mcp-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app/mcp |
+            | Docs | https://docs-pr-${{ env.PR_NUMBER }}.preview.moneymatter.app |
 
             _Last deployed: ${{ github.sha }} at ${{ github.event.pull_request.updated_at }}_
 

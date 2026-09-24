@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import DocsLink from '@/components/common/docs-link.vue';
 import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import * as ScrollArea from '@/components/lib/ui/scroll-area';
@@ -49,6 +50,10 @@ const [UseBodyTemplate, BodyContent] = createReusableTemplate();
       <li>{{ t('dialogs.manageTransaction.refundInfo.examples.vendorRefund') }}</li>
       <li>{{ t('dialogs.manageTransaction.refundInfo.examples.noOriginalTx') }}</li>
     </ul>
+
+    <div class="border-border mt-4 border-t pt-3 text-sm">
+      <DocsLink path="/transfers-and-refunds/refunds/" />
+    </div>
   </UseBodyTemplate>
 
   <Drawer.Drawer v-if="isMobile">

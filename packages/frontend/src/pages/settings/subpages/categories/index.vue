@@ -11,7 +11,10 @@
           </Button>
         </div>
 
-        <p class="text-sm opacity-80">{{ $t('settings.categories.description') }}</p>
+        <p class="text-sm opacity-80">
+          {{ $t('settings.categories.description') }}
+          <DocsLink path="/transactions/categories/" />
+        </p>
       </CardHeader>
 
       <CardContent class="mt-6">
@@ -187,6 +190,7 @@
 import { deleteCategory as apiDeleteCategory, editCategory, getCategoryTransactionCount } from '@/api';
 import { type FormattedCategory } from '@/common/types';
 import Accordion from '@/components/common/accordion/accordion.vue';
+import DocsLink from '@/components/common/docs-link.vue';
 import CategoryFormDialog from '@/components/dialogs/category-form-dialog.vue';
 import ReassignCategoryDialog from '@/components/dialogs/reassign-category-dialog.vue';
 import {

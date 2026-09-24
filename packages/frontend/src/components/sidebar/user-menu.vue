@@ -6,7 +6,7 @@ import { useLogout } from '@/composable/actions/logout';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useUserStore } from '@/stores';
-import { ChevronUpIcon, ExternalLinkIcon, LogOutIcon, UserIcon } from '@lucide/vue';
+import { BookOpenIcon, ChevronUpIcon, ExternalLinkIcon, LogOutIcon, UserIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -58,6 +58,14 @@ const isRealCommit = /^[0-9a-f]{40}$/.test(commitHash);
             <span>{{ t('navigation.accountDetails') }}</span>
           </UiButton>
         </router-link>
+
+        <a :href="config.docsUrl" target="_blank" rel="noopener noreferrer" @click="isOpen = false">
+          <UiButton variant="ghost" class="w-full justify-start gap-2 px-3" size="default">
+            <BookOpenIcon class="size-4" />
+            <span>{{ t('navigation.helpAndDocs') }}</span>
+            <ExternalLinkIcon class="text-muted-foreground ml-auto size-3" />
+          </UiButton>
+        </a>
 
         <UiButton
           variant="ghost-destructive"

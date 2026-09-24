@@ -12,6 +12,7 @@
     "optimizations": "Optimizations",
     "automations": "Automations",
     "accountDetails": "Account details",
+    "helpAndDocs": "Help & docs",
     "logout": "Logout",
     "appVersion": "App version {version}",
     "settings": "Settings",
@@ -104,6 +105,8 @@
         "featureRequest": "I want a feature",
         "other": "Something else"
       },
+      "docsHint": "Not sure how something works? Check the {link} first.",
+      "docsHintLink": "docs",
       "messageLabel": "Your feedback",
       "messagePlaceholder": "What happened, or what would you like to see?",
       "messageRequired": "Please write a message before sending.",
