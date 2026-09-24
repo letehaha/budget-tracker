@@ -3,7 +3,12 @@
     <div class="flex flex-col gap-6">
       <div>
         <h3 class="text-lg font-semibold">{{ $t('payees.settings.title') }}</h3>
-        <p class="text-muted-foreground mt-1 text-sm">{{ $t('payees.settings.description') }}</p>
+        <p class="text-muted-foreground mt-1 text-sm">
+          {{ $t('payees.settings.description') }}
+          <DocsLink path="/transactions/payees/#automatic-payee-detection">
+            {{ $t('payees.settings.howDetectionWorks') }}
+          </DocsLink>
+        </p>
       </div>
 
       <div class="flex items-center justify-between gap-4">
@@ -87,6 +92,7 @@
 import { useBulkUpdateCategorizationMode } from '@/composable/data-queries/payees';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
+import DocsLink from '@/components/common/docs-link.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';

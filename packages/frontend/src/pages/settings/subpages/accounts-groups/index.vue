@@ -5,7 +5,10 @@
     >
       <div class="min-w-0">
         <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.accountGroups.page.title') }}</h2>
-        <p class="text-sm opacity-80">{{ $t('settings.accountGroups.page.description') }}</p>
+        <p class="text-sm opacity-80">
+          {{ $t('settings.accountGroups.page.description') }}
+          <DocsLink path="/accounts/account-groups/" />
+        </p>
       </div>
 
       <div class="@sm/account-groups:shrink-0">
@@ -25,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create-account-group-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';

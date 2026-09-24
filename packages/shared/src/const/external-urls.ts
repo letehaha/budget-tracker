@@ -5,4 +5,5 @@ export const EXTERNAL_URLS = {
   featurebaseRoadmap: 'https://moneymatter.featurebase.app/dashboard/roadmap',
   // Feedback board: where users submit and upvote requests
   featurebaseBoard: 'https://moneymatter.featurebase.app/',
+  docs: 'https://docs.moneymatter.app',
 } as const;

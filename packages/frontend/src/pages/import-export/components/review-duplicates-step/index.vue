@@ -111,6 +111,7 @@
         </h3>
         <p class="text-muted-foreground mb-3 text-xs">
           {{ $t('pages.importExport.csvImport.review.duplicatesHint') }}
+          <DocsLink path="/import/import-from-csv/#how-duplicates-are-detected" />
         </p>
 
         <DuplicatesTable
@@ -215,6 +216,7 @@
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';

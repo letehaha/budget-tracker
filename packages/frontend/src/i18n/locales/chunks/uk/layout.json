@@ -12,6 +12,7 @@
     "optimizations": "Оптимізація",
     "automations": "Автоматизації",
     "accountDetails": "Деталі рахунку",
+    "helpAndDocs": "Довідка та документація",
     "logout": "Вийти",
     "appVersion": "Версія застосунку {version}",
     "settings": "Налаштування",
@@ -104,6 +105,8 @@
         "featureRequest": "Хочу нову функцію",
         "other": "Щось інше"
       },
+      "docsHint": "Не впевнені, як щось працює? Спершу перегляньте {link}.",
+      "docsHintLink": "документацію",
       "messageLabel": "Ваш відгук",
       "messagePlaceholder": "Що сталося, або що б ви хотіли бачити?",
       "messageRequired": "Будь ласка, напишіть повідомлення перед надсиланням.",

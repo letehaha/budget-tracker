@@ -27,7 +27,8 @@
       "apply": "Apply",
       "retry": "Try again",
       "copyInviteLink": "Copy invite link",
-      "moveTo": "Move to…"
+      "moveTo": "Move to…",
+      "learnMore": "Learn more"
     },
     "ui": {
       "close": "Close",

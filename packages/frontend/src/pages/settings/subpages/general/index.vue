@@ -14,6 +14,7 @@
             </div>
             <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
               {{ $t('settings.general.creditLimit.description') }}
+              <DocsLink path="/settings/general-settings/#include-credit-limits-in-balance" />
             </p>
           </div>
           <Switch
@@ -32,6 +33,7 @@
             </div>
             <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
               {{ $t('settings.general.manualTransferMatching.description') }}
+              <DocsLink path="/settings/general-settings/#match-transfers-with-manual-accounts" />
             </p>
           </div>
           <Switch
@@ -68,6 +70,7 @@
             </div>
             <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
               {{ $t('settings.general.savingsCategories.description') }}
+              <DocsLink path="/stats/how-stats-are-calculated/#savings-categories" />
             </p>
           </div>
           <!-- The field's own root is w-full, so the width lives on a wrapper instead of its class. -->
@@ -214,6 +217,7 @@
 
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import DocsLink from '@/components/common/docs-link.vue';
 import { useMapPickerSetting } from '@/components/dialogs/manage-transaction/composables/use-map-picker-setting';
 import { useOptionalFields } from '@/components/dialogs/manage-transaction/composables/use-optional-fields';
 import AccountSelectField from '@/components/fields/account-select-field.vue';

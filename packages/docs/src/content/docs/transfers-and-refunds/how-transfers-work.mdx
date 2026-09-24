@@ -1,0 +1,224 @@
+---
+title: How transfers work
+description: How to record money moving between your accounts or to places you don't track, and how transfers affect balances, stats, editing and deleting.
+sidebar:
+  order: 1
+---
+
+import { Aside, Badge, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+A transfer is money moving between your own accounts, for example from your checking account to your savings. You didn't spend or earn anything, so MoneyMatter keeps transfers out of your income and expense totals. This page covers how to record a transfer and what happens to it afterwards.
+
+## Two kinds of transfer
+
+A transfer is one of two kinds. Which one you get depends on whether you pick **Out of Wallet** as one of the accounts:
+
+- **Between accounts.** Money moves from one of your MoneyMatter accounts to another. The app records it as **two transactions**: an expense on the account the money left and an income on the account it arrived in. The two are paired and act as one transfer.
+- **Out of Wallet.** Money moves to or from somewhere you don't track in MoneyMatter, for example a savings account at another bank that you haven't added. There's no second account to put the other side on, so this is **one transaction**: an expense when money leaves, an income when money arrives.
+
+Both kinds show up in the transaction list filters, as **Between accounts** and **Out of wallet**.
+
+MoneyMatter also uses transfers for moving money into an investment portfolio and for loan payments. Those aren't covered here.
+
+## Create a transfer between your accounts
+
+<Steps>
+
+1. Click **Add transaction** at the top of the app (on a phone, tap **Add**). The **Add Transaction** dialog opens.
+2. Select the **Transfer** tab at the top of the dialog.
+3. In **Amount**, enter how much left the source account.
+4. In **From account**, pick the account the money left.
+5. In the **Where the money goes** panel, keep **Account** selected and pick the destination in **To account**.
+6. If the two accounts use different currencies, enter how much arrived in **Target amount**. See [Same currency or different currencies](#same-currency-or-different-currencies).
+7. Check **Datetime**. You can also set **Payment type**, **Note** and **Tags** under **More options**, which is the right-hand column on a computer and a button at the bottom of the dialog on a phone.
+8. Click **Create**.
+
+</Steps>
+
+If you click **Add transaction** while an account's page is open, **From account** is already set to that account.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/transfer-form-same-currency.png"
+  alt="The Add Transaction dialog on the Transfer tab, with Amount 500, From account Main Checking, and the Where the money goes panel set to Account, To account Savings and Target amount 500."
+  hint="Click Add transaction, select the Transfer tab. Enter Amount 500, From account 'Main Checking' (USD), keep the Account pill in Where the money goes, pick 'Savings' (USD) in To account so Target amount fills in with 500. Crop to the left column of the dialog, from the Expense/Income/Transfer tabs down to Datetime."
+/>
+
+A few fields you know from expenses and incomes aren't there. **Category**, **Payee** and the split option don't apply to transfers, because moving money between your accounts isn't spending on anything. Transfers are saved without a category.
+
+### Same currency or different currencies
+
+**When both accounts use the same currency**, both sides of the transfer always get the **Amount** value. **Target amount** fills in automatically, and whatever you type there is ignored. If you later change the amount, both sides change together.
+
+**When the currencies differ**, you type both amounts yourself: what left in **Amount**, and what arrived in **Target amount**. **Target amount** becomes required. MoneyMatter doesn't look up or suggest an exchange rate here. The rate is whatever your two amounts imply, which is usually what you want, because it matches what your bank or exchange actually charged.
+
+For example, you move 500 USD from Checking to a Travel card that holds EUR, and 460 EUR arrives. Enter 500 in **Amount** and 460 in **Target amount**. Checking goes down by 500 USD and the Travel card goes up by 460 EUR.
+
+### What's shared between the two sides
+
+The second transaction copies the date, note and payment type from the one you entered, and the two stay in sync when you edit them later. **Tags** are the exception: they're saved only on the **From account** side (the account the money left), not on both.
+
+## Out of Wallet transfers
+
+Use **Out of Wallet** when money leaves your tracked accounts or arrives from outside them without being spent or earned. Typical cases are moving savings to an account you don't track in MoneyMatter, or receiving money back from one. The app describes these as transfers "to and from accounts you don't track".
+
+Why not record it as an expense or income? Because it would inflate your spending or your income, when really the money only moved somewhere you aren't tracking.
+
+**Out of Wallet** is the first option in both **From account** and **To account**.
+
+- **Money leaving:** pick your account in **From account** and **Out of Wallet** in **To account**. Enter the amount in **Amount**. **Target amount** is turned off. This creates one expense on your account.
+- **Money arriving:** pick **Out of Wallet** in **From account** and your account in **To account**. Enter the amount in **Target amount**. **Amount** is turned off. This creates one income on your account.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/out-of-wallet-option.png"
+  alt="The To account dropdown open on the Transfer tab, with Out of Wallet listed first above the user's accounts and loans."
+  hint="Add transaction, Transfer tab, pick 'Main Checking' in From account, then open the To account dropdown. Crop to the dropdown so 'Out of Wallet' is visible at the top of the list with accounts below it."
+/>
+
+In the transaction list, an Out of Wallet transfer shows **Out of Wallet** where the other account's name would be.
+
+To turn an Out of Wallet transfer back into an ordinary expense or income, open it, select the **Expense** or **Income** tab, pick a category and click **Edit** (the save button at the bottom of the dialog).
+
+If you later start tracking the other account, you can join the two records into a regular transfer. See [Link existing transactions](/transfers-and-refunds/link-existing-transactions/).
+
+<Aside type="caution" title="Don't just swap Out of Wallet for an account">
+To turn an Out of Wallet transfer into a transfer between two of your accounts, don't open it and pick one of your accounts in place of **Out of Wallet** in **From account** or **To account**. MoneyMatter doesn't create the other side when you do that, so nothing is recorded on the other account and its balance doesn't change. Instead:
+
+- If the other side is already recorded, use **Link the other side**, as described in [Link existing transactions](/transfers-and-refunds/link-existing-transactions/).
+- If it isn't, first turn the transaction into an ordinary expense or income as described above and save it. Then open it again and [convert it into a transfer](#turn-an-expense-or-income-into-a-transfer).
+</Aside>
+
+<Aside type="note" title="Good to know">
+Some imports, such as the [Microsoft Money import](/import/other-import-sources/#microsoft-money), bring in a transfer as Out of Wallet when its other account isn't part of the import. You can link these to the other side afterwards.
+</Aside>
+
+## How transfers affect balances
+
+Each side of a transfer changes its own account, just like any expense or income. A 500 USD transfer from Checking to Savings takes 500 USD off Checking and adds 500 USD to Savings. With different currencies, each account moves by its own amount in its own currency.
+
+An Out of Wallet transfer only changes the one account it's on.
+
+## How transfers affect stats
+
+Transfers are left out of income and expense totals: cash flow, spending by category, and the other reports and widgets that add up what you earned and spent. The exception is a payment to a loan you track: the money leaving your account counts as spending. Moving 1,000 from Checking to Savings doesn't mean you spent 1,000 and earned 1,000, so counting it would make both your spending and your income look bigger than they were.
+
+Out of Wallet transfers are also left out of income and expense totals. Because they do change an account's balance, they still show up in that account's balance and balance history.
+
+For the full picture of what's counted where, see [How stats are calculated](/stats/how-stats-are-calculated/).
+
+## Transfers in the transaction list
+
+A transfer shows both account names with an arrow between them. On **All Transactions** it appears once, not twice. On an account's own page, you see the side that belongs to that account.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/transfer-row-in-list.png"
+  alt="Two rows in the transaction list (list view): a transfer from Main Checking to Out of Wallet, and a transfer from Main Checking to Savings with its two amounts."
+  hint="Open /transactions and switch to the list view (left of the two view-toggle icons above the table) so full account names show instead of the table view's truncated Account column. Have one Main Checking to Savings transfer and one Main Checking to Out of Wallet transfer visible next to each other. Crop to just those two rows."
+/>
+
+To find transfers, open the **Filters** menu above the list and add:
+
+- **Transfers**, to show **All** transactions, **Exclude** transfers, or show **Only** transfers.
+- **Transfer kinds**, to narrow down to **Between accounts**, **Out of wallet**, **To portfolio** or **To venture**.
+
+See [Search and filter](/transactions/search-and-filter/#available-filters) for the other filters.
+
+## Edit a transfer
+
+Click either side of a transfer in the list to open **Edit Transaction**. The form always shows the source as **From account** and **Amount**, and the destination as **To account** and **Target amount**, whichever row you clicked.
+
+Change what you need and click **Edit**. Changes to the amounts, the accounts, the date, the note and the payment type are applied to both sides.
+
+The **Account** / **Portfolio** / **Loan** choice in **Where the money goes** is locked on an existing transfer. To send the money somewhere of a different kind, [unlink the transfer](#unlink-a-transfer) first.
+
+### Turn an expense or income into a transfer
+
+If you recorded a transfer as an ordinary expense or income, you can convert it.
+
+<Steps>
+
+1. Open the transaction and select the **Transfer** tab.
+2. Fill in the account that's missing. Converting an expense keeps its account as **From account**. Converting an income puts its account in **To account** and leaves **From account** empty for you to pick.
+3. Check the amounts, then click **Edit**.
+
+</Steps>
+
+When you convert an expense, MoneyMatter creates the other side on the account you picked.
+
+When you convert an income, the transaction you opened becomes the expense on the **From account** you picked, and a new income is created on its original account. Its tags, payee and attachments stay with the expense.
+
+<Aside type="caution" title="Splits are removed">
+Transfers can't be split. If the transaction was [split across categories](/transactions/split-a-transaction/), converting it to a transfer deletes the splits, and there's no confirmation step.
+</Aside>
+
+If the other side is already recorded, for example because both came from bank imports, don't convert. [Link the two instead](/transfers-and-refunds/link-existing-transactions/), otherwise you'll end up with a duplicate.
+
+### Turn a transfer back into an expense or income
+
+Selecting the **Expense** or **Income** tab on a transfer, picking a category and clicking **Edit** turns the **From account** side (the expense) into an ordinary expense or income, whichever of the two rows you clicked. If one side came from a bank connection, that side is the one that changes. **The other side, on the other account, isn't deleted.** It stays on its account as a separate, ordinary transaction, keeps affecting that account's balance, and starts counting in your income and expense stats. Delete it or link it to something else if you don't want it.
+
+If you want to keep both sides as ordinary transactions, [unlinking](#unlink-a-transfer) is the simpler option.
+
+## Unlink a transfer
+
+Unlinking turns a transfer back into two separate transactions, without deleting anything.
+
+<Steps>
+
+1. Click the transfer in the list to open **Edit Transaction**.
+2. In the **Where the money goes** panel, click **Unlink transactions**.
+
+</Steps>
+
+The dialog closes straight away. Both transactions keep their amounts, dates and accounts, but they're now an ordinary expense and an ordinary income, so they now count in your income and expense stats.
+
+<Screenshot
+  src="/screenshots/transfers-and-refunds/edit-transfer-unlink.png"
+  alt="The Edit Transaction dialog for a transfer from Main Checking to Savings, with the Unlink transactions button inside the Where the money goes panel."
+  hint="Click an existing Main Checking to Savings transfer in /transactions. Crop the Edit Transaction dialog to the From account field and the Where the money goes panel, including the Unlink transactions button."
+/>
+
+A transfer you added with the **Transfer** tab has no category, so after unlinking both of its transactions are uncategorized. Give them categories if you're keeping them as spending and income.
+
+## Delete a transfer
+
+Deleting either side of a transfer deletes **both** transactions, because together they're one transfer. The confirmation dialog, **Delete this transaction?**, doesn't mention the other side, so keep this in mind before you click **Delete**.
+
+If you only want to get rid of one side, [unlink the transfer](#unlink-a-transfer) first, then delete the one you don't need.
+
+## Transfers with bank-connected accounts <Badge text="Plus" variant="tip" />
+
+Transactions that come from a [bank connection](/import/bank-connections/) are controlled by the bank: you can't change their amount, date or account, you can't switch them between expense and income, and you can't delete them. You can still turn them into a transfer. Bank connections are part of the Plus plan, see [Plans and billing](/settings/plans-and-billing/).
+
+Bank-connected accounts don't appear in **From account** or **To account** when you add a new transfer. Start from the bank's transaction instead. The bank's side stays fixed: an imported expense stays as **From account**, an imported income stays as **To account**.
+
+<Steps>
+
+1. Open the transaction the bank imported and select the **Transfer** tab.
+2. If the bank's transaction is an expense, pick the destination in **To account** and check **Target amount**. If it's an income, pick the source in **From account** and check **Amount**. Enter the amount yourself if the currencies differ.
+3. Click **Edit**.
+
+</Steps>
+
+MoneyMatter creates the other side as a manual transaction on the account you picked.
+
+<Aside type="caution" title="Don't edit a transfer that arrived in a bank-connected account">
+When the bank's transaction is the income side of a transfer, don't edit and save that transfer, not even to change the note. This applies whether you converted it or linked it. Saving can turn the other side, the expense on the **From account**, into an income, so that account's balance goes up instead of down. To change such a transfer, [unlink it](#unlink-a-transfer), edit the transactions separately, then join them again with [Link the other side](/transfers-and-refunds/link-existing-transactions/).
+</Aside>
+
+If the other side was also imported, for example you moved money between two banks that are both connected, [link the two transactions](/transfers-and-refunds/link-existing-transactions/) instead.
+
+A transfer that involves a bank-connected account can't be deleted from MoneyMatter, and the **Delete** button doesn't appear for it. You can still [unlink it](#unlink-a-transfer).
+
+## Good to know
+
+- **Transfers can't be dated in the future.** The date picker stops at today. Transfers also can't be planned, so the **Transfer** tab is turned off while you're adding a planned transaction.
+- **Attachments are added after saving.** You can't attach a file while creating a transfer. Open the saved transfer to add one.
+- **Refunds and transfers don't mix.** A transfer can't be linked as a refund, and the **Link refund** button doesn't appear on the **Transfer** tab. See [Refunds](/transfers-and-refunds/refunds/).
+
+## Related
+
+- [Link existing transactions](/transfers-and-refunds/link-existing-transactions/)
+- [Refunds](/transfers-and-refunds/refunds/)
+- [How stats are calculated](/stats/how-stats-are-calculated/)
+- [Add and edit transactions](/transactions/add-and-edit/)

@@ -65,6 +65,9 @@
             <p>
               {{ $t('settings.currencies.setBase.dialog.roundingStandard') }}
             </p>
+            <p class="mt-2">
+              <DocsLink path="/settings/base-currency-and-currencies/#what-gets-recalculated" />
+            </p>
           </div>
         </Collapsible.CollapsibleContent>
       </Collapsible.Collapsible>
@@ -90,6 +93,7 @@
 </template>
 
 <script setup lang="ts">
+import DocsLink from '@/components/common/docs-link.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Collapsible from '@/components/lib/ui/collapsible';

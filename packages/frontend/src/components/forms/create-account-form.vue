@@ -3,6 +3,7 @@ import { createAccount } from '@/api';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
 import AccountLogo from '@/components/common/account-logo.vue';
+import DocsLink from '@/components/common/docs-link.vue';
 import { type LogoSelection, toOptionalLogoPayload } from '@/components/common/logo-selection';
 import LogoSquareField from '@/components/common/logo-square-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
@@ -170,7 +171,13 @@ const submit = async () => {
       type="number"
       :label="$t('forms.createAccount.initialBalanceLabel')"
       :placeholder="$t('forms.createAccount.initialBalancePlaceholder')"
-    />
+    >
+      <template #label-right>
+        <DocsLink path="/accounts/create-an-account/#choose-the-right-initial-balance" class="text-xs">
+          {{ $t('forms.createAccount.initialBalanceHelpLink') }}
+        </DocsLink>
+      </template>
+    </input-field>
 
     <FieldLabel :label="$t('forms.createAccount.accountCategoryLabel')">
       <Select.Select v-model="form.accountCategory">

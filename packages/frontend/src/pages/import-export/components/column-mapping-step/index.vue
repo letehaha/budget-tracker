@@ -22,6 +22,7 @@
       <h2 class="text-lg font-semibold">{{ $t('pages.importExport.columnMapping.stepTitle') }}</h2>
       <p class="text-muted-foreground text-sm">
         {{ $t('pages.importExport.columnMapping.description') }}
+        <DocsLink path="/import/import-from-csv/#map-columns" />
       </p>
     </div>
 
@@ -236,6 +237,7 @@
 <script setup lang="ts">
 import { getAllCurrencies } from '@/api/currencies';
 import { type FormattedCategory } from '@/common/types';
+import DocsLink from '@/components/common/docs-link.vue';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';

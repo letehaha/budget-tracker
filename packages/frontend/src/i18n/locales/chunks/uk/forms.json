@@ -131,6 +131,7 @@
       "addCurrencyButton": "Додати нову валюту +",
       "initialBalanceLabel": "Початковий баланс",
       "initialBalancePlaceholder": "Початковий баланс",
+      "initialBalanceHelpLink": "Що тут вказати?",
       "accountCategoryLabel": "Категорія рахунку",
       "accountCategoryPlaceholder": "Виберіть категорію рахунку",
       "creditLimitLabel": "Кредитний ліміт",

@@ -2,6 +2,7 @@
 import { bulkScanTransferRecommendations, dismissTransferSuggestion, linkTransactions } from '@/api/transactions';
 import * as Dialog from '@/components/lib/ui/dialog';
 import * as Drawer from '@/components/lib/ui/drawer';
+import DocsLink from '@/components/common/docs-link.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Card } from '@/components/lib/ui/card';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
@@ -279,6 +280,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       </h1>
       <p class="text-muted-foreground mt-1 text-sm">
         {{ $t('optimizations.transferSuggestions.description') }}
+        <DocsLink path="/transfers-and-refunds/link-existing-transactions/#find-pairs-with-transfer-matching" />
       </p>
     </div>
 
