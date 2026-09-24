@@ -11,6 +11,7 @@ services:
     environment:
       API_HTTP: https://api-pr-${PR_NUMBER}.preview.moneymatter.app
       MCP_BASE_URL: https://mcp-pr-${PR_NUMBER}.preview.moneymatter.app
+      DOCS_URL: https://docs-pr-${PR_NUMBER}.preview.moneymatter.app
       CSP_EXTRA_CONNECT: https://*.preview.moneymatter.app
       CSP_EXTRA_FORM_ACTION: https://*.preview.moneymatter.app
       LOGO_DEV_TOKEN: ${LOGO_DEV_TOKEN:-}

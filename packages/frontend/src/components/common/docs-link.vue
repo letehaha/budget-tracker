@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
+import { config } from '@/common/config';
 import { ExternalLinkIcon } from '@lucide/vue';
 
 defineProps<{
@@ -10,7 +10,7 @@ defineProps<{
 
 <template>
   <a
-    :href="`${EXTERNAL_URLS.docs}${path}`"
+    :href="`${config.docsUrl}${path}`"
     target="_blank"
     rel="noopener noreferrer"
     class="text-primary-text inline-flex items-center gap-1 underline-offset-4 hover:underline"

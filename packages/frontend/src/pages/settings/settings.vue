@@ -79,7 +79,7 @@
         <div class="border-border border-t pt-2">
           <DesktopOnlyTooltip :content="$t('navigation.helpAndDocs')" :disabled="!isIconOnly" side="right">
             <a
-              :href="EXTERNAL_URLS.docs"
+              :href="config.docsUrl"
               target="_blank"
               rel="noopener noreferrer"
               :class="
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { config } from '@/common/config';
 import BackLink from '@/components/common/back-link.vue';
 import NewBadge from '@/components/common/new-badge.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -122,7 +123,6 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
-import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import { useElementSize, useLocalStorage } from '@vueuse/core';
 import {
   BookOpenIcon,

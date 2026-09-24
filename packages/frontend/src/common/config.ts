@@ -11,12 +11,15 @@
  * at first import.
  */
 
+import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
+
 /** Shape of `window.__APP_CONFIG__`. Keys use runtime env-var names, no `VITE_` prefix. */
 interface AppRuntimeConfig {
   API_HTTP?: string;
   API_VER?: string;
   IS_SELF_HOST?: string;
   MCP_BASE_URL?: string;
+  DOCS_URL?: string;
   POSTHOG_KEY?: string;
   POSTHOG_HOST?: string;
   LOGO_DEV_TOKEN?: string;
@@ -49,6 +52,10 @@ export const config = {
   },
   get mcpBaseUrl(): string | undefined {
     return runtime().MCP_BASE_URL ?? import.meta.env.VITE_MCP_BASE_URL;
+  },
+  /** `||`, not `??`: the entrypoint writes an empty string when DOCS_URL is unset. */
+  get docsUrl(): string {
+    return runtime().DOCS_URL || EXTERNAL_URLS.docs;
   },
   get posthogKey(): string | undefined {
     return runtime().POSTHOG_KEY ?? import.meta.env.VITE_POSTHOG_KEY;
