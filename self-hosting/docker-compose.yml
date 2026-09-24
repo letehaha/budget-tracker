@@ -1,4 +1,4 @@
-# Self-host base stack for Budget Tracker — pull-based and reverse-proxy-agnostic.
+# Self-host base stack for MoneyMatter — pull-based and reverse-proxy-agnostic.
 #
 # Pulls the published images and exposes the whole app on ONE host port
 # (${HTTP_PORT:-8080}). The frontend container serves the SPA and reverse-proxies

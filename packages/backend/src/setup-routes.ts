@@ -232,7 +232,7 @@ export function setupRoutes(app: Express) {
   // mcp.moneymatter.app; the SPA host has a static mirror in nginx.
   // Refresh `Expires` before it lapses, otherwise scanners flag it as expired.
   const securityTxt = [
-    'Contact: https://github.com/letehaha/budget-tracker/security/advisories/new',
+    'Contact: https://github.com/letehaha/moneymatter/security/advisories/new',
     'Expires: 2027-04-25T00:00:00.000Z',
     'Preferred-Languages: en',
     'Canonical: https://api.moneymatter.app/.well-known/security.txt',

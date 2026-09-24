@@ -32,13 +32,13 @@ Works with Claude, ChatGPT, OpenClaw, and any MCP-compatible client. Access can 
 ## Deployment Options
 
 - **Cloud**: Sign up at https://moneymatter.app — no setup required, 40-day free trial with no card, then from $5/month or $30/year, data never sold
-- **Self-hosted**: Deploy with Docker on your own server for maximum privacy. Source code and setup guide at https://github.com/letehaha/budget-tracker
+- **Self-hosted**: Deploy with Docker on your own server for maximum privacy. Source code and setup guide at https://github.com/letehaha/moneymatter
 
 ## Links
 
 - [Homepage](https://moneymatter.app/): Landing page with feature overview and sign-up
 - [Documentation](https://docs.moneymatter.app/llms.txt): User guides on accounts, transactions, transfers, refunds, stats, imports and bank connections
-- [GitHub Repository](https://github.com/letehaha/budget-tracker): Source code, Docker setup guide, and issue tracker
+- [GitHub Repository](https://github.com/letehaha/moneymatter): Source code, Docker setup guide, and issue tracker
 - [Privacy Policy](https://moneymatter.app/privacy-policy): Data handling and privacy practices
 - [Terms of Use](https://moneymatter.app/terms-of-use): Terms of service
 

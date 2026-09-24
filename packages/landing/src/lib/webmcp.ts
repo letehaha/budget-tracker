@@ -6,6 +6,8 @@
  * The feature-detect ensures this is a no-op where unsupported.
  */
 
+import { GITHUB_URL } from './github-api';
+
 interface WebMcpTool {
   name: string;
   description: string;
@@ -24,8 +26,6 @@ declare global {
 }
 
 const EMPTY_OBJECT_SCHEMA = { type: 'object', properties: {} as Record<string, unknown> };
-
-const GITHUB_URL = 'https://github.com/letehaha/budget-tracker';
 
 function findTryDemoButton(): HTMLButtonElement | null {
   return (

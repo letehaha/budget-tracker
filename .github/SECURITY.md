@@ -5,7 +5,7 @@
 **Do not open a public issue for security problems.**
 
 Report privately through GitHub's advisory form:
-https://github.com/letehaha/budget-tracker/security/advisories/new
+https://github.com/letehaha/moneymatter/security/advisories/new
 
 Please include:
 

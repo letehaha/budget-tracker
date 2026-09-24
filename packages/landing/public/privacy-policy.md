@@ -55,7 +55,7 @@ We retain your data for as long as your account is active. You can request delet
 
 ## 8. Open Source
 
-MoneyMatter is open source software. You can review exactly how we handle your data by examining our source code on [GitHub](https://github.com/letehaha/budget-tracker).
+MoneyMatter is open source software. You can review exactly how we handle your data by examining our source code on [GitHub](https://github.com/letehaha/moneymatter).
 
 ## 9. Changes to This Policy
 
@@ -63,4 +63,4 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 ## 10. Contact Us
 
-If you have questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/letehaha/budget-tracker/issues).
+If you have questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/letehaha/moneymatter/issues).

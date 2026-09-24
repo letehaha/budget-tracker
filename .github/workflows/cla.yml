@@ -30,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path-to-signatures: 'signatures/version1/cla.json'
-          path-to-document: 'https://github.com/letehaha/budget-tracker/blob/main/CLA.md'
+          path-to-document: 'https://github.com/letehaha/moneymatter/blob/main/CLA.md'
           # Dedicated branch that stores the signature file. The action creates
           # it on first sign; keep it out of normal development.
           branch: 'cla-signatures'
@@ -44,6 +44,6 @@ jobs:
           # thread, so locking merged PRs guards nothing. Leaving them unlocked lets
           # the Preview Teardown workflow post its "torn down" comment after merge.
           lock-pullrequest-aftermerge: false
-          custom-notsigned-prcomment: 'Thank you for your pull request. Before it can be merged we need you to sign our [Contributor License Agreement](https://github.com/letehaha/budget-tracker/blob/main/CLA.md). It takes one comment and you keep the copyright to your work — see [CONTRIBUTING.md](https://github.com/letehaha/budget-tracker/blob/main/CONTRIBUTING.md) for the plain-language summary.'
+          custom-notsigned-prcomment: 'Thank you for your pull request. Before it can be merged we need you to sign our [Contributor License Agreement](https://github.com/letehaha/moneymatter/blob/main/CLA.md). It takes one comment and you keep the copyright to your work — see [CONTRIBUTING.md](https://github.com/letehaha/moneymatter/blob/main/CONTRIBUTING.md) for the plain-language summary.'
           custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
           custom-allsigned-prcomment: 'All contributors have signed the CLA. Thank you!'

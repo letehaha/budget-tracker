@@ -1,5 +1,8 @@
 import { config } from './config';
 
+export const GITHUB_REPO = 'letehaha/moneymatter';
+export const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
+
 export interface GitHubActivityData {
   commitsLast30Days: number;
   lastUpdated: string;

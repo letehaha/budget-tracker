@@ -1,4 +1,5 @@
 ---
+import { GITHUB_URL } from '@/lib/github-api';
 import { getGitHubStarsLabel } from '@/lib/github-stars';
 
 /* Static landing header — CTAs always show default (non-auth) state */
@@ -36,7 +37,7 @@ const starsLabel = await getGitHubStarsLabel();
           Docs
         </a>
         <a
-          href="https://github.com/letehaha/budget-tracker"
+          href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
           class="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm transition-colors"
@@ -52,7 +53,7 @@ const starsLabel = await getGitHubStarsLabel();
       <!-- CTAs -->
       <div class="flex items-center gap-3">
         <a
-          href="https://github.com/letehaha/budget-tracker"
+          href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
           class="border-border hover:bg-accent hidden items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:flex"

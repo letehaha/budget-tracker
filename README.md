@@ -9,11 +9,11 @@
 Accounts, budgets, investments, loans and net worth in one place.<br>
 Self-host it for free, or use the cloud.
 
-[Website](https://moneymatter.app) · [Docs](https://docs.moneymatter.app) · [Self-host](self-hosting/README.md) · [Cloud](https://moneymatter.app/sign-up) · [Roadmap](https://moneymatter.featurebase.app/dashboard/roadmap) · [Changelog](https://github.com/letehaha/budget-tracker/releases)
+[Website](https://moneymatter.app) · [Docs](https://docs.moneymatter.app) · [Self-host](self-hosting/README.md) · [Cloud](https://moneymatter.app/sign-up) · [Roadmap](https://moneymatter.featurebase.app/dashboard/roadmap) · [Changelog](https://github.com/letehaha/moneymatter/releases)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![CI](https://img.shields.io/github/actions/workflow/status/letehaha/budget-tracker/check-source-code.yml?branch=main&label=CI)](https://github.com/letehaha/budget-tracker/actions/workflows/check-source-code.yml)
-[![Release](https://img.shields.io/github/v/release/letehaha/budget-tracker)](https://github.com/letehaha/budget-tracker/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/letehaha/moneymatter/check-source-code.yml?branch=main&label=CI)](https://github.com/letehaha/moneymatter/actions/workflows/check-source-code.yml)
+[![Release](https://img.shields.io/github/v/release/letehaha/moneymatter)](https://github.com/letehaha/moneymatter/releases)
 [![Crowdin](https://badges.crowdin.net/moneymatter/localized.svg)](https://crowdin.com/project/moneymatter)
 
 </div>
@@ -100,8 +100,8 @@ MoneyMatter shows you where your money is and where it goes. Add accounts by han
 **Self-host.** The stack pulls published Docker images (amd64; ARM hosts can build from source) and exposes the whole app on one port, so you can put it behind whatever reverse proxy you already run, or use the optional Traefik + Let's Encrypt overlay.
 
 ```bash
-git clone https://github.com/letehaha/budget-tracker.git
-cd budget-tracker/self-hosting
+git clone https://github.com/letehaha/moneymatter.git
+cd moneymatter/self-hosting
 cp .env.example .env   # then fill the REQUIRED section
 docker compose up -d
 ```

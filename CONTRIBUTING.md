@@ -39,7 +39,7 @@ That's it – you sign once and it covers all your future contributions.
 
 ## Before you start
 
-- **Bugs**: open a [bug report](https://github.com/letehaha/budget-tracker/issues/new/choose).
+- **Bugs**: open a [bug report](https://github.com/letehaha/moneymatter/issues/new/choose).
   Say whether it happened on moneymatter.app or self-hosted, and how to reproduce it.
 - **Feature ideas**: post or vote on the [Featurebase board](https://moneymatter.featurebase.app/).
   Most requests already live there.
@@ -47,9 +47,9 @@ That's it – you sign once and it covers all your future contributions.
   an issue first so we agree on the direction before you spend time on it. Small fixes can go
   straight to a PR.
 - **Security issues**: report privately via
-  [GitHub security advisories](https://github.com/letehaha/budget-tracker/security/advisories/new),
+  [GitHub security advisories](https://github.com/letehaha/moneymatter/security/advisories/new),
   never in a public issue.
-- **Questions**: [Discussions Q&A](https://github.com/letehaha/budget-tracker/discussions/categories/q-a).
+- **Questions**: [Discussions Q&A](https://github.com/letehaha/moneymatter/discussions/categories/q-a).
 
 MoneyMatter is maintained by Dmytro Svyrydenko, who decides scope and merges.
 

@@ -1,5 +1,6 @@
 ---
 import LegalLayout from '@/layouts/legal-layout.astro';
+import { GITHUB_URL } from '@/lib/github-api';
 
 const lastUpdated = 'September 15, 2026';
 ---
@@ -128,7 +129,7 @@ const lastUpdated = 'September 15, 2026';
         MoneyMatter is open source software. You can review exactly how we handle your data by examining our source
         code on
         <a
-          href="https://github.com/letehaha/budget-tracker"
+          href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
           class="text-primary hover:underline"
@@ -151,7 +152,7 @@ const lastUpdated = 'September 15, 2026';
       <p class="text-muted-foreground mt-2">
         If you have questions about this Privacy Policy, please open an issue on our
         <a
-          href="https://github.com/letehaha/budget-tracker/issues"
+          href={`${GITHUB_URL}/issues`}
           target="_blank"
           rel="noopener noreferrer"
           class="text-primary hover:underline"

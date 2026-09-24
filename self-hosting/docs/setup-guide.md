@@ -1,6 +1,6 @@
 # Setup Guide
 
-Run Budget Tracker on your own server. The stack pulls published multi-arch
+Run MoneyMatter on your own server. The stack pulls published multi-arch
 images and exposes the whole app on **one host port**. You put whatever reverse
 proxy you already run in front of it – Nginx Proxy Manager, npmplus, Caddy,
 Traefik, or nothing at all for a LAN / localhost trial. A bundled Traefik
@@ -94,8 +94,8 @@ live in it, and the backend reads `.env` from that same directory. (Building
 from source still needs the full repo checkout.)
 
 ```bash
-git clone https://github.com/letehaha/budget-tracker.git
-cd budget-tracker/self-hosting
+git clone https://github.com/letehaha/moneymatter.git
+cd moneymatter/self-hosting
 cp .env.example .env
 ```
 

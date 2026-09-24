@@ -120,7 +120,7 @@ Follow the **exact format** observed from recent releases. The format is:
 - [commit type]: [PR title] by @letehaha in [PR URL]
 - [repeat for each PR]
 
-**Full Changelog**: https://github.com/letehaha/budget-tracker/compare/<previous-tag>...<new-tag>
+**Full Changelog**: https://github.com/letehaha/moneymatter/compare/<previous-tag>...<new-tag>
 ```
 
 **Format rules:**
