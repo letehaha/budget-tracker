@@ -5,7 +5,7 @@ sidebar:
   order: 20
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside, Badge, Steps } from '@astrojs/starlight/components';
 import Screenshot from '~/components/screenshot.astro';
 
 The dashboard is your overview: balances, spending and savings for the period you choose, laid out the way you like. Open it from **Dashboard** in the sidebar.
@@ -43,7 +43,7 @@ To pick a different range:
 <Aside type="note" title="Good to know">
 - The forward arrow is disabled once the period reaches the current month.
 - A custom period is kept in the page address, so reloading the page keeps it.
-- **Latest Transactions** and **Credit Utilization** don't follow the period. They always show your latest data.
+- **Latest Transactions**, **Credit Utilization** and **FIRE progress** don't follow the period. They always show your latest data.
 </Aside>
 
 ## Customize the layout
@@ -87,6 +87,7 @@ The **Add widgets** panel and the widget itself sometimes use different names. H
 | **Net Worth** | **Net Worth** | How your net worth changed over the period |
 | **Credit Utilization** | **Credit Utilization** | How much of your credit limits you're using |
 | **Latest Records** | **Latest Transactions** | Your most recent transactions |
+| **FIRE progress** | **FIRE progress** | How close you are to financial independence (Plus) |
 
 **Subscriptions & Bills** and **Planned overview** are also available as widgets.
 
@@ -191,6 +192,25 @@ The gear menu opens **Include in net worth**, where you can leave out **Loans**,
 
 Shows how much of your credit limits you're using right now, per account and in total. It lists active accounts with a credit limit above zero that aren't excluded from statistics. Usage below 40% shows green, 40–69% amber, and 70% or more red. Click an account to open it.
 
+### FIRE progress
+
+<Badge text="Plus" variant="tip" /> A summary of your [FIRE plan](/stats/fire-planner/): how close you are to financial independence and when you could get there. It isn't on a new dashboard. Add it from **Add widgets**, or click **Add to dashboard** on the FIRE planner page, which adds it at **1×1**.
+
+The widget follows the target and assumptions you set in the planner. It shows your progress to the target, **Time to FIRE** with the month (and your age, if you've entered your birth year), and rows for **Saved**, **Next milestone** and your **FIRE number** at your withdrawal rate. At **2×1** it adds your milestones, for example "0 of 4 milestones", from **Today** to your target.
+
+In **Customize** mode, the widget has **1×1** and **2×1** size buttons and a **Style** choice next to them:
+
+- **Ring** (the default): a progress ring with the percentage.
+- **Numbers**: a larger time to FIRE with a milestone line. At **2×1**, the milestone line gives way to the **Progress**, **Next milestone** and FIRE number rows and a small chart of your path.
+
+Click the widget, or the arrow icon (↗) in its top corner (**Open FIRE plan**), to open the planner. If the planner doesn't have enough data yet, the widget shows **Set up** instead. Without Plus or a running FIRE planner trial, it shows **Unlock**, which opens the planner.
+
+<Screenshot
+  src="/screenshots/stats/fire-progress-widget.png"
+  alt="The FIRE progress widget at 2×1 in the Ring style: a 14% ring, Time to FIRE of 19 yrs 4 mos (January 2046 at age 54), the Saved, Next milestone and FIRE number rows, and a milestone line from Today to FIRE."
+  hint="Add the FIRE progress widget to /dashboard at size 2×1 with the Ring style, on a profile whose FIRE planner has enough history (12 months of income and expenses) and a birth year. Crop to the widget."
+/>
+
 ### Latest Transactions
 
 Your most recent transactions. The arrow icon (↗) in the widget's top corner (**View all**) opens the full list. In its settings, under **Exclude transactions**, you can hide **Between accounts** transfers, **Out of wallet** transfers, **Balance adjustments** and **Planned transactions** from the list.
@@ -210,4 +230,5 @@ Several widgets compare the period with the one before it, and they don't all de
 
 - [How stats are calculated](/stats/how-stats-are-calculated/)
 - [Analytics reports](/stats/analytics-reports/)
+- [FIRE planner](/stats/fire-planner/)
 - [General settings](/settings/general-settings/)

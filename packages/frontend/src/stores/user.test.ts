@@ -1,3 +1,4 @@
+import { startFeatureTrial as startFeatureTrialApi } from '@/api';
 import {
   FEATURES,
   FEATURE_TRIAL_LIMITS,
@@ -8,9 +9,9 @@ import {
   type SubscriptionStatus,
 } from '@bt/shared/types';
 import { ADMIN_USER, DEMO_USER, USER } from '@tests/mocks';
-import { addDays } from 'date-fns';
+import { addDays, addHours } from 'date-fns';
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useUserStore } from './user';
 
@@ -22,6 +23,7 @@ const buildEntitlements = (overrides: Partial<Entitlements> = {}): Entitlements 
   trialEndsAt: null,
   subscriptions: [],
   trialUsage: {},
+  featureTrials: {},
   ...overrides,
 });
 
@@ -45,6 +47,7 @@ const userWith = (entitlements: Entitlements) => ({ ...USER, entitlements });
 // Mock the API module
 vi.mock('@/api', () => ({
   loadUserData: vi.fn(),
+  startFeatureTrial: vi.fn(),
 }));
 
 describe('useUserStore', () => {
@@ -276,6 +279,87 @@ describe('useUserStore', () => {
       store.user = userWith(buildEntitlements());
 
       expect(store.featureTriesLeft({ feature: FEATURES.bank_providers })).toBeNull();
+    });
+  });
+
+  describe('featureTrialDaysLeft', () => {
+    const feature = FEATURES.fire_planner;
+    const trialEndingIn = ({ days }: { days: number }) => ({
+      [feature]: { startedAt: new Date().toISOString(), endsAt: addDays(new Date(), days).toISOString() },
+    });
+
+    it('counts the days until the trial ends', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements({ features: [feature], featureTrials: trialEndingIn({ days: 3 }) }));
+
+      expect(store.featureTrialDaysLeft({ feature })).toBe(3);
+    });
+
+    it('returns null once the trial has expired', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements({ featureTrials: trialEndingIn({ days: -1 }) }));
+
+      expect(store.featureTrialDaysLeft({ feature })).toBeNull();
+    });
+
+    it('returns null when no trial was started', () => {
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements());
+
+      expect(store.featureTrialDaysLeft({ feature })).toBeNull();
+    });
+
+    describe('partial days', () => {
+      const now = new Date('2026-09-25T12:00:00Z');
+
+      beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(now);
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it.each([
+        [1, 1],
+        [60, 3],
+      ])('rounds %d hours left up to %d days', (hours, expected) => {
+        const store = useUserStore();
+        store.user = userWith(
+          buildEntitlements({
+            featureTrials: { [feature]: { startedAt: now.toISOString(), endsAt: addHours(now, hours).toISOString() } },
+          }),
+        );
+
+        expect(store.featureTrialDaysLeft({ feature })).toBe(expected);
+      });
+    });
+  });
+
+  describe('startFeatureTrial', () => {
+    const feature = FEATURES.fire_planner;
+
+    it('replaces the entitlements with the response', async () => {
+      const next = buildEntitlements({ features: [feature] });
+      vi.mocked(startFeatureTrialApi).mockResolvedValueOnce(next);
+      const store = useUserStore();
+      store.user = userWith(buildEntitlements());
+
+      await store.startFeatureTrial({ feature });
+
+      expect(store.entitlements).toEqual(next);
+    });
+
+    it('keeps the entitlements and rethrows when the request fails', async () => {
+      const error = new Error('failed');
+      vi.mocked(startFeatureTrialApi).mockRejectedValueOnce(error);
+      const store = useUserStore();
+      const current = buildEntitlements();
+      store.user = userWith(current);
+
+      await expect(store.startFeatureTrial({ feature })).rejects.toBe(error);
+      expect(store.entitlements).toEqual(current);
     });
   });
 });

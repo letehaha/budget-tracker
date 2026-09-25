@@ -109,7 +109,15 @@
       </div>
     </div>
 
-    <p class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.target.disclaimer') }}</p>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.target.disclaimer') }}</p>
+      <Button variant="ghost-primary" size="sm" as-child>
+        <RouterLink :to="{ name: ROUTES_NAMES.analyticsFire }">
+          <FlameIcon class="size-4" />
+          {{ $t('analytics.fire.planLink') }}
+        </RouterLink>
+      </Button>
+    </div>
   </section>
 </template>
 
@@ -118,12 +126,14 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Slider } from '@/components/lib/ui/slider';
 import { useFormatCurrency } from '@/composable';
+import { ROUTES_NAMES } from '@/routes/constants';
+import { FlameIcon } from '@lucide/vue';
 import { useLocalStorage } from '@vueuse/core';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import AnnualReturnField from './annual-return-field.vue';
-import { computeFireTarget } from '../composables/fire-target';
+import AnnualReturnField from '@/pages/analytics/components/annual-return-field.vue';
+import { computeGrowthCrossover } from '../composables/growth-crossover';
 
 const props = defineProps<{
   /** Holdings value now, seeded from the report's most recent bucket. */
@@ -172,7 +182,7 @@ const resetSavings = () => {
 const formatYears = (years: number): number => Math.max(Math.round(years * 10) / 10, 0.1);
 
 const result = computed(() =>
-  computeFireTarget({
+  computeGrowthCrossover({
     currentPortfolioValue: props.currentPortfolioValue,
     monthlySavings: effectiveSavings.value,
     annualReturnRatePct: returnRate.value,

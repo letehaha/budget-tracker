@@ -49,6 +49,12 @@ export async function apiPut({ request, path, data }: { request: APIRequestConte
   return response.json();
 }
 
+export async function apiPatch({ request, path, data }: { request: APIRequestContext; path: string; data: unknown }) {
+  const response = await request.patch(`${API_BASE_URL}${path}`, { data });
+  await assertOk({ response, label: `API PATCH ${path} failed` });
+  return response.json();
+}
+
 export async function apiDelete({ request, path, data }: { request: APIRequestContext; path: string; data?: unknown }) {
   const response = await request.delete(`${API_BASE_URL}${path}`, { ...(data !== undefined && { data }) });
   await assertOk({ response, label: `API DELETE ${path} failed` });
@@ -206,6 +212,67 @@ export async function createAccount({
   });
 }
 
+// ─── Loans ───────────────────────────────────────────────────────────
+
+/** POST /loans with an outstanding `balance` (positive); the backend stores it as a negative liability. */
+export async function createLoan({
+  request,
+  name,
+  currencyCode,
+  balance,
+}: {
+  request: APIRequestContext;
+  name: string;
+  currencyCode: string;
+  balance: number;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/loans',
+    data: {
+      name,
+      currencyCode,
+      initialBalance: balance,
+      originalPrincipal: balance,
+      loanType: 'mortgage',
+      interestRate: 6,
+      startDate: '2020-06-15',
+    },
+  });
+}
+
+// ─── Vehicles ────────────────────────────────────────────────────────
+
+/** POST /vehicles with a flat 0% depreciation, so the vehicle stays worth its `purchasePrice`. */
+export async function createVehicle({
+  request,
+  name,
+  currencyCode,
+  purchasePrice,
+}: {
+  request: APIRequestContext;
+  name: string;
+  currencyCode: string;
+  purchasePrice: number;
+}) {
+  return apiPost({
+    request,
+    path: '/api/v1/vehicles',
+    data: {
+      name,
+      currencyCode,
+      make: 'Toyota',
+      model: 'Corolla',
+      year: 2020,
+      vehicleClass: 'sedan',
+      purchasePrice,
+      purchaseDate: '2020-01-01',
+      depreciationPreset: 'custom',
+      customAnnualRatePct: 0,
+    },
+  });
+}
+
 // ─── Portfolios ──────────────────────────────────────────────────────
 
 export async function createPortfolio({ request, name }: { request: APIRequestContext; name: string }) {
@@ -325,15 +392,17 @@ export async function createCategory({
   request,
   name,
   color,
+  parentId,
 }: {
   request: APIRequestContext;
   name: string;
   color?: string;
+  parentId?: string;
 }) {
   return apiPost({
     request,
     path: '/api/v1/categories',
-    data: { name, ...(color !== undefined && { color }) },
+    data: { name, ...(color !== undefined && { color }), ...(parentId !== undefined && { parentId }) },
   });
 }
 
@@ -347,6 +416,7 @@ export async function createTransaction({
   categoryId,
   transferNature = 'not_transfer',
   note,
+  time = new Date().toISOString(),
 }: {
   request: APIRequestContext;
   accountId: string;
@@ -355,6 +425,7 @@ export async function createTransaction({
   categoryId?: string;
   transferNature?: 'not_transfer' | 'transfer_between_user_accounts' | 'transfer_out_wallet';
   note?: string;
+  time?: string;
 }) {
   const resolvedCategoryId = categoryId ?? (await resolveDefaultCategoryId({ request }));
   return apiPost({
@@ -367,7 +438,7 @@ export async function createTransaction({
       categoryId: resolvedCategoryId,
       transferNature,
       paymentType: 'creditCard',
-      time: new Date().toISOString(),
+      time,
       ...(note !== undefined && { note }),
     },
   });

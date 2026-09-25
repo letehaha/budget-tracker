@@ -11,6 +11,7 @@ const props = withDefaults(
     step?: number;
     disabled?: boolean;
     class?: string;
+    ariaLabel?: string;
   }>(),
   {
     modelValue: 0,
@@ -52,6 +53,7 @@ const sliderValue = computed({
       <SliderRange class="bg-primary absolute h-full" />
     </SliderTrack>
     <SliderThumb
+      :aria-label="ariaLabel"
       class="bg-background border-primary block size-5 rounded-full border-2 shadow transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
     />
   </SliderRoot>

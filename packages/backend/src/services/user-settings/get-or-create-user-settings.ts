@@ -3,7 +3,9 @@ import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/use
 import { insertOrAdopt } from '../common/run-in-savepoint';
 
 /**
- * Fetch the caller's single UserSettings row, creating it lazily if absent.
+ * Fetch the caller's single UserSettings row, creating it lazily if absent, and lock it for
+ * the rest of the transaction. Every caller writes the whole settings JSONB back, so an
+ * unlocked read would let it revert a slice another writer committed in between.
  *
  * On a fresh user two concurrent first-writes can both observe no row. The
  * unique `userId` index turns that into a constraint violation on the loser's
@@ -18,15 +20,12 @@ import { insertOrAdopt } from '../common/run-in-savepoint';
 export const getOrCreateUserSettings = async ({
   userId,
   defaults = DEFAULT_SETTINGS,
-  lock = false,
 }: {
   userId: number;
   /** Settings JSONB to seed a fresh row. Ignored when a row already exists. */
   defaults?: SettingsSchema;
-  /** SELECT ... FOR UPDATE so a concurrent read-modify-write serializes. */
-  lock?: boolean;
 }): Promise<[UserSettings, boolean]> => {
-  const findOptions = { where: { userId }, ...(lock ? { lock: true as const } : {}) };
+  const findOptions = { where: { userId }, lock: true };
 
   const existing = await UserSettings.findOne(findOptions);
   if (existing) return [existing, false];

@@ -32,6 +32,7 @@ const buildEntitlements = (features: Feature[]): Entitlements => ({
   trialEndsAt: null,
   subscriptions: [],
   trialUsage: {},
+  featureTrials: {},
 });
 
 const mountRestricted = ({

@@ -46,13 +46,14 @@ import {
   getUserCurrencies,
   removeUserCurrencyExchangeRate,
   setBaseUserCurrency,
+  startFeatureTrial,
   updateUser,
   wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
 import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { requireFeature } from '@middlewares/entitlements';
+import { requireFeature, requireFireSettingsAccess } from '@middlewares/entitlements';
 import {
   aiConnectionModelsRateLimit,
   aiConnectionProbeRateLimit,
@@ -66,6 +67,12 @@ import { Router } from 'express';
 const router = Router({});
 
 router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.handler);
+router.post(
+  '/feature-trials/:feature',
+  authenticateSession,
+  validateEndpoint(startFeatureTrial.schema),
+  startFeatureTrial.handler,
+);
 router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
 router.delete(
   '/delete',
@@ -198,7 +205,13 @@ router.delete(
 
 router.get('/settings', authenticateSession, validateEndpoint(getUserSettings.schema), getUserSettings.handler);
 router.put('/settings', authenticateSession, validateEndpoint(updateUserSettings.schema), updateUserSettings.handler);
-router.patch('/settings', authenticateSession, validateEndpoint(patchUserSettings.schema), patchUserSettings.handler);
+router.patch(
+  '/settings',
+  authenticateSession,
+  requireFireSettingsAccess,
+  validateEndpoint(patchUserSettings.schema),
+  patchUserSettings.handler,
+);
 
 // Onboarding (Quick Start)
 router.get('/settings/onboarding', authenticateSession, validateEndpoint(getOnboarding.schema), getOnboarding.handler);

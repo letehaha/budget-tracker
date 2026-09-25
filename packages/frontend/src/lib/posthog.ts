@@ -68,6 +68,10 @@ type AnalyticsEvent =
   | { event: 'dashboard_edit_opened' }
   | { event: 'dashboard_layout_saved'; properties: { widget_count: number } }
   | { event: 'dashboard_widget_config_saved'; properties: { widget_id: string } }
+  // FIRE planner
+  | { event: 'fire_page_viewed' }
+  | { event: 'fire_assumption_changed'; properties: { field: string } }
+  | { event: 'fire_widget_added' }
   // Billing (completions, cancellations and refunds live in Stripe)
   | { event: 'paywall_hit'; properties: { feature: Feature; required_plan: Plan; path: string } }
   | { event: 'checkout_opened'; properties: { tier: BillingTier; cycle: BillingCycle; plan: Plan | null } }

@@ -16,6 +16,7 @@ describe('js/helpers/formatters', () => {
       [0.0125, '$0.01'],
       [NaN, 'NaN'],
       [Infinity, 'Infinity'],
+      [-Infinity, '-Infinity'],
     ])('%s to be %s', (value, expected) => {
       expect(formatUIAmount(value)).toBe(expected);
     });
@@ -61,6 +62,11 @@ describe('js/helpers/formatters', () => {
 
     test('malformed currency code degrades to a bare number + code instead of throwing', () => {
       expect(formatUIAmount(1234.5, { currency: 'USDT' })).toBe('1,234.50 USDT');
+    });
+
+    test('fractionDigits overrides the currency decimals', () => {
+      expect(formatUIAmount(72_187.5, { currency: 'USD', fractionDigits: 0 })).toBe('$72,188');
+      expect(formatUIAmount(1234.5, { currency: 'USDT', fractionDigits: 0 })).toBe('1,235 USDT');
     });
   });
 
@@ -133,6 +139,7 @@ describe('js/helpers/formatters', () => {
       [0.0125, '0.01'],
       [NaN, 'NaN'],
       [Infinity, 'Infinity'],
+      [-Infinity, '-Infinity'],
     ])('%s to be %s', (value, expected) => {
       expect(formatFiat(value)).toBe(expected);
     });

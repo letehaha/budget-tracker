@@ -17,6 +17,7 @@ const buildEntitlements = (overrides: Partial<Entitlements> = {}): Entitlements 
   trialEndsAt: null,
   subscriptions: [],
   trialUsage: {},
+  featureTrials: {},
   ...overrides,
 });
 

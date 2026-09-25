@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 import type { SupportedLocale } from '@bt/shared/i18n/locales';
-import type { CategoryMappingPreset, TransactionOptionalField, endpointsTypes } from '@bt/shared/types';
+import type { CategoryMappingPreset, FireSettings, TransactionOptionalField, endpointsTypes } from '@bt/shared/types';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -129,6 +129,7 @@ export interface UserSettingsSchema {
    */
   savingsCategoryIds?: string[];
   currencyDisplay?: endpointsTypes.CurrencyDisplayPreference;
+  fire?: FireSettings;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

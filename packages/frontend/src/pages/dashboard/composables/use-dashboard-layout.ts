@@ -7,7 +7,7 @@ import { cloneDeep } from 'lodash-es';
 import { computed, ref, watch } from 'vue';
 
 export function useDashboardLayout() {
-  const { data: settings, mutateAsync } = useUserSettings();
+  const { data: settings, patchAsync } = useUserSettings();
 
   const cachedLayout = useLocalStorage<DashboardWidgetConfig[]>('dashboard-layout', DEFAULT_DASHBOARD_LAYOUT);
 
@@ -47,13 +47,7 @@ export function useDashboardLayout() {
   };
 
   const saveLayout = async () => {
-    const currentSettings = settings.value;
-    if (!currentSettings) return;
-
-    await mutateAsync({
-      ...currentSettings,
-      dashboard: { widgets: draftWidgets.value },
-    });
+    await patchAsync({ dashboard: { widgets: draftWidgets.value } });
     trackAnalyticsEvent({
       event: 'dashboard_layout_saved',
       properties: { widget_count: draftWidgets.value.length },
@@ -105,10 +99,7 @@ export function useDashboardLayout() {
     const widget = widgets.find((w) => w.widgetId === widgetId);
     if (widget) {
       widget.config = { ...widget.config, ...config };
-      await mutateAsync({
-        ...currentSettings,
-        dashboard: { widgets },
-      });
+      await patchAsync({ dashboard: { widgets } });
       trackAnalyticsEvent({
         event: 'dashboard_widget_config_saved',
         properties: { widget_id: widgetId },

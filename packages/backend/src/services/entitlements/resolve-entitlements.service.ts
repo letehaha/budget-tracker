@@ -1,4 +1,5 @@
 import {
+  DAY_TRIALABLE_FEATURES,
   Entitlements,
   FEATURES,
   Feature,
@@ -17,7 +18,7 @@ import { captureException } from '@js/utils/sentry';
 import BillingSubscriptions from '@models/billing-subscriptions.model';
 import Users from '@models/users.model';
 
-import { getTrialUsage } from './feature-trial.service';
+import { getFeatureTrials, getTrialUsage, isFeatureTrialActive } from './feature-trial.service';
 
 type EntitlementUser = Pick<Users, 'id' | 'role' | 'plan' | 'trialEndsAt'>;
 
@@ -55,17 +56,28 @@ export async function resolveEntitlements({ user }: { user: EntitlementUser }): 
     trialEndsAt: toIso(user.trialEndsAt),
     subscriptions: [] as Entitlements['subscriptions'],
   };
-  const grant = async (features: readonly Feature[], seats: number): Promise<Entitlements> => ({
-    ...base,
-    features,
-    seats,
-    readOnly: false,
-    // Free tries only exist for a feature the user is not entitled to, so someone holding
-    // all of them never needs the counters read — and every write request resolves these.
-    trialUsage: TRIALABLE_FEATURES.every((feature) => features.includes(feature))
-      ? {}
-      : await getTrialUsage({ userId: user.id }),
-  });
+  const grant = async (features: readonly Feature[], seats: number): Promise<Entitlements> => {
+    const holdsAll = ({ trialable }: { trialable: readonly Feature[] }) =>
+      trialable.every((feature) => features.includes(feature));
+    // Trials only exist for a feature the user is not entitled to, so someone holding
+    // all of them never needs the rows read — and every write request resolves these.
+    const [trialUsage, featureTrials] = await Promise.all([
+      holdsAll({ trialable: TRIALABLE_FEATURES }) ? {} : getTrialUsage({ userId: user.id }),
+      holdsAll({ trialable: DAY_TRIALABLE_FEATURES }) ? {} : getFeatureTrials({ userId: user.id }),
+    ]);
+    const activeTrials = DAY_TRIALABLE_FEATURES.filter(
+      (feature) => !features.includes(feature) && isFeatureTrialActive({ featureTrials, feature }),
+    );
+
+    return {
+      ...base,
+      features: [...features, ...activeTrials],
+      seats,
+      readOnly: false,
+      trialUsage,
+      featureTrials,
+    };
+  };
 
   if (isSelfHost()) return grant(ALL_FEATURES, SELF_HOST_SEATS);
 
@@ -115,6 +127,7 @@ export async function resolveEntitlements({ user }: { user: EntitlementUser }): 
     seats: SEATS_BY_PLAN.essential,
     readOnly: true,
     trialUsage: {},
+    featureTrials: {},
   };
 }
 

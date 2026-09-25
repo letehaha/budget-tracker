@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { type FireTargetResult, computeFireTarget } from './fire-target';
+import { type GrowthCrossoverResult, computeGrowthCrossover } from './growth-crossover';
 
 /**
  * Asserts the discriminated status and narrows the result to that variant, so a
  * test can read `gap`/`yearsToTarget` without the compiler rejecting a field the
  * base union does not carry.
  */
-function assertStatus<S extends FireTargetResult['status']>(
-  result: FireTargetResult,
+function assertStatus<S extends GrowthCrossoverResult['status']>(
+  result: GrowthCrossoverResult,
   status: S,
-): asserts result is Extract<FireTargetResult, { status: S }> {
+): asserts result is Extract<GrowthCrossoverResult, { status: S }> {
   expect(result.status).toBe(status);
 }
 
-describe('computeFireTarget', () => {
+describe('computeGrowthCrossover', () => {
   it('solves the needed value and gap for the worked example', () => {
     // $800/mo saved, 12%/yr (1%/mo), target 90% growth share, $187,062 held today.
     // needed = 0.9/0.1 * 800 / 0.01 = $720,000; gap = 720,000 - 187,062.
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 187_062,
       monthlySavings: 800,
       annualReturnRatePct: 12,
@@ -33,8 +33,8 @@ describe('computeFireTarget', () => {
   it('projects a positive, finite ETA that shrinks as the gap closes', () => {
     const base = { monthlySavings: 800, annualReturnRatePct: 12, targetGrowthSharePct: 90 };
 
-    const far = computeFireTarget({ ...base, currentPortfolioValue: 187_062 });
-    const near = computeFireTarget({ ...base, currentPortfolioValue: 600_000 });
+    const far = computeGrowthCrossover({ ...base, currentPortfolioValue: 187_062 });
+    const near = computeGrowthCrossover({ ...base, currentPortfolioValue: 600_000 });
 
     assertStatus(far, 'projected');
     assertStatus(near, 'projected');
@@ -46,7 +46,7 @@ describe('computeFireTarget', () => {
   });
 
   it('reports the target reached once the current value clears it', () => {
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 800_000,
       monthlySavings: 800,
       annualReturnRatePct: 12,
@@ -61,7 +61,7 @@ describe('computeFireTarget', () => {
   });
 
   it('is unreachable when the expected return is not positive', () => {
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 200_000,
       monthlySavings: 800,
       annualReturnRatePct: 0,
@@ -77,7 +77,7 @@ describe('computeFireTarget', () => {
   it('treats zero saving as already past the crossover', () => {
     // With no saving, every dollar of the month's gain is growth, so the target
     // is met at any positive value and there is nothing left to aim for.
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 50_000,
       monthlySavings: 0,
       annualReturnRatePct: 10,
@@ -92,7 +92,7 @@ describe('computeFireTarget', () => {
   it('clamps a target of 100% (or more) below the singularity so the needed value stays finite', () => {
     // needed = target/(1-target) * savings/return diverges as the target reaches 100%.
     // The 99% ceiling caps it at 0.99/0.01 * 800/0.01 = $7,920,000 instead of Infinity.
-    const atHundred = computeFireTarget({
+    const atHundred = computeGrowthCrossover({
       currentPortfolioValue: 100_000,
       monthlySavings: 800,
       annualReturnRatePct: 12,
@@ -105,7 +105,7 @@ describe('computeFireTarget', () => {
     expect(Number.isFinite(atHundred.yearsToTarget)).toBe(true);
 
     // A share above 100% clamps to the same ceiling rather than overshooting it.
-    const aboveHundred = computeFireTarget({
+    const aboveHundred = computeGrowthCrossover({
       currentPortfolioValue: 100_000,
       monthlySavings: 800,
       annualReturnRatePct: 12,
@@ -118,7 +118,7 @@ describe('computeFireTarget', () => {
   it('assigns a full growth share when a net drawdown outweighs growth', () => {
     // Growth now = 100,000 * 0.01 = 1,000/mo, but 2,000/mo is being withdrawn, so the
     // month's net gain is negative while growth itself is still the only lift.
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 100_000,
       monthlySavings: -2_000,
       annualReturnRatePct: 12,
@@ -131,7 +131,7 @@ describe('computeFireTarget', () => {
   it('treats strictly negative saving like zero: reached with no value left to aim for', () => {
     // Negative saving hits the same short-circuit as zero saving — every dollar of
     // lift is growth, so the target is met at any positive value.
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 100_000,
       monthlySavings: -2_000,
       annualReturnRatePct: 12,
@@ -144,7 +144,7 @@ describe('computeFireTarget', () => {
 
   it('measures the current growth share at today value', () => {
     // Growth now = 120,000 * 0.01 = 1,200/mo against 800 saved -> 1200/2000 = 60%.
-    const result = computeFireTarget({
+    const result = computeGrowthCrossover({
       currentPortfolioValue: 120_000,
       monthlySavings: 800,
       annualReturnRatePct: 12,

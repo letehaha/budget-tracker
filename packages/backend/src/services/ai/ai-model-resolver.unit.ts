@@ -73,6 +73,7 @@ function grantEntitlements(overrides: Partial<Entitlements> = {}): void {
     trialEndsAt: null,
     subscriptions: [],
     trialUsage: {},
+    featureTrials: {},
     ...overrides,
   });
 }

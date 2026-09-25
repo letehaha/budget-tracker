@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { cn } from '@/lib/utils';
+import { useResizeObserver } from '@vueuse/core';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import {
   type PillTabItem,
@@ -46,6 +47,9 @@ onMounted(() => {
   updateIndicator();
 });
 
+// Covers mounting inside a hidden panel, where every trigger measures 0 until it is shown.
+useResizeObserver(containerRef, updateIndicator);
+
 watch(
   () => props.modelValue,
   () => nextTick(updateIndicator),
@@ -62,6 +66,7 @@ watch(
       :key="item.value"
       type="button"
       :data-value="item.value"
+      :aria-pressed="modelValue === item.value"
       :disabled="disabled || item.disabled"
       :class="
         cn(

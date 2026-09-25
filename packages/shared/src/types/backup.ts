@@ -133,6 +133,8 @@ export type BackupRestoreWarningCode =
   // Backed-up settings failed validation against the current schema; the row was
   // reset to defaults so the rest of the restore could still complete.
   | 'settings_reset'
+  // Only the backed-up FIRE settings failed validation; they were dropped and the rest kept.
+  | 'fire_settings_reset'
   // The backup carried no settings row; the user's settings fell back to defaults.
   | 'no_settings'
   // A required foreign-key column pointed at data outside this backup (e.g. a

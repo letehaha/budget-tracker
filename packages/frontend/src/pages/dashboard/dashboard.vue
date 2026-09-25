@@ -9,7 +9,8 @@
       :class="
         cn([
           'bg-background/95 supports-backdrop-filter:bg-background/80 order-last -mx-6 mt-auto border-t py-2 backdrop-blur',
-          isEditMode ? 'z-30 max-md:hidden' : 'z-(--z-navbar)',
+          'z-(--z-navbar)',
+          isEditMode && 'max-md:hidden',
           'max-md:right-0 max-md:left-0',
           'sticky md:top-(--header-height)',
           isSafariMobile
@@ -51,7 +52,7 @@
       <!-- Mobile: sticky "Done/Cancel" bar at bottom during edit mode -->
       <DashboardEditToolbar
         v-if="gridRef?.isEditMode"
-        class="bg-background/90 sticky bottom-0 z-30 -mx-6 justify-center border-t px-6 py-3 backdrop-blur-sm md:hidden"
+        class="bg-background/90 sticky bottom-0 z-(--z-navbar) -mx-6 justify-center border-t px-6 py-3 backdrop-blur-sm md:hidden"
         :is-edit-mode="true"
         @save="gridRef?.saveLayout()"
         @cancel="gridRef?.cancelEdit()"

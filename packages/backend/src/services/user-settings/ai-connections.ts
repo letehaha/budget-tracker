@@ -237,7 +237,7 @@ export const getConnectionInfos = async ({ userId }: { userId: number }): Promis
 /** Writes a proven connection, re-checking the cap and the name against the locked row. */
 const storeNewConnection = withTransaction(
   async ({ userId, connection }: { userId: number; connection: StoredConnection }): Promise<AIConnectionInfo> => {
-    const [userSettings] = await getOrCreateUserSettings({ userId, lock: true });
+    const [userSettings] = await getOrCreateUserSettings({ userId });
     const { currentSettings, currentAiSettings, existingConnections } = deriveAiSettingsState({
       settings: userSettings.settings,
     });

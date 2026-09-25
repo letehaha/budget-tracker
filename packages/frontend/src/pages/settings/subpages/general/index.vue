@@ -337,6 +337,7 @@ const handleSavingsCategoriesChange = async (value: string[]) => {
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlow] }),
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlowPrev] }),
       queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlowTrend] }),
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.fireCashFlow] }),
     ]);
   } catch {
     addErrorNotification(t('settings.general.savingsCategories.errorNotification'));

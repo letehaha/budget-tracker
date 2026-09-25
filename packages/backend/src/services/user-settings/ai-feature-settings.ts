@@ -21,7 +21,7 @@ const storeFeatureConfig = withTransaction(
     feature: AI_FEATURE;
     config: AIFeatureConfig | null;
   }): Promise<void> => {
-    const [userSettings] = await getOrCreateUserSettings({ userId, lock: true });
+    const [userSettings] = await getOrCreateUserSettings({ userId });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? {};

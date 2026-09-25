@@ -50,10 +50,13 @@ export const useCurrencyName = () => {
 export const useFormatCurrency = () => {
   const { baseCurrency } = storeToRefs(useCurrenciesStore());
 
-  const formatBaseCurrency = (amount: number) =>
+  const formatBaseCurrency = (amount: number, { fractionDigits }: { fractionDigits?: number } = {}) =>
     formatUIAmount(amount, {
       currency: baseCurrency.value?.currency?.code,
+      fractionDigits,
     });
+
+  const formatWholeBaseCurrency = (amount: number) => formatBaseCurrency(amount, { fractionDigits: 0 });
 
   const formatAmountByCurrencyCode = (amount: number, currencyCode: string) =>
     formatUIAmount(amount, {
@@ -105,6 +108,7 @@ export const useFormatCurrency = () => {
 
   return {
     formatBaseCurrency,
+    formatWholeBaseCurrency,
     formatAmountByCurrencyCode,
     formatCompactAmount,
     getCurrencySymbol,
