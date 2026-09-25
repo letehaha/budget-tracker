@@ -4,6 +4,7 @@ import {
   AI_FEATURE,
   AI_PROVIDER,
   CreateAIConnectionBody,
+  FireSettings,
   ListAIConnectionModelsBody,
   ListAIConnectionModelsResponse,
   TestAIConnectionBody,
@@ -40,7 +41,9 @@ export async function getUserSettings<R extends boolean | undefined = undefined>
 export async function updateUserSettings<R extends boolean | undefined = undefined>({
   raw,
   ...payload
-}: Omit<Parameters<typeof apiUpdateUserSettings>[0], 'userId'> & {
+}: {
+  // `fire` is accepted so specs can prove PUT ignores it.
+  settings: Parameters<typeof apiUpdateUserSettings>[0]['settings'] & { fire?: FireSettings };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof apiUpdateUserSettings>>, R>({

@@ -259,7 +259,8 @@ export interface CashFlowPeriodData {
   income: number;
   expenses: number;
   netFlow: number;
-  // Per-category breakdown (only present when categoryIds filter is used)
+  // Per-category breakdown, always sent: the categoryIds selection when given, otherwise root categories.
+  // Lists only categories with data in some period of the range.
   categories?: CashFlowCategoryData[];
 }
 

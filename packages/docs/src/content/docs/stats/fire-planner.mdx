@@ -1,0 +1,187 @@
+---
+title: FIRE planner
+description: How the FIRE planner works out when your savings could cover your spending for good, where its numbers come from, and what each assumption changes.
+sidebar:
+  order: 40
+  badge:
+    text: Plus
+    variant: tip
+---
+
+import { Aside, Badge, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+FIRE stands for "financial independence, retire early". You reach it when your savings are big enough that you could live off them for good. The FIRE planner uses your accounts, portfolios and transactions to estimate how far along you are and when you could get there.
+
+## Open the planner <Badge text="Plus" variant="tip" />
+
+Open **Analytics** in the sidebar, then **FIRE** under **Investments**.
+
+The planner is part of the Plus plan, and the 40-day trial every new account starts with includes it. On Essential or the Early Adopter plan, opening the planner for the first time starts a free 14-day trial of it. There's nothing to click. A banner shows the days left, for example "FIRE planner trial · 9 days left", with a **See plans** link. The trial runs once per account. When it ends, the page is locked and says "Your 14-day FIRE planner trial has ended. Upgrade to Plus to keep planning your path to FIRE." Read-only accounts can't start the trial. See [Plans and billing](/settings/plans-and-billing/).
+
+## The FIRE number
+
+Your FIRE number is the amount you'd need to live off your savings:
+
+**FIRE number = yearly spending ÷ withdrawal rate**
+
+With $40,000 of yearly spending and a 4% withdrawal rate, that's $40,000 ÷ 0.04 = $1,000,000. The planner then projects your net worth month by month, growing with your expected return and your monthly contribution, and finds the month it reaches that number.
+
+## What the page shows
+
+<Screenshot
+  src="/screenshots/stats/fire-planner-overview.png"
+  alt="The top of the FIRE planner: Time to FIRE of 19 years 4 months (January 2046, at age 54), the range line, the Spending, Saving and Counting rows, the Progress to FIRE bar at 14.7%, and the Lean, Regular, Fat, Barista and Coast FIRE cards."
+  hint="Open /analytics/fire on a wide screen with the analytics list collapsed (Collapse), so the Assumptions panel sits on the right. Use a profile with 12 months of income and expenses, an investment portfolio, Birth year and Part-time income per month filled in, and Regular FIRE selected. Crop to the first card, from Time to FIRE down to the type cards."
+/>
+
+- **Time to FIRE**: how long until you reach your target, the month, and your age then if you've entered your birth year.
+- The range line below it, for example "Oct 2042 to Apr 2051 if returns run 2 points higher or lower", shows how much the date moves if your return is 2 percentage points better or worse each year.
+- **Spending**, **Saving** and **Counting**: the numbers the plan is built on. **Auto** means the figure comes from your transactions. Click an amount to jump to its field in **Assumptions**. The round icons next to **Counting** show what counts toward your net worth. Click the ventures, vehicles or loans icon to switch it on or off. Cash and portfolios are always counted.
+- **Progress to FIRE**: your net worth as a share of your target, with ticks at 25%, 50% and 75%. Below the bar you'll see your next milestone and **Supports … /mo today**, the monthly income your savings could pay you now at your withdrawal rate.
+- The five FIRE types, each with its target and how long it would take. See [The five FIRE types](#the-five-fire-types).
+
+Under the chart, the page reminds you that the projections use historical market averages and your recent spending, and are estimates, not advice.
+
+## Where the numbers come from
+
+### Spending
+
+**Yearly spending in retirement** starts on **Auto**: your average monthly expenses × 12. MoneyMatter uses up to your last 12 full months, starting from the first month with any income or expenses. The current month isn't used until it's over. Hover **Auto** to see how many months were used and your typical month.
+
+The figure:
+
+- counts only accounts you own, not accounts shared with you
+- leaves out transfers, planned transactions and your [savings categories](/settings/general-settings/#count-categories-as-savings)
+- includes loan and mortgage payments
+
+**Auto** needs at least 3 full months of transactions. Until then, enter your yearly spending by hand.
+
+To use a different figure, type it in. The **Auto** badge disappears, and **Back to Auto** (with the automatic amount) switches back. Use **Not counted as spending** to leave out categories you won't pay for once you've retired, such as childcare or commuting.
+
+### Monthly contribution
+
+**Monthly contribution** is how much you add to your savings each month. On **Auto**, it's your average net flow (income minus expenses) over the same months as your spending. Below it, "You save … of your income" shows your savings rate.
+
+Type your own amount if the automatic one is off. Two common reasons:
+
+- Money you pay straight into a portfolio isn't part of your cash flow, so it isn't counted. Add it here.
+- Dividends paid into a bank account count twice: once as income and again in your portfolio's return.
+
+If you spent more than you earned, the automatic contribution is 0 and the plan assumes no new savings. A message says so, with **Enter a contribution** to type your own.
+
+### What counts toward FIRE
+
+**What counts toward FIRE** lists each part of your net worth with its current amount:
+
+- **Cash & bank accounts** and **Investment portfolios** always count.
+- **Ventures**, **Vehicles** and **Loans** are off by default. Switch them on to count them. Loans are off because your loan payments already count as spending. Counting a loan subtracts what you owe.
+
+The same switches are the round icons next to **Counting** at the top of the page. Credit card and overdraft debts are always subtracted from **Cash & bank accounts**.
+
+If an archived account that's excluded from statistics still holds money, a note tells you how much, with a **Review** link to your accounts.
+
+## Assumptions
+
+<Screenshot
+  src="/screenshots/stats/fire-planner-assumptions.png"
+  alt="The Assumptions panel with Yearly spending in retirement and Monthly contribution on Auto, the What counts toward FIRE switches, Annual return set to Total World Stock with inflation built in at 3%, Withdrawal rate at 4.0%, and the collapsed More section."
+  hint="Open /analytics/fire on a wide screen with the analytics list collapsed, so the Assumptions panel sits on the right of the page. Leave every section open except More, with the default World stocks preset and 4% withdrawal rate. Crop to the Assumptions panel."
+/>
+
+On a wide screen, **Assumptions** is on the right. On a narrower one, click **Adjust assumptions** below the plan to open it. Click a section's title to fold it away.
+
+### Annual return
+
+**Annual return (%)** is how fast you expect your savings to grow. Pick one of three kinds:
+
+- **A market preset**, such as **S&P 500**, **NASDAQ Composite**, **Dow Jones** or **Total World Stock** (the default). Each option shows the real and nominal return, for example "≈4.9% real (8% nominal, 3% US inflation)". Presets are US and global returns, so they come with US inflation of 3% built in, and you can't change it.
+- **One of your portfolios**, using its own yearly return so far. If that's based on less than 3 years, a warning says short or bull-market history rarely repeats. If the portfolio is deleted or has too little history, the plan switches back to the world stocks preset and tells you.
+- **A custom return**, from -10% to 30%.
+
+With a portfolio or a custom return, **Inflation** becomes a slider from 0% to 10%, so you can use your own country's rate.
+
+### Withdrawal rate
+
+**Withdrawal rate** is the share of your savings you'd take out each year once retired. Pick **3.0%**, **3.5%**, **4.0%** (the default) or **4.5%**, or **Custom** for anything from 1% to 10%. A higher rate means a smaller FIRE number, but a bigger risk of running out. The well-known 4% rule comes from US data for 30-year retirements.
+
+### More
+
+**More** holds the settings for the other FIRE types:
+
+| Field | Default | Allowed |
+|---|---|---|
+| **Lean FIRE multiplier** | 0.7 | 0.3 to 1 |
+| **Fat FIRE multiplier** | 1.5 | 1 to 5 |
+| **Part-time income per month** | Empty | 0 or more |
+| **Birth year** | Empty | 1900 to 2100 |
+| **Coast FIRE target age** | 65 | 30 to 100 |
+
+A value outside the allowed range is corrected when you leave the field. Clearing the Lean, Fat, coast age or **Withdrawal rate** field puts back the default.
+
+### Saving your changes
+
+Your assumptions save automatically a moment after you change them. They're stored in your MoneyMatter account, so the plan is the same on every device and in the dashboard widget. If a save fails, a message with **Retry** stays on screen until your changes are saved.
+
+If you change your [base currency](/settings/base-currency-and-currencies/), the amounts you typed in (spending, contribution and part-time income) are converted to the new currency. Percentages, multipliers and ages stay as they are.
+
+## The five FIRE types
+
+| Type | Target | Needs |
+|---|---|---|
+| **Lean FIRE** | Your FIRE number × the Lean multiplier (70% by default): a leaner retirement | Nothing extra |
+| **Regular FIRE** | Your FIRE number, for your current lifestyle | Nothing extra |
+| **Fat FIRE** | Your FIRE number × the Fat multiplier (150% by default): a more generous retirement | Nothing extra |
+| **Barista FIRE** | What you'd need if part-time work paid for some of your spending: (yearly spending − 12 × part-time income) ÷ withdrawal rate | **Part-time income per month** |
+| **Coast FIRE** | What you need today so that growth alone, with no more saving, reaches your target by your coast age | **Birth year** |
+
+Click **Lean FIRE**, **Regular FIRE** or **Fat FIRE** to make it your target. The whole page (time to FIRE, progress, chart and milestones) follows the type you pick, and the dashboard widget does too. Barista and Coast FIRE are shown for comparison and can't be the target. When one of them needs more information, its card has a link such as **Add part-time income** or **Add birth year** that takes you to the field.
+
+Each card shows how long until you reach it, or **Reached**. A Coast FIRE you've reached says "Reached · saving is optional now". Once you reach your target, the next bigger type is marked **· next**.
+
+On a narrow screen, you see only your selected type. The others are under **Others**.
+
+## Chart and milestones
+
+<Screenshot
+  src="/screenshots/stats/fire-planner-chart.png"
+  alt="The FIRE chart: a solid net worth line up to Today, a dashed projection with a shaded range rising to the green FIRE $1.5M line in January 2046, markers at 25%, 50% and 75%, and the milestone list below."
+  hint="On /analytics/fire (same profile as the overview shot), crop to the chart card including the milestone list under the chart."
+/>
+
+The chart shows:
+
+- your net worth so far, as a solid line up to **Today**
+- the projection, as a dashed line
+- the shaded range, where you'd be if returns ran 2 points higher or lower each year
+- your target as a dashed green line, with markers for 25%, 50%, 75% and your target date
+
+Hover the chart to see the **Actual** or **Projected** value for a month and the range. Past values are converted to today's money using the plan's inflation rate (3% with a market preset), so they line up with the projection.
+
+Below the chart, the milestones list 25%, 50%, 75% and your target, each with how long until you reach it and the month, or **Reached**.
+
+## Special cases
+
+- **Not enough data.** Without accounts or history, the page asks for your yearly spending first (**Enter spending**), with **Add an account** next to it. With fewer than 3 full months of transactions, it says, for example, "Only 2 full months of transactions" and asks you to enter spending by hand. If your recent months have no expenses, you'll see "No spending recorded yet".
+- **Already there.** When your net worth covers your target, the page says "You're financially independent", with the monthly income your savings support, what share of your spending that is, and how many years of spending you have covered.
+- **Out of reach.** If the projection doesn't reach your target within 50 years, you'll see "Not reachable at current savings" with the reasons: no new savings, a return that doesn't beat inflation, or a pace that's too slow. **What it would take** shows the monthly contribution you'd need to get there in 20 years.
+- **Net worth below zero.** Your contributions pay down the gap first, then grow. A note on the progress bar explains this.
+- **A return that doesn't beat inflation.** A warning says your balance shrinks in today's money, and Coast FIRE can't be worked out.
+- **Estimated values.** If some holdings are valued at cost or an exchange rate is missing, a note says your balance may be understated. Click ✕ to hide it for now, or tick **Don't show again**.
+
+## FIRE progress widget
+
+To keep an eye on your progress, add the **FIRE progress** widget to your dashboard. Click **Add to dashboard** at the top of the planner, or add it under **Customize** on the dashboard. It shows your progress, time to FIRE, next milestone and FIRE number. See [FIRE progress](/stats/dashboard/#fire-progress) for its sizes and styles.
+
+<Aside type="caution" title="An estimate, not advice">
+- The planner assumes the same return every year. Real markets go up and down, and a bad few years just before or after you retire matter a lot. The range line gives a feel for this, but it isn't a forecast.
+- All amounts are in today's money: returns are real (after inflation), so a FIRE number of $1.5M means $1.5M of today's buying power. The plan doesn't include taxes, fees, pensions or changes in your spending.
+- Your target uses today's spending. If you expect to spend more or less once retired, type your own yearly spending.
+</Aside>
+
+## Related
+
+- [Analytics reports](/stats/analytics-reports/)
+- [Dashboard](/stats/dashboard/)
+- [How stats are calculated](/stats/how-stats-are-calculated/)
+- [Plans and billing](/settings/plans-and-billing/)

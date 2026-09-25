@@ -5,7 +5,7 @@ import { getOrCreateUserSettings } from './get-or-create-user-settings';
 import { type RedactedSettingsSchema, redactKeyMaterial } from './redact-key-material';
 import { mergeIntoStoredSettings, stripServiceOwnedSlices } from './service-owned-slices';
 
-type IncomingSettings = Omit<SettingsSchema, 'ai'> & {
+type IncomingSettings = Omit<SettingsSchema, 'ai' | 'fire'> & {
   ai?: Omit<NonNullable<SettingsSchema['ai']>, 'connections' | 'featureConfigs'>;
 };
 
@@ -13,7 +13,7 @@ export const updateUserSettings = withTransaction(
   async ({ userId, settings }: { userId: number; settings: IncomingSettings }): Promise<RedactedSettingsSchema> => {
     // Stripped before `defaults` too: the first write seeds the new row straight from this
     // payload, with no stored settings to merge against.
-    const incoming = stripServiceOwnedSlices({ settings }) as SettingsSchema;
+    const incoming = stripServiceOwnedSlices({ settings });
 
     const [existingSettings, created] = await getOrCreateUserSettings({ userId, defaults: incoming });
 

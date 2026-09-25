@@ -4,6 +4,15 @@
     class="border-border bg-card flex gap-6 rounded-lg border p-4"
     :class="isCompact ? 'flex-col' : 'flex-row'"
   >
+    <Teleport defer :to="`#${ANALYTICS_HEADER_ACTIONS_ID}`">
+      <Button variant="ghost-primary" size="sm" as-child>
+        <RouterLink :to="{ name: ROUTES_NAMES.analyticsFire }">
+          <FlameIcon class="size-4" />
+          {{ $t('analytics.fire.planLink') }}
+        </RouterLink>
+      </Button>
+    </Teleport>
+
     <!-- Inputs panel: left sidebar on wide containers, collapsible on narrow -->
     <div :class="isCompact ? 'w-full' : 'w-72 shrink-0'">
       <!-- Compact: collapsible toggle -->
@@ -64,7 +73,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { useFormatCurrency } from '@/composable';
-import { ChevronDownIcon } from '@lucide/vue';
+import { ANALYTICS_HEADER_ACTIONS_ID } from '@/pages/analytics/utils';
+import { ROUTES_NAMES } from '@/routes/constants';
+import { ChevronDownIcon, FlameIcon } from '@lucide/vue';
 import { useElementSize } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -76,10 +87,10 @@ import SummaryCards from './components/summary-cards.vue';
 import {
   CUSTOM_INDICATOR_ID,
   getIndicatorById,
-  getPortfolioIdFromIndicatorId,
-  isPortfolioIndicatorId,
+  getIndicatorLabel,
   MARKET_INDICATORS,
-} from './composables/market-indicators';
+} from '@/pages/analytics/utils/market-indicators';
+import { getPortfolioIdFromIndicatorId, isPortfolioIndicatorId } from '@bt/shared/types';
 import { useProjectionCalc, type ProjectionParams } from './composables/use-projection-calc';
 import { useSeedData, type NetIncomePeriod } from './composables/use-seed-data';
 
@@ -181,7 +192,7 @@ const indicatorLabel = computed(() => {
     return portfolio?.portfolioName ?? t('analytics.investmentCalculator.customIndicator');
   }
   const indicator = getIndicatorById({ id: selectedIndicatorId.value });
-  return indicator?.label ?? t('analytics.investmentCalculator.customIndicator');
+  return indicator ? getIndicatorLabel({ indicator, t }) : t('analytics.investmentCalculator.customIndicator');
 });
 
 // Projection calculation

@@ -31,6 +31,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     data: accounts,
     refetch: refetchAccounts,
     isFetched: isAccountsFetched,
+    isError: isAccountsError,
   } = useQuery({
     queryKey: VUE_QUERY_CACHE_KEYS.allAccounts,
     queryFn: apiLoadAccounts,
@@ -171,6 +172,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,
+    isAccountsError,
 
     loadAccounts: refetchAccounts,
     refetchAccounts,

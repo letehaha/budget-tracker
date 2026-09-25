@@ -31,4 +31,5 @@ export * from './attachments';
 export * from './invoice-matching';
 export * from './testing';
 export * from './type-testing';
+export * from './fire';
 export { endpointsTypes };

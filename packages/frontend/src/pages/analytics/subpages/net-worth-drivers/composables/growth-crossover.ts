@@ -2,7 +2,7 @@ const MONTHS_PER_YEAR = 12;
 /** Held strictly below 100%: at a full share the needed portfolio value is infinite. */
 const MAX_TARGET_FRACTION = 0.99;
 
-interface FireTargetInput {
+interface GrowthCrossoverInput {
   /** Holdings value now, in base currency. */
   currentPortfolioValue: number;
   /** Expected monthly saving going forward, in base currency. */
@@ -13,7 +13,7 @@ interface FireTargetInput {
   targetGrowthSharePct: number;
 }
 
-interface FireTargetBase {
+interface GrowthCrossoverBase {
   /**
    * Share of this month's net-worth gain that growth covers at the current
    * portfolio value, as a percentage — the yardstick the target is measured
@@ -28,13 +28,13 @@ interface FireTargetBase {
  * a value to aim for exists only when growth can actually overtake saving, and an
  * ETA only when today's value is short of that target.
  */
-export type FireTargetResult =
+export type GrowthCrossoverResult =
   /** The portfolio can't grow (non-positive return), so no target value exists. */
-  | (FireTargetBase & { status: 'unreachable'; reason: 'noReturn' })
+  | (GrowthCrossoverBase & { status: 'unreachable'; reason: 'noReturn' })
   /** Growth already covers the target share at today's value. */
-  | (FireTargetBase & { status: 'reached'; portfolioValueNeeded: number })
+  | (GrowthCrossoverBase & { status: 'reached'; portfolioValueNeeded: number })
   /** Below the target today; the gap and the years to close it both hold. */
-  | (FireTargetBase & {
+  | (GrowthCrossoverBase & {
       status: 'projected';
       portfolioValueNeeded: number;
       gap: number;
@@ -52,12 +52,12 @@ export type FireTargetResult =
  * assumption-driven forecast — the caller shows the inputs it rests on — not a
  * guarantee.
  */
-export const computeFireTarget = ({
+export const computeGrowthCrossover = ({
   currentPortfolioValue,
   monthlySavings,
   annualReturnRatePct,
   targetGrowthSharePct,
-}: FireTargetInput): FireTargetResult => {
+}: GrowthCrossoverInput): GrowthCrossoverResult => {
   const monthlyReturn = annualReturnRatePct / 100 / MONTHS_PER_YEAR;
   const target = Math.min(Math.max(targetGrowthSharePct / 100, 0), MAX_TARGET_FRACTION);
 

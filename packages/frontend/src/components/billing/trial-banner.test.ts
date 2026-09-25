@@ -52,6 +52,7 @@ const userWith = (overrides: Partial<Entitlements>): UserModel => ({
     trialEndsAt: null,
     subscriptions: [],
     trialUsage: {},
+    featureTrials: {},
     ...overrides,
   },
 });

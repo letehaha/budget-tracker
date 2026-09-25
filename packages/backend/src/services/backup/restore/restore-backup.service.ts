@@ -1,7 +1,7 @@
 import type { BackupRestoreProgress, BackupRestoreSummary, BackupRestoreWarning } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackBackupRestored } from '@js/utils/posthog';
-import UserSettings, { ZodSettingsSchema } from '@models/user-settings.model';
+import UserSettings, { type SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { unifyAiConnections } from '@root/migrations/utils/unify-ai-connections';
 import { runUserDestroyLifecycle } from '@services/user/user-destroy-lifecycle';
@@ -13,7 +13,7 @@ import { type ParsedArchive } from './load-archive';
 import { loadValidatedArchive } from './load-validated-archive';
 import { USER_ROW_GUARDED_FK, foreignReferenceNulledMessage } from './owned-reference-guard';
 import { triggerPostRestorePriceSync } from './post-restore-price-sync';
-import { remapSavedPivotViewIds } from './remap-embedded-references';
+import { remapFireSettingsIds, remapSavedPivotViewIds } from './remap-embedded-references';
 import { resolveSecurities } from './resolve-securities';
 import { insertRestoreTables, purgeUserOwnedRestoreTables } from './restore-tables';
 
@@ -105,8 +105,9 @@ async function upsertUserSettings({
   // are stripped here too, so a hand-edited archive can't bring ciphertext in.
   const settings = stripConnectionKeys({ settings: unifyAiConnections({ settings: src.settings }) });
   const parsed = ZodSettingsSchema.safeParse(settings);
-  if (!parsed.success) {
-    logger.warn('Backup restore: settings failed schema and were reset', { userId, issues: parsed.error.issues });
+  const restored = parsed.success ? parsed : ZodSettingsSchema.omit({ fire: true }).safeParse(settings);
+  if (!restored.success) {
+    logger.warn('Backup restore: settings failed schema and were reset', { userId, issues: restored.error.issues });
     // A backup taken across a settings-schema change can carry a blob the current
     // schema rejects. Reset to defaults and warn rather than aborting an otherwise
     // valid restore over a non-critical field.
@@ -119,11 +120,22 @@ async function upsertUserSettings({
     return;
   }
 
-  // Category/account/payee UUIDs may be reminted on restore, so rewrite the ids
-  // saved inside each Pivot view before persisting the settings blob.
-  remapSavedPivotViewIds({ views: parsed.data.savedPivotViews, insertedIds });
+  if (!parsed.success) {
+    logger.warn('Backup restore: FIRE settings failed schema and were reset', { userId, issues: parsed.error.issues });
+    warnings.push({
+      code: 'fire_settings_reset',
+      table: 'user-settings',
+      message: 'Saved FIRE settings did not match the current schema and were reset to defaults.',
+    });
+  }
+  const restoredSettings: SettingsSchema = restored.data;
 
-  await UserSettings.create({ userId, settings: parsed.data });
+  // Category/account/payee/portfolio UUIDs may be reminted on restore, so rewrite the
+  // ids saved inside Pivot views and the FIRE slice before persisting the settings blob.
+  remapSavedPivotViewIds({ views: restoredSettings.savedPivotViews, insertedIds });
+  remapFireSettingsIds({ fire: restoredSettings.fire, insertedIds });
+
+  await UserSettings.create({ userId, settings: restoredSettings });
 }
 
 /**

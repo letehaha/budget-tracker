@@ -1,5 +1,13 @@
-import { type Plan, STRIPE_PRICE_IDS, SUBSCRIPTION_STATUSES } from '@bt/shared/types';
+import {
+  type DayTrialableFeature,
+  type Entitlements,
+  FEATURE_TRIAL_DAYS,
+  type Plan,
+  STRIPE_PRICE_IDS,
+  SUBSCRIPTION_STATUSES,
+} from '@bt/shared/types';
 import { APP_USER_CACHE_KEY_PREFIX } from '@middlewares/better-auth';
+import FeatureUsages from '@models/feature-usages.model';
 import Users from '@models/users.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
@@ -34,6 +42,32 @@ export async function setUserBilling({
     { where: { authUserId } },
   );
   await redisClient.del(`${APP_USER_CACHE_KEY_PREFIX}${authUserId}`);
+}
+
+export function startFeatureTrial<R extends boolean | undefined = false>({
+  feature,
+  raw,
+}: {
+  feature: string;
+  raw?: R;
+}) {
+  return makeRequest<Entitlements, R>({
+    method: 'post',
+    url: `/user/feature-trials/${feature}`,
+    raw,
+  });
+}
+
+/** No endpoint moves time, so an elapsed day-based trial is arranged by backdating its start in the DB. */
+export async function backdateFeatureTrial({
+  userId,
+  feature,
+}: {
+  userId: number;
+  feature: DayTrialableFeature;
+}): Promise<void> {
+  const elapsedMs = FEATURE_TRIAL_DAYS[feature] * 24 * 60 * 60 * 1000 + 1000;
+  await FeatureUsages.update({ trialStartedAt: new Date(Date.now() - elapsedMs) }, { where: { userId, feature } });
 }
 
 /** Run `fn` with `IS_SELF_HOST=true`, restoring the previous value afterwards. */

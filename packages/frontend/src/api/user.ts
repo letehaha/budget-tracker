@@ -1,4 +1,5 @@
 import { api } from '@/api/_api';
+import type { Entitlements, Feature } from '@bt/shared/types';
 import { UserInfoResponse } from '@bt/shared/types/db-models';
 
 export type { WipeDataSharedResources } from '@bt/shared/types';
@@ -16,3 +17,6 @@ export const deleteUserAccount = async (): Promise<void> => {
 export const wipeUserData = async ({ acknowledgeSharing }: { acknowledgeSharing: boolean }): Promise<void> => {
   await api.post('/user/wipe-data', { acknowledgeSharing });
 };
+
+export const startFeatureTrial = ({ feature }: { feature: Feature }): Promise<Entitlements> =>
+  api.post(`/user/feature-trials/${feature}`);

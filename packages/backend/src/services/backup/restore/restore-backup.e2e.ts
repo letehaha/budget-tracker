@@ -4,6 +4,7 @@ import {
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
   DEACTIVATION_REASON,
+  PLANS,
   RESOURCE_TYPES,
   type RecordId,
   SHARE_PERMISSIONS,
@@ -537,6 +538,40 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       expect(sourceAccountsAfter.some((a) => a.id === checking.id)).toBe(true);
       const sourceCurrencyCodesAfter = (await helpers.getUserCurrencies()).map((c) => c.currencyCode).toSorted();
       expect(sourceCurrencyCodesAfter).toEqual(sourceCurrencyCodes);
+    });
+
+    it('remaps the FIRE excluded categories and portfolio return source to the reminted ids', async () => {
+      const category = await helpers.addCustomCategory({ name: 'Rent', color: '#445566', raw: true });
+      const portfolio = await helpers.createPortfolio({ payload: { name: 'FIRE PF' }, raw: true });
+      await helpers.setUserBilling({ plan: PLANS.plus });
+      await helpers.patchUserSettings({
+        raw: true,
+        patch: {
+          fire: { spendingExcludedCategoryIds: [category.id], returnIndicatorId: `portfolio:${portfolio.id}` },
+        },
+      });
+
+      const { base64 } = await exportArchive();
+
+      const target = await helpers.provisionSecondUserWithBaseCurrency();
+      await helpers.asUser({
+        cookies: target.cookies,
+        fn: async () => {
+          const restore = await helpers.withSelfHost(() => helpers.restoreBackup({ fileContent: base64 }));
+          expect(restore.statusCode).toBe(200);
+          const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+          expect(status.status).toBe('completed');
+
+          const targetCategory = (await helpers.getCategoriesList()).find((c) => c.name === 'Rent');
+          const targetPortfolio = (await helpers.listPortfolios({ raw: true })).data.find((p) => p.name === 'FIRE PF');
+          expect(targetCategory!.id).not.toBe(category.id);
+          expect(targetPortfolio!.id).not.toBe(portfolio.id);
+
+          const { fire } = await helpers.getUserSettings({ raw: true });
+          expect(fire?.spendingExcludedCategoryIds).toEqual([targetCategory!.id]);
+          expect(fire?.returnIndicatorId).toBe(`portfolio:${targetPortfolio!.id}`);
+        },
+      });
     });
   });
 
@@ -1210,6 +1245,54 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       // The restore completes instead of hard-failing, and warns that settings reset.
       expect(status.status).toBe('completed');
       expect(status.summary?.warnings.some((w) => w.code === 'settings_reset')).toBe(true);
+    });
+
+    it('drops only an out-of-range fire slice with a fire_settings_reset warning and keeps the other settings', async () => {
+      await helpers.updateUserSettings({ settings: { locale: 'uk' } });
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const settingsRows = readArchiveJson({ files, path: 'data/user-settings.json' }) as Row[];
+      (settingsRows[0]!.settings as Row).fire = { withdrawalRatePct: 99, birthYear: 1990 };
+      writeArchiveJson({ files, path: 'data/user-settings.json', value: settingsRows });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+
+      expect(status.status).toBe('completed');
+      const codes = status.summary?.warnings.map((w) => w.code);
+      expect(codes).toContain('fire_settings_reset');
+      expect(codes).not.toContain('settings_reset');
+
+      const fetched = await helpers.getUserSettings({ raw: true });
+      expect(fetched.locale).toBe('uk');
+      expect(fetched.fire).toBeUndefined();
+    });
+
+    it('drops FIRE ids that point at nothing restored and falls back to the default return indicator', async () => {
+      await helpers.updateUserSettings({ settings: { locale: 'uk' } });
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const settingsRows = readArchiveJson({ files, path: 'data/user-settings.json' }) as Row[];
+      (settingsRows[0]!.settings as Row).fire = {
+        spendingExcludedCategoryIds: [randomUUID()],
+        returnIndicatorId: `portfolio:${randomUUID()}`,
+        withdrawalRatePct: 3.5,
+      };
+      writeArchiveJson({ files, path: 'data/user-settings.json', value: settingsRows });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      expect((await helpers.waitForRestore({ jobId: restore.jobId! })).status).toBe('completed');
+
+      expect((await helpers.getUserSettings({ raw: true })).fire).toStrictEqual({
+        spendingExcludedCategoryIds: [],
+        withdrawalRatePct: 3.5,
+      });
     });
   });
 

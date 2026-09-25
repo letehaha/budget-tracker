@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CUSTOM_INDICATOR_ID, getIndicatorById, MARKET_INDICATORS } from '../market-indicators';
+import { CUSTOM_INDICATOR_ID, getIndicatorById, MARKET_INDICATORS } from './market-indicators';
 
 describe('market-indicators', () => {
   it('getIndicatorById returns undefined for unknown id', () => {
@@ -20,8 +20,6 @@ describe('market-indicators', () => {
 
   it('getIndicatorById returns correct indicator', () => {
     const result = getIndicatorById({ id: 'sp500' });
-    expect(result).toBeDefined();
-    expect(result!.id).toBe('sp500');
-    expect(result!.label).toBe('S&P 500');
+    expect(result).toMatchObject({ id: 'sp500', label: 'S&P 500' });
   });
 });
