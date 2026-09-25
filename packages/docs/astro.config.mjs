@@ -18,10 +18,10 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: ['./src/styles/custom.css'],
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/letehaha/budget-tracker' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/letehaha/moneymatter' },
         { icon: 'external', label: 'Open MoneyMatter', href: 'https://moneymatter.app' },
       ],
-      editLink: { baseUrl: 'https://github.com/letehaha/budget-tracker/edit/main/packages/docs/' },
+      editLink: { baseUrl: 'https://github.com/letehaha/moneymatter/edit/main/packages/docs/' },
       head: [
         { tag: 'meta', attrs: { property: 'og:image', content: OG_IMAGE } },
         { tag: 'meta', attrs: { name: 'twitter:image', content: OG_IMAGE } },

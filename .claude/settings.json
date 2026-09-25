@@ -15,17 +15,6 @@
         ]
       }
     ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title \"🔔 Claude Code\" -message \"Claude needs your input\""
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
@@ -34,10 +23,6 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-unused-code.py\"",
             "timeout": 120,
             "statusMessage": "Checking for unused code with knip..."
-          },
-          {
-            "type": "command",
-            "command": "terminal-notifier -title \"✅ Claude Code\" -message \"The task has been completed\""
           }
         ]
       }

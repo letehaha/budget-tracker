@@ -22,7 +22,7 @@
       }
     ],
     "license": "AGPL-3.0-only",
-    "sourceCode": "https://github.com/letehaha/budget-tracker"
+    "sourceCode": "https://github.com/letehaha/moneymatter"
   },
   "transport": {
     "type": "streamable-http",

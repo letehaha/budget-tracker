@@ -1,3 +1,5 @@
+import { GITHUB_REPO } from './github-api';
+
 // ponytail: fetched at build time, so the list is as fresh as the last deploy.
 interface Release {
   version: string;
@@ -8,7 +10,7 @@ interface Release {
 /** Newest first. Empty when GitHub is unreachable, so the section falls back to static copy. */
 export async function getRecentReleases({ limit }: { limit: number }): Promise<Release[]> {
   try {
-    const res = await fetch(`https://api.github.com/repos/letehaha/budget-tracker/releases?per_page=${limit}`, {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${limit}`, {
       headers: process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {},
     });
     if (!res.ok) return [];

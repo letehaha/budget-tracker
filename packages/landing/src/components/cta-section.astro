@@ -1,3 +1,7 @@
+---
+import { GITHUB_URL } from '@/lib/github-api';
+---
+
 <section class="relative z-10 py-16 sm:py-24">
   <div class="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
     <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Own your financial data</h2>
@@ -16,7 +20,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
       <a
-        href="https://github.com/letehaha/budget-tracker"
+        href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
         class="border-border hover:bg-accent flex w-full items-center justify-center gap-2 rounded-xl border px-8 py-3 font-semibold transition-all sm:w-auto"

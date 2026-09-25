@@ -1,7 +1,7 @@
 ---
+import { GITHUB_URL } from '@/lib/github-api';
 import { getRecentReleases } from '@/lib/github-releases';
 
-const GITHUB_URL = 'https://github.com/letehaha/budget-tracker';
 const releases = await getRecentReleases({ limit: 3 });
 
 const ARROW =

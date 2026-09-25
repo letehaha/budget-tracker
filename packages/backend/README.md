@@ -1,4 +1,4 @@
-# budget-tracker backend
+# MoneyMatter backend
 
 ## First run instructions
 

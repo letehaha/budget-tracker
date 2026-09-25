@@ -1,3 +1,7 @@
+---
+import { GITHUB_URL } from '@/lib/github-api';
+---
+
 <section id="self-host" class="relative z-10 py-16 sm:py-24">
   <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <!-- Section header -->
@@ -55,7 +59,7 @@
 
         <div class="mt-auto pt-6">
           <a
-            href="https://github.com/letehaha/budget-tracker/tree/main/self-hosting"
+            href={`${GITHUB_URL}/tree/main/self-hosting`}
             target="_blank"
             rel="noopener noreferrer"
             class="border-border bg-card hover:bg-accent inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"

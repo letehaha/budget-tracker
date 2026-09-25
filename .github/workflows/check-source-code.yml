@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: prepare-env
         uses: ./.github/actions/prepare-local-env
       - name: Install dependencies
@@ -37,7 +37,7 @@ jobs:
       backend-only: ${{ steps.detect.outputs.backend_only }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # Fetch all history for file changes
       - id: detect
@@ -54,7 +54,7 @@ jobs:
       - name: Skip – no frontend changes
         if: needs.detect-changes.outputs.backend-only == 'true'
         run: echo "No frontend changes detected. Skipping."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: needs.detect-changes.outputs.backend-only != 'true'
       - uses: ./.github/actions/prepare-local-env
         if: needs.detect-changes.outputs.backend-only != 'true'
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
           tool-cache: false
           android: true
@@ -76,7 +76,7 @@ jobs:
           large-packages: true
           docker-images: true
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: frontend-docker-build
         uses: ./.github/actions/frontend-docker-build
       - name: Image digest
@@ -95,13 +95,13 @@ jobs:
       - name: Skip – no backend changes
         if: needs.detect-changes.outputs.frontend-only == 'true'
         run: echo "No backend changes detected. Skipping."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: needs.detect-changes.outputs.frontend-only != 'true'
       - uses: ./.github/actions/prepare-local-env
         if: needs.detect-changes.outputs.frontend-only != 'true'
       - name: Make backend env file
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: SpicyPizza/create-envfile@v2
+        uses: SpicyPizza/create-envfile@ace6d4f5d7802b600276c23ca417e669f1a06f6f # v2.0.3
         with:
           envkey_APPLICATION_HOST: 127.0.0.1
           envkey_APPLICATION_PORT: 8081
@@ -133,7 +133,7 @@ jobs:
       # behind a green check. Only test:unit reads them; lint and knip do not.
       - name: Cache MS Money fixtures
         if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test:unit'
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/src/tests/fixtures/ms-money-import
           key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
@@ -171,13 +171,13 @@ jobs:
       - name: Skip – no backend changes
         if: needs.detect-changes.outputs.frontend-only == 'true'
         run: echo "No backend changes detected. Skipping."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: needs.detect-changes.outputs.frontend-only != 'true'
       - uses: ./.github/actions/prepare-local-env
         if: needs.detect-changes.outputs.frontend-only != 'true'
       - name: Make backend env file
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: SpicyPizza/create-envfile@v2
+        uses: SpicyPizza/create-envfile@ace6d4f5d7802b600276c23ca417e669f1a06f6f # v2.0.3
         with:
           envkey_APPLICATION_HOST: 127.0.0.1
           envkey_APPLICATION_PORT: 8081
@@ -209,7 +209,7 @@ jobs:
       # image build context is the repo root, so fixtures fetched here get copied in.
       - name: Cache MS Money fixtures
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/src/tests/fixtures/ms-money-import
           key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
@@ -237,7 +237,7 @@ jobs:
       # wins and the rest log a harmless "unable to reserve cache" warning.
       - name: Cache migrated template DB dump
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: packages/backend/.e2e-template-cache
           key: template-db-pg16-${{ hashFiles('packages/backend/src/migrations/**', 'packages/backend/src/tests/test-exchange-rates.json', 'packages/backend/src/resources/mcc-codes.json') }}
@@ -248,10 +248,10 @@ jobs:
       # --no-build and this prebuilt image.
       - name: Set up Docker Buildx
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Build test-runner image
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: docker/test/backend/Dockerfile
@@ -276,7 +276,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
@@ -290,7 +290,7 @@ jobs:
           large-packages: true
           docker-images: true
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: backend-docker-build
         uses: ./.github/actions/backend-docker-build
       - name: Image digest

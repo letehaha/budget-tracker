@@ -15,7 +15,7 @@ MoneyMatter is a privacy-first alternative to apps like Mint, YNAB, and other co
 The app is built with a Node.js/Express backend, Vue.js frontend, PostgreSQL database, and Redis for job queues. It deploys as a set of Docker containers.
 
 Website: https://moneymatter.app
-Source code: https://github.com/letehaha/budget-tracker
+Source code: https://github.com/letehaha/moneymatter
 License: AGPL-3.0
 
 ## Features
@@ -115,7 +115,7 @@ Deploy MoneyMatter on your own server for maximum privacy and control:
 - Full control over backups, updates, and configuration
 - Audit the open-source code yourself
 
-Setup guide and Docker configuration: https://github.com/letehaha/budget-tracker
+Setup guide and Docker configuration: https://github.com/letehaha/moneymatter
 
 ## Comparison with Alternatives
 
@@ -144,7 +144,7 @@ Setup guide and Docker configuration: https://github.com/letehaha/budget-tracker
 ## Links
 
 - [Homepage](https://moneymatter.app/): Landing page with feature overview and sign-up
-- [GitHub Repository](https://github.com/letehaha/budget-tracker): Source code, Docker setup guide, and issue tracker
+- [GitHub Repository](https://github.com/letehaha/moneymatter): Source code, Docker setup guide, and issue tracker
 - [Privacy Policy](https://moneymatter.app/privacy-policy): Data handling and privacy practices
 - [Terms of Use](https://moneymatter.app/terms-of-use): Terms of service
 - [Try Demo](https://moneymatter.app): Create a free account or try the demo

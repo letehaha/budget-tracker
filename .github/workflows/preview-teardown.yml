@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Tear down preview environment
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           VPS_PREVIEW_BASE_PATH: ${{ secrets.VPS_PREVIEW_BASE_PATH }}
         with:
@@ -74,7 +74,7 @@ jobs:
             fi
 
       - name: Update PR comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: preview-env
           message: |

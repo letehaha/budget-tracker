@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something new or an improvement to an existing feature.
+labels: ['enhancement']
+body:
+  - type: textarea
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the solution. What do you do today and where does it break down?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Mockups or examples from other apps are welcome.
+  - type: dropdown
+    attributes:
+      label: Would you be willing to send a PR?
+      options:
+        - 'No'
+        - Maybe, with some guidance
+        - 'Yes'

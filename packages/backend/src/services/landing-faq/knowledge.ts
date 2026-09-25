@@ -10,7 +10,7 @@ export const LANDING_FAQ_KNOWLEDGE = `
 MoneyMatter is an open-source (AGPL-3.0) personal finance app: accounts, transactions, budgets,
 investments, loans, vehicles, venture deals, reports and net worth in one place. It runs as a
 hosted cloud service at moneymatter.app or self-hosted on your own server. It is built by one
-developer, in the open. Source: https://github.com/letehaha/budget-tracker
+developer, in the open. Source: https://github.com/letehaha/moneymatter
 
 ## Plans and pricing (cloud)
 
@@ -143,8 +143,8 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
 
 ## Apps, languages, sign-in
 
-- Web app only. No iOS, Android or desktop app. It can be added to a phone home screen, but there
-  is no offline mode.
+- Web app only today. An iOS app is under development, with no release date yet. No Android or
+  desktop app. The web app can be added to a phone home screen as a PWA, but there is no offline mode.
 - Languages: English, Ukrainian, Spanish, Indonesian, Russian. Spanish, Indonesian and Russian
   are community translations. Dark mode is supported.
 - Sign in with email and password, Google, GitHub or passkeys. You can see and log out active
@@ -202,7 +202,7 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
   with release notes.
 - On the cloud, hosting, updates, security patches and the data feeds (stock and crypto prices,
   exchange rates, merchant logos) are handled for you.
-- Setup guide: https://github.com/letehaha/budget-tracker/tree/main/self-hosting
+- Setup guide: https://github.com/letehaha/moneymatter/tree/main/self-hosting
 - Moving between cloud and self-hosted works both ways: export a backup on one, restore it on
   the other.
 - The "Try demo" button on the landing page opens a ready-made demo account with no sign-up.
@@ -218,7 +218,7 @@ developer, in the open. Source: https://github.com/letehaha/budget-tracker
 ## Contact and community
 
 - Support: support@moneymatter.app
-- Bugs: https://github.com/letehaha/budget-tracker/issues
+- Bugs: https://github.com/letehaha/moneymatter/issues
 - Feature requests, voting and roadmap: https://moneymatter.featurebase.app/dashboard/roadmap
 - There is no Discord, Telegram or Slack community.
 - Tech stack: TypeScript, Node.js with Express, PostgreSQL, Redis, Vue 3. Contributions are

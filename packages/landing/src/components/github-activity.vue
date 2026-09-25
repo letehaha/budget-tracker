@@ -24,7 +24,7 @@
       <template v-if="starsLabel">
         <span class="text-muted-foreground/50">|</span>
         <a
-          href="https://github.com/letehaha/budget-tracker"
+          :href="GITHUB_URL"
           target="_blank"
           rel="noopener noreferrer"
           class="hover:text-foreground inline-flex items-center gap-1 transition-colors"
@@ -52,7 +52,7 @@
 <script setup lang="ts">
 defineProps<{ starsLabel?: string | null }>();
 
-import { fetchGitHubActivity } from '@/lib/github-api';
+import { fetchGitHubActivity, GITHUB_URL } from '@/lib/github-api';
 import type { GitHubActivityData } from '@/lib/github-api';
 import { onMounted, ref } from 'vue';
 

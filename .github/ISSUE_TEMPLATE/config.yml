@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature requests & roadmap
+    url: https://moneymatter.featurebase.app/
+    about: Vote on existing requests or post a new one. Most user reports live here, so check it first.
+  - name: Questions & help
+    url: https://github.com/letehaha/moneymatter/discussions/categories/q-a
+    about: Setup problems, "how do I ..." and anything that is not clearly a bug.
+  - name: Documentation
+    url: https://docs.moneymatter.app
+    about: User guides and the self-hosting setup guide.
+  - name: Translations
+    url: https://crowdin.com/project/moneymatter
+    about: Fix a translation or add a language on Crowdin. Do not open issues or PRs for locale files.
+  - name: Security vulnerability
+    url: https://github.com/letehaha/moneymatter/security/advisories/new
+    about: Report privately here. Never in a public issue.

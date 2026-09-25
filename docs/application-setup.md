@@ -1,6 +1,6 @@
 # Local Application Setup Guide
 
-This guide will walk you through setting up the Budget Tracker project on your local machine.
+This guide will walk you through setting up the MoneyMatter project on your local machine.
 
 ## Table of Contents
 
@@ -18,16 +18,16 @@ This guide will walk you through setting up the Budget Tracker project on your l
 
 ### Required Software
 
-- **Node.js**: v23.10.0
+- **Node.js**: v24.21.0
 - **npm**: Comes with Node.js
 - **Docker & Docker Compose**: For containerized development (essencial)
 
 ## Project Architecture
 
-Budget Tracker is a monorepo with the following structure:
+MoneyMatter is a monorepo with the following structure:
 
 ```
-budget-tracker/
+moneymatter/
 ├── packages/
 │   ├── backend/          # Node.js / Express.js / Sequelize / PostgreSQL / Redis backend
 │   └── frontend/         # Vue 3 + Vite frontend
@@ -49,8 +49,8 @@ budget-tracker/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/letehaha/budget-tracker
-cd budget-tracker
+git clone https://github.com/letehaha/moneymatter
+cd moneymatter
 ```
 
 ### 2. Install Dependencies

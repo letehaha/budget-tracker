@@ -1,4 +1,4 @@
-FROM node:23.11.0
+FROM node:24.21.0
 
 # Build arg to control offline mode
 ARG OFFLINE_MODE=false
