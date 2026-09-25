@@ -9,6 +9,7 @@ export * from './external-services';
 export * from './investments';
 export * from './venture';
 export * from './vehicles';
+export * from './properties';
 export * from './loans';
 export * from './currencies';
 export * from './api';

@@ -27,6 +27,7 @@ export const EXPORT_FILE_NAMES = [
   'tags',
   'payees',
   'vehicles',
+  'properties',
   'budgets',
   'subscriptions',
   'transaction_templates',

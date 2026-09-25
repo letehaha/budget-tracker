@@ -29,6 +29,7 @@ import PayeeAliases from '@models/payee-aliases.model';
 import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
+import Properties from '@models/properties.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
@@ -312,6 +313,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
   {
     fileName: 'vehicles',
     model: Vehicles,
+    tier: 3,
+    scope: { strategy: 'userColumn', column: 'userId' },
+    restoreMode: 'insert',
+  },
+  {
+    fileName: 'properties',
+    model: Properties,
     tier: 3,
     scope: { strategy: 'userColumn', column: 'userId' },
     restoreMode: 'insert',

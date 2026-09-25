@@ -11,6 +11,7 @@ import {
   ChartColumnIcon,
   CreditCardIcon,
   HandCoinsIcon,
+  HomeIcon,
   LayersIcon,
   LayoutDashboardIcon,
   PanelLeftIcon,
@@ -47,16 +48,19 @@ const {
   isLoading,
   accountsWithoutGroups,
   vehicleAccounts,
+  propertyAccounts,
   baseCurrencyCode,
   bankAccountsTotal,
   portfoliosTotal,
   isPortfoliosTotalLoading,
   venturesCount,
   carsTotal,
+  propertiesTotal,
   loansTotal,
   showPortfolios,
   venturesVisible,
   carsVisible,
+  propertiesVisible,
   loansVisible,
 } = useSidebarSectionTotals();
 
@@ -162,6 +166,15 @@ const sectionItems = computed<RailSectionItem[]>(() => {
       visible: carsVisible.value,
       loading: isLoading.value,
       total: carsTotal.value,
+    },
+    {
+      key: 'properties',
+      routeName: ROUTES_NAMES.accounts,
+      icon: HomeIcon,
+      label: t('sidebar.accountsView.properties'),
+      visible: propertiesVisible.value,
+      loading: isLoading.value,
+      total: propertiesTotal.value,
     },
     {
       key: 'loans',
@@ -293,6 +306,7 @@ const sectionItems = computed<RailSectionItem[]>(() => {
               <PortfoliosList v-else-if="section.key === 'portfolios'" />
               <VenturesList v-else-if="section.key === 'ventures'" />
               <AccountsList v-else-if="section.key === 'cars'" :accounts="vehicleAccounts" />
+              <PropertiesList v-else-if="section.key === 'properties'" :accounts="propertyAccounts" />
               <LoansList v-else-if="section.key === 'loans'" />
             </div>
           </template>

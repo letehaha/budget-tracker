@@ -388,6 +388,7 @@ export interface SidebarSectionsConfig {
   portfolios: boolean;
   ventures: boolean;
   vehicles: boolean;
+  properties: boolean;
   loans: boolean;
 }
 
@@ -619,11 +620,11 @@ export const NET_WORTH_LIABILITY_KINDS = [
 export type NetWorthLiabilityKind = (typeof NET_WORTH_LIABILITY_KINDS)[number];
 
 // Asset classes the report splits net-worth assets into. Report-specific rather than
-// ACCOUNT_CATEGORIES values because vehicles and ventures are their own entities, and
-// `cash` folds every deposit account (regular/savings/cash, plus a positive-balance
-// card or overdraft) into one bucket. The client derives filtered views by toggling
-// kinds, so it never refetches.
-export const NET_WORTH_ASSET_KINDS = ['cash', 'investments', 'vehicles', 'ventures'] as const;
+// ACCOUNT_CATEGORIES values because vehicles, properties and ventures are their own
+// entities, and `cash` folds every deposit account (regular/savings/cash, plus a
+// positive-balance card or overdraft) into one bucket. The client derives filtered
+// views by toggling kinds, so it never refetches.
+export const NET_WORTH_ASSET_KINDS = ['cash', 'investments', 'vehicles', 'properties', 'ventures'] as const;
 export type NetWorthAssetKind = (typeof NET_WORTH_ASSET_KINDS)[number];
 
 export interface GetNetWorthHistoryPayload extends QueryPayload {
@@ -642,7 +643,8 @@ export interface NetWorthHistoryPoint {
   // Balance per asset kind, keyed by `NET_WORTH_ASSET_KINDS`. `cash` is signed —
   // it folds every deposit account (an overdrawn one subtracts) plus any card or
   // overdraft holding a positive balance. `investments` is portfolios (holdings
-  // plus uninvested cash); `vehicles` and `ventures` are their valued balances.
+  // plus uninvested cash); `vehicles`, `properties` and `ventures` are their
+  // valued balances.
   assets: Record<NetWorthAssetKind, number>;
   // Sum of `assets` values.
   assetsTotal: number;

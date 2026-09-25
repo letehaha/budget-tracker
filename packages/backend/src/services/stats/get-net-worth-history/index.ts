@@ -5,6 +5,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { calculatePropertiesBalanceHistory } from '@services/stats/calculate-properties-balance-history';
 import { calculateVehiclesBalanceHistory } from '@services/stats/calculate-vehicles-balance-history';
 import { calculateVentureBalanceHistory } from '@services/stats/calculate-venture-balance-history';
 import { getAggregatedBalanceHistory, getPerAccountBalanceHistory } from '@services/stats/get-balance-history';
@@ -231,6 +232,7 @@ export const getNetWorthHistory = async ({
     overdraftSeries,
     loanHistory,
     vehicleValuesByDate,
+    propertyValuesByDate,
     portfolioValuation,
     ventureValuesByDate,
     creditLimitCentsByAccount,
@@ -248,14 +250,21 @@ export const getNetWorthHistory = async ({
       // Per-account (not pre-summed) so the sign split is per account: one deposit
       // account overdrawn −500 and another holding +300 on the same day land on
       // opposite sides of the split, rather than netting to a single +/−200 figure.
-      // Vehicles are excluded here because they enter assets through their own
-      // depreciation series below, not through Balances rows; the liability kinds
-      // are excluded because cards/overdrafts/loans get their own series.
+      // Vehicles and properties are excluded here because they enter assets
+      // through their own valuation series below, not through Balances rows; the
+      // liability kinds are excluded because cards/overdrafts/loans get their own
+      // series.
       getPerAccountBalanceHistory({
         userId,
         accountScope: 'owned',
         ...accountsRange,
-        categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ...endpointsTypes.NET_WORTH_LIABILITY_KINDS] },
+        categoryFilter: {
+          exclude: [
+            ACCOUNT_CATEGORIES.vehicle,
+            ACCOUNT_CATEGORIES.property,
+            ...endpointsTypes.NET_WORTH_LIABILITY_KINDS,
+          ],
+        },
       }),
       // Per-account (not pre-summed) series: the sign classification is per
       // account, so one card owing −500 and another holding +300 on the same day
@@ -294,6 +303,7 @@ export const getNetWorthHistory = async ({
         });
       })(),
       calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates: snapshotDates, userBaseCurrencyPromise }),
+      calculatePropertiesBalanceHistory({ userId, maxDate, uniqueDates: snapshotDates, userBaseCurrencyPromise }),
       calculatePortfolioValueByDate({ userId, snapshotDates, denseDates, userBaseCurrencyPromise }),
       calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates: snapshotDates, userBaseCurrencyPromise }),
       includeCreditLimit ? getCreditLimitCentsByAccount({ userId, accountScope: 'owned' }) : new Map<string, Cents>(),
@@ -335,6 +345,7 @@ export const getNetWorthHistory = async ({
         readAssetValue({ map: portfolioValuation.valuesByDate, dateStr, label: 'portfolio', userId }),
       ),
       vehicleCents: asCents(readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId })),
+      propertyCents: asCents(readAssetValue({ map: propertyValuesByDate, dateStr, label: 'property', userId })),
       ventureCents: asCents(readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId })),
     }),
   );
