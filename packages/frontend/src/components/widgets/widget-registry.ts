@@ -9,6 +9,7 @@ export interface WidgetSize {
 export interface WidgetConfigOption {
   key: string;
   label: string;
+  defaultValue?: string;
   choices: { value: string; label: string }[];
 }
 
@@ -23,6 +24,8 @@ export interface WidgetDefinition {
   needsPeriod: boolean;
   configOptions?: WidgetConfigOption[];
 }
+
+export const FIRE_WIDGET_ID = 'fire-progress';
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
   'balance-trend': {
@@ -68,6 +71,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
       {
         key: 'includeScheduled',
         label: 'widgets.latestRecords.config.includeScheduled.label',
+        defaultValue: 'true',
         choices: [
           { value: 'true', label: 'widgets.latestRecords.config.includeScheduled.on' },
           { value: 'false', label: 'widgets.latestRecords.config.includeScheduled.off' },
@@ -152,6 +156,30 @@ export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = {
     ],
     component: () => import('@/components/widgets/subscriptions-overview.vue'),
     needsPeriod: false,
+  },
+  [FIRE_WIDGET_ID]: {
+    id: FIRE_WIDGET_ID,
+    name: 'dashboard.widgets.registry.fireProgress.name',
+    description: 'dashboard.widgets.registry.fireProgress.description',
+    defaultColSpan: 1,
+    defaultRowSpan: 1,
+    allowedSizes: [
+      { colSpan: 1, rowSpan: 1, label: '1×1' },
+      { colSpan: 2, rowSpan: 1, label: '2×1' },
+    ],
+    component: () => import('@/components/widgets/fire-progress-widget/index.vue'),
+    needsPeriod: false,
+    configOptions: [
+      {
+        key: 'style',
+        label: 'widgets.fireProgress.config.style.label',
+        defaultValue: 'ring',
+        choices: [
+          { value: 'ring', label: 'widgets.fireProgress.config.style.ring' },
+          { value: 'numbers', label: 'widgets.fireProgress.config.style.numbers' },
+        ],
+      },
+    ],
   },
 };
 

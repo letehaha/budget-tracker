@@ -19,11 +19,13 @@ export const patchUserSettings = withTransaction(
     // FOR UPDATE when it already existed, or exclusive-by-being-uncommitted
     // (guarded by the unique index) when this call inserted it. A bare FOR
     // UPDATE can't help the first write for a fresh user — no row to lock yet.
-    const [existing] = await getOrCreateUserSettings({ userId, lock: true });
+    const [existing] = await getOrCreateUserSettings({ userId });
 
     const merged = mergeIntoStoredSettings({ stored: existing.settings, incoming: safePatch });
 
-    const parsed = ZodSettingsSchema.safeParse(merged);
+    // `fire` skips re-validation: the patched part is already validated, and a stored value that
+    // fails a later-tightened limit must not break unrelated PATCHes.
+    const parsed = ZodSettingsSchema.safeParse({ ...merged, fire: undefined });
     if (!parsed.success) {
       throw new ValidationError({
         message: 'Patched settings do not match the settings schema',
@@ -31,7 +33,7 @@ export const patchUserSettings = withTransaction(
       });
     }
 
-    existing.settings = parsed.data;
+    existing.settings = { ...parsed.data, fire: merged.fire };
     existing.changed('settings', true);
     await existing.save();
 

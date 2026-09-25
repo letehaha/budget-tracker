@@ -3,7 +3,8 @@
     "editMode": {
       "customize": "Налаштувати",
       "addWidgets": "Додати віджети",
-      "emptyState": "Натисніть Налаштувати, щоб додати віджети"
+      "emptyState": "Натисніть Налаштувати, щоб додати віджети",
+      "removeWidget": "Видалити віджет"
     },
     "widgets": {
       "common": {
@@ -208,6 +209,10 @@
         "plannedOverview": {
           "name": "Огляд запланованих",
           "description": "Непідтверджені заплановані транзакції та ваш прогнозований баланс"
+        },
+        "fireProgress": {
+          "name": "Прогрес FIRE",
+          "description": "Наскільки ви близькі до фінансової незалежності"
         }
       }
     },
@@ -253,6 +258,56 @@
       "overdueBadge": "Прострочено",
       "scheduledBadge": "Заплановано",
       "payAction": "Позначити як сплачено"
+    },
+    "fireProgress": {
+      "title": "Прогрес FIRE",
+      "config": {
+        "style": {
+          "label": "Стиль",
+          "ring": "Кільце",
+          "numbers": "Цифри"
+        }
+      },
+      "openPlan": "Відкрити план FIRE",
+      "loadFailed": "Не вдалося завантажити прогрес FIRE.",
+      "toType": "до {type}",
+      "ringLabelFor": "Ціль {type} досягнуто на {pct}%, залишилось {duration}",
+      "ringLabelReachedFor": "Ціль {type} досягнуто",
+      "ringLabelUnreachableFor": "Ціль {type} досягнуто на {pct}%, недосяжно за вашого поточного темпу",
+      "timeTo": "Час до {type}",
+      "unitYears": "{n} рік | {n} роки | {n} років",
+      "unitMonths": "{n} місяць | {n} місяці | {n} місяців",
+      "atAge": "у віці {age}",
+      "nextMilestone": "Наступний етап",
+      "saved": "Накопичено",
+      "progress": "Прогрес",
+      "coastFire": "Coast FIRE",
+      "reached": "Досягнуто",
+      "milestoneIn": "{pct}% через {duration}",
+      "typeNumber": "Число {type}",
+      "atRate": "за ставки {rate}%",
+      "milestonesReached": "{n} з {total} етапів",
+      "balanceOfTarget": "{balance} з {target}",
+      "reachedType": "{type} досягнуто",
+      "supports": "Забезпечує {amount}/міс",
+      "pctOfSpending": "{pct}% витрат",
+      "unreachable": "Недосяжно за поточних заощаджень",
+      "needs": "Потрібно близько {amount}/міс, щоб досягти цілі за {duration}",
+      "chart": {
+        "today": "Сьогодні",
+        "typeTarget": "{type} · {amount}",
+        "ariaLabel": "Шлях чистого капіталу: фактична історія до сьогодні, прогноз до вашого числа FIRE"
+      },
+      "setup": {
+        "title": "Сплануйте свій шлях до FIRE",
+        "description": "Використовує ваші рахунки та витрати. Якщо даних ще немає, достатньо двох чисел.",
+        "action": "Налаштувати"
+      },
+      "locked": {
+        "title": "Сплануйте свій шлях до FIRE",
+        "description": "Функція Plus",
+        "action": "Розблокувати"
+      }
     }
   }
 }

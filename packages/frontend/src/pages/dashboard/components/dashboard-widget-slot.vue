@@ -1,16 +1,15 @@
 <script lang="ts" setup>
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import WidgetSkeleton from '@/components/widgets/components/widget-skeleton.vue';
-import type { WidgetSize } from '@/components/widgets/widget-registry';
+import type { WidgetConfigOption, WidgetSize } from '@/components/widgets/widget-registry';
 import { WIDGET_REGISTRY } from '@/components/widgets/widget-registry';
+import { cn } from '@/lib/utils';
 import { GripVerticalIcon, XIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, provide, toRef } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 import type { Period } from '../types';
-
-const { t } = useI18n();
 
 const props = defineProps<{
   widgetConfig: DashboardWidgetConfig;
@@ -60,20 +59,22 @@ const componentProps = computed(() => {
 const isSizeActive = (size: WidgetSize) =>
   props.widgetConfig.colSpan === size.colSpan && (props.widgetConfig.rowSpan ?? 1) === size.rowSpan;
 
-const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) => {
-  const current = props.widgetConfig.config?.[key] ?? '';
-  return current === value;
-};
+const isConfigChoiceActive = ({ option, value }: { option: WidgetConfigOption; value: string }) =>
+  (props.widgetConfig.config?.[option.key] ?? option.defaultValue ?? '') === value;
 </script>
 
 <template>
-  <div v-if="def" :class="['relative h-full', colSpanClass, rowSpanClass]">
-    <component :is="asyncComponent" v-bind="componentProps" />
+  <div v-if="def" :data-widget-id="widgetConfig.widgetId" :class="['relative h-full', colSpanClass, rowSpanClass]">
+    <!-- Edit-mode only: always-on isolation would trap widgets' fixed z-50 panels
+         (spike-transactions-panel, balance-trend tooltip) under the header. -->
+    <div :class="cn('h-full', isEditMode && 'relative isolate')" :inert="isEditMode">
+      <component :is="asyncComponent" v-bind="componentProps" />
+    </div>
 
     <!-- Edit overlay -->
     <div
       v-if="isEditMode"
-      class="border-primary/50 pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-dashed"
+      class="border-primary/50 pointer-events-none absolute inset-0 z-(--z-over-default) rounded-lg border-2 border-dashed"
     >
       <!-- Bottom toolbar -->
       <div
@@ -94,6 +95,7 @@ const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) =>
                 'rounded px-2 py-0.5 text-xs transition-colors',
                 isSizeActive(size) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground',
               ]"
+              :aria-pressed="isSizeActive(size)"
               @click="emit('resize', widgetConfig.widgetId, size.colSpan, size.rowSpan)"
             >
               {{ size.label }}
@@ -104,6 +106,8 @@ const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) =>
           <div
             v-for="option in def.configOptions ?? []"
             :key="option.key"
+            role="group"
+            :aria-label="$t(option.label)"
             class="flex items-center gap-0.5 rounded-md border p-0.5"
           >
             <button
@@ -111,25 +115,29 @@ const isConfigChoiceActive = ({ key, value }: { key: string; value: string }) =>
               :key="choice.value"
               :class="[
                 'rounded px-2 py-0.5 text-xs transition-colors',
-                isConfigChoiceActive({ key: option.key, value: choice.value })
+                isConfigChoiceActive({ option, value: choice.value })
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted text-muted-foreground',
               ]"
+              :aria-pressed="isConfigChoiceActive({ option, value: choice.value })"
               @click="emit('config-change', widgetConfig.widgetId, option.key, choice.value)"
             >
-              {{ t(choice.label) }}
+              {{ $t(choice.label) }}
             </button>
           </div>
         </div>
 
-        <Button
-          variant="destructive"
-          size="icon-sm"
-          :disabled="!canRemove"
-          @click="emit('remove', widgetConfig.widgetId)"
-        >
-          <XIcon class="size-3.5" />
-        </Button>
+        <DesktopOnlyTooltip :content="$t('dashboard.editMode.removeWidget')">
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            :disabled="!canRemove"
+            :aria-label="$t('dashboard.editMode.removeWidget')"
+            @click="emit('remove', widgetConfig.widgetId)"
+          >
+            <XIcon class="size-3.5" />
+          </Button>
+        </DesktopOnlyTooltip>
       </div>
     </div>
   </div>

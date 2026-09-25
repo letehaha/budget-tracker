@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, API_RESPONSE_STATUS, Entitlements, Feature } from '@bt/shared/types';
+import { API_ERROR_CODES, API_RESPONSE_STATUS, Entitlements, FEATURES, Feature } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
 import { API_PREFIX } from '@root/config';
 import { type FeatureAccess, getFeatureAccess } from '@services/entitlements/feature-trial.service';
@@ -60,6 +60,10 @@ export const requireFeature =
       next(error);
     }
   };
+
+/** A settings PATCH touching the `fire` slice needs the FIRE planner. */
+export const requireFireSettingsAccess = (req: Request, res: Response, next: NextFunction) =>
+  req.body?.fire === undefined ? next() : requireFeature(FEATURES.fire_planner)(req, res, next);
 
 /** Whether the feature is covered by the plan, by a free try, or not at all. */
 export const getRequestFeatureAccess = async ({

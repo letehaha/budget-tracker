@@ -1,9 +1,13 @@
-import type {
-  AutomationAction,
-  AutomationConditionField,
-  AutomationConditions,
-  BackupFileName,
-  RecordId,
+import {
+  type AutomationAction,
+  type AutomationConditionField,
+  type AutomationConditions,
+  type BackupFileName,
+  type FireSettings,
+  getPortfolioIdFromIndicatorId,
+  isPortfolioIndicatorId,
+  makePortfolioIndicatorId,
+  type RecordId,
 } from '@bt/shared/types';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -11,6 +15,7 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
+import Portfolios from '@models/investments/portfolios.model';
 import Notifications from '@models/notifications.model';
 import Payees from '@models/payees.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
@@ -316,5 +321,29 @@ export function remapSavedPivotViewIds({ views, insertedIds }: { views: unknown;
     remapIdArrayInPlace({ arr: config.accountIds, targetTable: accounts, insertedIds });
     remapIdArrayInPlace({ arr: config.categoryIds, targetTable: categories, insertedIds });
     remapIdArrayInPlace({ arr: config.payeeIds, targetTable: payees, insertedIds });
+  }
+}
+
+/** Remap FIRE category ids and the `portfolio:<id>` return indicator in place. Every restored
+ *  row is in `insertedIds`, so an unmapped id is dangling: it's dropped, and the indicator falls
+ *  back to its default. */
+export function remapFireSettingsIds({
+  fire,
+  insertedIds,
+}: {
+  fire: FireSettings | undefined;
+  insertedIds: InsertedIds;
+}): void {
+  if (!fire) return;
+  const categories = insertedIds.get(String(Categories.getTableName()));
+  const portfolios = insertedIds.get(String(Portfolios.getTableName()));
+
+  if (fire.spendingExcludedCategoryIds) {
+    fire.spendingExcludedCategoryIds = fire.spendingExcludedCategoryIds.flatMap((id) => categories?.get(id) ?? []);
+  }
+  if (fire.returnIndicatorId && isPortfolioIndicatorId({ id: fire.returnIndicatorId })) {
+    const portfolioId = portfolios?.get(getPortfolioIdFromIndicatorId({ id: fire.returnIndicatorId }));
+    if (portfolioId) fire.returnIndicatorId = makePortfolioIndicatorId({ portfolioId });
+    else delete fire.returnIndicatorId;
   }
 }

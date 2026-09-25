@@ -48,6 +48,7 @@ export const FEATURES = {
   data_export: 'data_export',
   attachments: 'attachments',
   invoice_matching: 'invoice_matching',
+  fire_planner: 'fire_planner',
 } as const;
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
 
@@ -56,6 +57,18 @@ export const FEATURE_TRIAL_LIMITS: Partial<Record<Feature, number>> = {
   [FEATURES.invoice_matching]: 5,
 };
 export const TRIALABLE_FEATURES = Object.keys(FEATURE_TRIAL_LIMITS) as Feature[];
+
+/** Features a user without the entitlement may use for this many days from first open. */
+export const FEATURE_TRIAL_DAYS = {
+  [FEATURES.fire_planner]: 14,
+} as const satisfies Partial<Record<Feature, number>>;
+export type DayTrialableFeature = keyof typeof FEATURE_TRIAL_DAYS;
+export const DAY_TRIALABLE_FEATURES = Object.keys(FEATURE_TRIAL_DAYS) as DayTrialableFeature[];
+
+export interface FeatureTrial {
+  startedAt: string;
+  endsAt: string;
+}
 
 const ESSENTIAL_FEATURES: readonly Feature[] = [
   FEATURES.backup_export,
@@ -68,6 +81,7 @@ const PLUS_FEATURES: readonly Feature[] = [
   FEATURES.bank_providers,
   FEATURES.operator_ai,
   FEATURES.invoice_matching,
+  FEATURES.fire_planner,
 ];
 /** Plus as of launch (2026-09-15). Deliberately not a reference to PLUS_FEATURES: features added later are paid for early adopters. */
 const EARLY_ADOPTER_FEATURES: readonly Feature[] = [
@@ -121,6 +135,8 @@ export interface Entitlements {
   subscriptions: BillingSubscriptionSummary[];
   /** Tries already spent against `FEATURE_TRIAL_LIMITS`. Absent key means zero. */
   trialUsage: Partial<Record<Feature, number>>;
+  /** Day-based feature trials that were started. Active ones are already merged into `features`. */
+  featureTrials: Partial<Record<Feature, FeatureTrial>>;
 }
 
 /** Access continues while the status is entitled and the paid period has not elapsed. */

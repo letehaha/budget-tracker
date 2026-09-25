@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, UserInfoResponse } from '@bt/shared/types';
+import { API_ERROR_CODES, DAY_TRIALABLE_FEATURES, UserInfoResponse } from '@bt/shared/types';
 import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
@@ -7,6 +7,7 @@ import { isAdminUsername } from '@middlewares/admin-only';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import { resolveEntitlements } from '@services/entitlements/resolve-entitlements.service';
+import { startFeatureTrial as startFeatureTrialService } from '@services/entitlements/start-feature-trial.service';
 import { getEmailForUser } from '@services/sharing/find-user-by-email.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
@@ -36,6 +37,15 @@ export const getUser = createController(z.object({}), async ({ user }) => {
     } satisfies UserInfoResponse,
   };
 });
+
+export const startFeatureTrial = createController(
+  z.object({
+    params: z.object({ feature: z.enum(DAY_TRIALABLE_FEATURES) }),
+  }),
+  async ({ user, params }) => ({
+    data: await startFeatureTrialService({ userId: user.id, feature: params.feature }),
+  }),
+);
 
 export const updateUser = createController(
   z.object({

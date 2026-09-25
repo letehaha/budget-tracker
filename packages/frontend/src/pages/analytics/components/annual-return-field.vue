@@ -4,20 +4,21 @@
       :model-value="selectedOption"
       :values="options"
       :option-disabled="isOptionDisabled"
-      :label="$t('analytics.investmentCalculator.annualReturn')"
+      :label="hideLabel ? undefined : $t('analytics.investmentCalculator.annualReturn')"
       :placeholder="$t('analytics.investmentCalculator.annualReturnPlaceholder')"
       label-key="label"
       value-key="id"
       @update:model-value="handleChange($event)"
     />
 
-    <!-- Manual rate, shown only when the user picks "Custom". -->
     <div v-if="indicatorId === CUSTOM_INDICATOR_ID" class="mt-2">
       <InputField
         :model-value="rate"
         type="number"
+        :aria-label="$t('analytics.investmentCalculator.annualReturn')"
         :placeholder="$t('analytics.investmentCalculator.customReturnRate')"
-        @update:model-value="$emit('update:rate', toNumber($event))"
+        @update:model-value="onRateInput({ value: $event })"
+        @blur="onRateBlur({ event: $event })"
       >
         <template #iconTrailing>
           <PercentIcon class="text-muted-foreground size-4" />
@@ -36,16 +37,18 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
+  buildReturnOptions,
   CUSTOM_INDICATOR_ID,
-  getPortfolioIdFromIndicatorId,
-  isPortfolioIndicatorId,
-  makePortfolioIndicatorId,
   MARKET_INDICATORS,
-} from '../../investment-calculator/composables/market-indicators';
+  type ReturnOption,
+} from '@/pages/analytics/utils/market-indicators';
+import { getPortfolioIdFromIndicatorId, isPortfolioIndicatorId } from '@bt/shared/types';
 
 const props = defineProps<{
   indicatorId: string;
-  rate: number;
+  rate: number | null;
+  formatPresetLabel?: (params: { label: string; nominalPct: number }) => string;
+  hideLabel?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -58,54 +61,28 @@ const { t } = useI18n();
 const { data: portfolioReturnsData } = usePortfoliosAnnualizedReturns();
 const portfolioReturns = computed(() => portfolioReturnsData.value ?? []);
 
-interface SelectOption {
-  id: string;
-  label: string;
-  disabled?: boolean;
-}
-
-const toNumber = (value: string | number | null): number => {
-  if (value === null || value === '') return 0;
-  return Number(value) || 0;
+// A number input part-way through "6." or cleared reports '', which must not overwrite the last valid rate.
+const onRateInput = ({ value }: { value: string | number | null }) => {
+  if (value === null || value === '') return;
+  const rate = Number(value);
+  if (Number.isFinite(rate)) emit('update:rate', rate);
 };
 
-// The user's own portfolios first (their tracked performance), then the static
-// market indices, then the manual "Custom" entry. A portfolio without enough
-// history is listed disabled so the option stays discoverable.
-const portfolioOptions = computed<SelectOption[]>(() =>
-  portfolioReturns.value.map((portfolio) =>
-    // `annualizedReturn !== null` is the backend's own "has enough history" gate,
-    // so it doubles as the "selectable?" flag here.
-    portfolio.annualizedReturn !== null
-      ? {
-          id: makePortfolioIndicatorId({ portfolioId: portfolio.portfolioId }),
-          label: t('analytics.investmentCalculator.portfolioReturnOption', {
-            name: portfolio.portfolioName,
-            rate: portfolio.annualizedReturn.toFixed(1),
-          }),
-        }
-      : {
-          id: makePortfolioIndicatorId({ portfolioId: portfolio.portfolioId }),
-          label: t('analytics.investmentCalculator.portfolioNoHistoryOption', { name: portfolio.portfolioName }),
-          disabled: true,
-        },
-  ),
-);
+// The ignored '' never reaches the model, so InputField has no change to re-render; restore the rate in use.
+const onRateBlur = ({ event }: { event: FocusEvent }) => {
+  const input = event.target as HTMLInputElement;
+  if (input.value === '' && props.rate !== null) input.value = String(props.rate);
+};
 
-const options = computed<SelectOption[]>(() => [
-  ...portfolioOptions.value,
-  ...MARKET_INDICATORS.map((indicator) => ({
-    id: indicator.id,
-    label: `${indicator.label} (~${indicator.avgAnnualReturn}%/yr)`,
-  })),
-  { id: CUSTOM_INDICATOR_ID, label: t('analytics.investmentCalculator.customIndicator') },
-]);
+const options = computed(() =>
+  buildReturnOptions({ portfolioReturns: portfolioReturns.value, t, formatPresetLabel: props.formatPresetLabel }),
+);
 
 const selectedOption = computed(() => options.value.find((option) => option.id === props.indicatorId) ?? null);
 
-const isOptionDisabled = (option: SelectOption): boolean => option.disabled === true;
+const isOptionDisabled = (option: ReturnOption): boolean => option.disabled === true;
 
-const handleChange = (option: SelectOption | null) => {
+const handleChange = (option: ReturnOption | null) => {
   if (!option || isOptionDisabled(option)) return;
   emit('update:indicatorId', option.id);
 

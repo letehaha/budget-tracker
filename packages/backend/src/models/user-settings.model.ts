@@ -4,6 +4,9 @@ import {
   AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
   AI_FEATURE,
   AI_PROVIDER,
+  FIRE_LIMITS,
+  FIRE_MAX_EXCLUDED_CATEGORIES,
+  FIRE_TARGET_TYPES,
   MAX_AI_CONNECTIONS,
   MAX_CATEGORY_MAPPING_PRESETS,
   NOTIFICATION_TYPES,
@@ -11,7 +14,7 @@ import {
   TRANSACTION_OPTIONAL_FIELDS,
   endpointsTypes,
 } from '@bt/shared/types';
-import type { CategoryMappingPreset, Equals, Expect, MutuallyAssignable } from '@bt/shared/types';
+import type { CategoryMappingPreset, Equals, Expect, FireSettings, MutuallyAssignable } from '@bt/shared/types';
 import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { IdColumn } from '@common/types/id-column';
 import {
@@ -246,6 +249,29 @@ const ZodSavedPivotViewSchema = z.object({
   config: ZodSavedPivotViewConfigSchema,
 });
 
+const fireRange = ({ key }: { key: keyof typeof FIRE_LIMITS }) =>
+  z.number().min(FIRE_LIMITS[key].min).max(FIRE_LIMITS[key].max);
+
+// No `.default()` anywhere: the PATCH deep merge would write defaults over stored values.
+const ZodFireSettingsSchema = z.object({
+  annualSpendingOverride: z.number().min(0).nullable().optional(),
+  monthlyContributionOverride: z.number().nullable().optional(),
+  spendingExcludedCategoryIds: z.array(z.uuid()).max(FIRE_MAX_EXCLUDED_CATEGORIES).optional(),
+  includeVentures: z.boolean().optional(),
+  includeVehicles: z.boolean().optional(),
+  includeLoans: z.boolean().optional(),
+  returnIndicatorId: z.string().max(64).optional(),
+  customReturnPct: fireRange({ key: 'customReturnPct' }).nullable().optional(),
+  inflationPct: fireRange({ key: 'inflationPct' }).optional(),
+  withdrawalRatePct: fireRange({ key: 'withdrawalRatePct' }).optional(),
+  leanMultiplier: fireRange({ key: 'leanMultiplier' }).optional(),
+  fatMultiplier: fireRange({ key: 'fatMultiplier' }).optional(),
+  baristaMonthlyIncome: z.number().min(0).nullable().optional(),
+  birthYear: fireRange({ key: 'birthYear' }).int().nullable().optional(),
+  coastTargetAge: fireRange({ key: 'coastTargetAge' }).int().optional(),
+  targetType: z.enum(FIRE_TARGET_TYPES).optional(),
+});
+
 export const ZodSettingsSchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES).default(SUPPORTED_LOCALES.ENGLISH),
   ai: ZodAiSettingsSchema.optional(),
@@ -284,6 +310,7 @@ export const ZodSettingsSchema = z.object({
   // recordId(): the branded RecordId output breaks the SettingsPatchSchemaIsInSync assertion below.
   savingsCategoryIds: z.array(z.uuid()).optional(),
   currencyDisplay: z.enum(endpointsTypes.CURRENCY_DISPLAY_PREFERENCES).optional(),
+  fire: ZodFireSettingsSchema.optional(),
 });
 
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
@@ -381,6 +408,7 @@ export const ZodSettingsPatchSchema = z.object({
   importPendingBankTransactions: z.boolean().optional(),
   savingsCategoryIds: z.array(z.uuid()).optional(),
   currencyDisplay: z.enum(endpointsTypes.CURRENCY_DISPLAY_PREFERENCES).optional(),
+  fire: ZodFireSettingsSchema.optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
@@ -405,6 +433,9 @@ type PatchableSettings = Omit<SettingsSchema, 'onboarding' | 'ai'> & {
  * @public exported only so the assertion isn't flagged as unused.
  */
 export type SettingsPatchSchemaIsInSync = Expect<Equals<SettingsPatchSchema, DeepPartial<PatchableSettings>>>;
+
+/** @public exported only so the assertion isn't flagged as unused. */
+export type FireSettingsSchemaIsInSync = Expect<Equals<z.infer<typeof ZodFireSettingsSchema>, FireSettings>>;
 
 /**
  * Compile-time drift guard: the persisted saved-pivot-view schema must infer exactly the shared

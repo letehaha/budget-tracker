@@ -57,6 +57,7 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'PATCH /api/v1/user/settings',
   'POST /api/v1/user/backup',
   'POST /api/v1/user/data-export',
+  'POST /api/v1/user/feature-trials/:feature',
   'POST /api/v1/user/settings/ai/connections',
   'POST /api/v1/user/settings/ai/connections/:id/default',
   'POST /api/v1/user/settings/ai/connections/models',

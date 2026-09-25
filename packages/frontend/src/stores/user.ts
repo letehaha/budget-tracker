@@ -1,4 +1,4 @@
-import { loadUserData } from '@/api';
+import { loadUserData, startFeatureTrial as startFeatureTrialApi } from '@/api';
 import { isBillingEnabled, liveSubscription } from '@/common/const/billing';
 import {
   FEATURE_TRIAL_LIMITS,
@@ -8,9 +8,11 @@ import {
   isTerminalSubscription,
   type Feature,
 } from '@bt/shared/types';
-import { differenceInCalendarDays } from 'date-fns';
+import { differenceInCalendarDays, differenceInHours, isFuture } from 'date-fns';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+
+const HOURS_PER_DAY = 24;
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<UserInfoResponse | null>(null);
@@ -34,6 +36,20 @@ export const useUserStore = defineStore('user', () => {
     if (!limit || !entitlements.value || hasFeature(feature)) return null;
 
     return Math.max(0, limit - (entitlements.value.trialUsage[feature] ?? 0));
+  };
+
+  /** Days left in a started day-based feature trial; null when none is running. */
+  const featureTrialDaysLeft = ({ feature }: { feature: Feature }): number | null => {
+    const trial = entitlements.value?.featureTrials?.[feature];
+    if (!trial || !isFuture(new Date(trial.endsAt))) return null;
+
+    return Math.ceil(differenceInHours(new Date(trial.endsAt), new Date(), { roundingMethod: 'ceil' }) / HOURS_PER_DAY);
+  };
+
+  const startFeatureTrial = async ({ feature }: { feature: Feature }) => {
+    const next = await startFeatureTrialApi({ feature });
+    if (user.value) user.value.entitlements = next;
+    else await loadUser();
   };
 
   const isReadOnly = computed(() => Boolean(entitlements.value?.readOnly));
@@ -67,6 +83,8 @@ export const useUserStore = defineStore('user', () => {
     hasFeature,
     isFeatureGated,
     featureTriesLeft,
+    featureTrialDaysLeft,
+    startFeatureTrial,
     isReadOnly,
     isPastDue,
     hasSubscriptions,

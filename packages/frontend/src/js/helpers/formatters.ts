@@ -182,11 +182,17 @@ export function formatUIAmount(
   value: number,
   {
     currency,
+    fractionDigits,
   }: {
     currency?: Intl.NumberFormatOptions['currency'];
+    fractionDigits?: number;
   } = {},
 ): string {
-  if (value === Infinity || Number.isNaN(value)) return String(value);
+  if (!Number.isFinite(value)) return String(value);
 
-  return toLocalFiatCurrency(value, { currency });
+  return toLocalFiatCurrency(value, {
+    currency,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
 }

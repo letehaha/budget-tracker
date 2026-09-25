@@ -399,6 +399,13 @@
     "uk": "банківське округлення"
   },
   {
+    "term": "Barista FIRE",
+    "partOfSpeech": "proper noun",
+    "definition": "A FIRE variant where the user leaves full-time work for part-time or lower-paid work that covers some expenses while savings cover the rest. Keep the name untranslated.",
+    "translatable": false,
+    "uk": "Barista FIRE"
+  },
+  {
     "term": "base amount",
     "partOfSpeech": "noun",
     "definition": "A transaction's amount converted into the user's base currency, used for totals, statistics and budget limits. Also called \"ref amount\". Not the original (foreign-currency) amount.",
@@ -724,6 +731,13 @@
     "definition": "A holding whose units have all been sold, listed separately from open holdings in a portfolio.",
     "translatable": true,
     "uk": "закрита позиція"
+  },
+  {
+    "term": "Coast FIRE",
+    "partOfSpeech": "proper noun",
+    "definition": "A FIRE variant where the user stops adding new savings once invested assets are projected to grow into a full FIRE number by retirement age. Keep the name untranslated.",
+    "translatable": false,
+    "uk": "Coast FIRE"
   },
   {
     "term": "COINGECKO_API_KEY",
@@ -1320,6 +1334,13 @@
     "ukAvoid": ["витягти", "видобувати"]
   },
   {
+    "term": "Fat FIRE",
+    "partOfSpeech": "proper noun",
+    "definition": "A FIRE variant built around a generous, above-average retirement budget. Keep the name untranslated.",
+    "translatable": false,
+    "uk": "Fat FIRE"
+  },
+  {
     "term": "fee",
     "partOfSpeech": "noun",
     "definition": "A cost charged for a transaction, service or investment trade, e.g. a commission; also an investment transaction type.",
@@ -1332,6 +1353,21 @@
     "definition": "Venture event type recording a fee charged against a deal, e.g. a management fee.",
     "translatable": true,
     "uk": "оплата комісії"
+  },
+  {
+    "term": "FIRE",
+    "partOfSpeech": "noun",
+    "definition": "Financial Independence, Retire Early: saving and investing aggressively to quit paid work well before typical retirement age. Keep the acronym.",
+    "translatable": false,
+    "uk": "FIRE"
+  },
+  {
+    "term": "FIRE number",
+    "partOfSpeech": "noun",
+    "definition": "The invested amount a user needs to retire under the FIRE strategy: annual spending divided by the safe withdrawal rate.",
+    "translatable": true,
+    "uk": "число FIRE",
+    "ukNote": "«FIRE» stays in Latin script; only «число» is translated."
   },
   {
     "term": "focus mode",
@@ -1742,6 +1778,13 @@
     "definition": "Data file format, offered for data export and, next to CSV, for admin price uploads. Keep as is.",
     "translatable": false,
     "uk": "JSON"
+  },
+  {
+    "term": "Lean FIRE",
+    "partOfSpeech": "proper noun",
+    "definition": "A FIRE variant built around a minimal, low-spending retirement budget. Keep the name untranslated.",
+    "translatable": false,
+    "uk": "Lean FIRE"
   },
   {
     "term": "leave",
@@ -2958,6 +3001,14 @@
     "definition": "The US stock market index, cited in the investment calculator as a benchmark for average yearly return. Do not translate.",
     "translatable": false,
     "uk": "S&P 500"
+  },
+  {
+    "term": "safe withdrawal rate",
+    "partOfSpeech": "noun",
+    "definition": "The percentage of a retirement portfolio withdrawn in the first year (then inflation-adjusted) that is expected to last through retirement without running out.",
+    "translatable": true,
+    "uk": "безпечна ставка вилучення",
+    "ukNote": "The abbreviation SWR stays in Latin script as «SWR». Distinct from the \"withdrawal\" entry (portfolio cash-out action, «зняття»); this is the FIRE planning rate."
   },
   {
     "term": "salvage floor",

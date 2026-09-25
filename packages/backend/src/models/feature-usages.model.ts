@@ -38,6 +38,12 @@ export default class FeatureUsages extends Model {
   })
   declare usedCount: number;
 
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  declare trialStartedAt: Date | null;
+
   @BelongsTo(() => Users)
   declare user: Users;
 }

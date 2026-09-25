@@ -137,6 +137,11 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/analytics/subpages/net-worth-history/index.vue'),
           },
           {
+            path: 'fire',
+            name: ROUTES_NAMES.analyticsFire,
+            component: () => import('@/pages/analytics/subpages/fire/index.vue'),
+          },
+          {
             path: 'net-worth-drivers',
             name: ROUTES_NAMES.analyticsNetWorthDrivers,
             component: () => import('@/pages/analytics/subpages/net-worth-drivers/index.vue'),

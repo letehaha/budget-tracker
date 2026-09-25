@@ -24,7 +24,9 @@
             </PopoverTrigger>
             <PopoverContent class="w-44 space-y-2">
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Min</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMin')
+                }}</label>
                 <input
                   type="number"
                   step="any"
@@ -35,7 +37,9 @@
                 />
               </div>
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Max</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMax')
+                }}</label>
                 <input
                   type="number"
                   step="any"
@@ -87,7 +91,9 @@
             </PopoverTrigger>
             <PopoverContent class="w-44 space-y-2">
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Min</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMin')
+                }}</label>
                 <input
                   type="number"
                   step="any"
@@ -98,7 +104,9 @@
                 />
               </div>
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Max</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMax')
+                }}</label>
                 <input
                   type="number"
                   step="any"
@@ -159,7 +167,9 @@
             </PopoverTrigger>
             <PopoverContent class="w-44 space-y-2">
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Min</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMin')
+                }}</label>
                 <input
                   type="number"
                   step="1"
@@ -170,7 +180,9 @@
                 />
               </div>
               <div class="flex items-center justify-between gap-2">
-                <label class="text-muted-foreground text-xs font-medium">Max</label>
+                <label class="text-muted-foreground text-xs font-medium">{{
+                  $t('analytics.investmentCalculator.rangeMax')
+                }}</label>
                 <input
                   type="number"
                   step="1"
@@ -266,12 +278,12 @@ import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
+  buildReturnOptions,
   CUSTOM_INDICATOR_ID,
-  getPortfolioIdFromIndicatorId,
-  isPortfolioIndicatorId,
-  makePortfolioIndicatorId,
   MARKET_INDICATORS,
-} from '../composables/market-indicators';
+  type ReturnOption,
+} from '@/pages/analytics/utils/market-indicators';
+import { getPortfolioIdFromIndicatorId, isPortfolioIndicatorId } from '@bt/shared/types';
 import type { NetIncomePeriod } from '../composables/use-seed-data';
 import type { PortfolioAnnualizedReturnModel } from '@bt/shared/types/investments/portfolio-annualized-return.model';
 
@@ -287,12 +299,6 @@ const MAX_INFLATION = 15;
 const DEFAULT_BALANCE_MAX = 100_000;
 const DEFAULT_CONTRIBUTION_MAX = 10_000;
 const DEFAULT_HORIZON_MAX = 20;
-
-interface SelectOption {
-  id: string;
-  label: string;
-  disabled?: boolean;
-}
 
 const props = defineProps<{
   initialBalance: number;
@@ -410,48 +416,15 @@ const netIncomePeriods: { value: NetIncomePeriod; label: string }[] = [
   { value: 'all', label: 'All' },
 ];
 
-// User's own portfolios first (their tracked performance), then the static
-// market indices, then the manual "Custom" entry. Portfolios without enough
-// history are listed disabled so the option is still discoverable.
-const portfolioOptions = computed<SelectOption[]>(() =>
-  // `annualizedReturn !== null` is the single source of truth — the backend only
-  // sets it when the history is long enough, so it doubles as the "selectable?" gate.
-  props.portfolioReturns.map((p) =>
-    p.annualizedReturn !== null
-      ? {
-          id: makePortfolioIndicatorId({ portfolioId: p.portfolioId }),
-          label: t('analytics.investmentCalculator.portfolioReturnOption', {
-            name: p.portfolioName,
-            rate: p.annualizedReturn.toFixed(1),
-          }),
-        }
-      : {
-          id: makePortfolioIndicatorId({ portfolioId: p.portfolioId }),
-          label: t('analytics.investmentCalculator.portfolioNoHistoryOption', { name: p.portfolioName }),
-          disabled: true,
-        },
-  ),
-);
-
-const indicatorOptions = computed<SelectOption[]>(() => [
-  ...portfolioOptions.value,
-  ...MARKET_INDICATORS.map((i) => ({
-    id: i.id,
-    label: `${i.label} (~${i.avgAnnualReturn}%/yr)`,
-  })),
-  {
-    id: CUSTOM_INDICATOR_ID,
-    label: t('analytics.investmentCalculator.customIndicator'),
-  },
-]);
+const indicatorOptions = computed(() => buildReturnOptions({ portfolioReturns: props.portfolioReturns, t }));
 
 const selectedIndicatorOption = computed(
   () => indicatorOptions.value.find((o) => o.id === props.selectedIndicatorId) ?? null,
 );
 
-const isOptionDisabled = (option: SelectOption): boolean => option.disabled === true;
+const isOptionDisabled = (option: ReturnOption): boolean => option.disabled === true;
 
-const handleIndicatorChange = (option: SelectOption | null) => {
+const handleIndicatorChange = (option: ReturnOption | null) => {
   if (!option || isOptionDisabled(option)) return;
   emit('update:selectedIndicatorId', option.id);
 

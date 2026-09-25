@@ -1,4 +1,13 @@
-import { type Entitlements, FEATURE_TRIAL_LIMITS, type Feature, TRIALABLE_FEATURES } from '@bt/shared/types';
+import {
+  DAY_TRIALABLE_FEATURES,
+  type DayTrialableFeature,
+  type Entitlements,
+  FEATURE_TRIAL_DAYS,
+  FEATURE_TRIAL_LIMITS,
+  type Feature,
+  type FeatureTrial,
+  TRIALABLE_FEATURES,
+} from '@bt/shared/types';
 import FeatureUsages from '@models/feature-usages.model';
 import { Op, QueryTypes } from 'sequelize';
 
@@ -11,6 +20,45 @@ export const getTrialUsage = async ({ userId }: { userId: number }): Promise<Par
   });
 
   return Object.fromEntries(rows.map((row) => [row.feature, row.usedCount]));
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const getFeatureTrials = async ({
+  userId,
+}: {
+  userId: number;
+}): Promise<Partial<Record<Feature, FeatureTrial>>> => {
+  const rows = await FeatureUsages.findAll({
+    where: { userId, feature: { [Op.in]: DAY_TRIALABLE_FEATURES }, trialStartedAt: { [Op.ne]: null } },
+    attributes: ['feature', 'trialStartedAt'],
+  });
+
+  return Object.fromEntries(
+    rows.map(({ feature, trialStartedAt }) => {
+      const startedAt = trialStartedAt!;
+      return [
+        feature,
+        {
+          startedAt: startedAt.toISOString(),
+          endsAt: new Date(
+            startedAt.getTime() + FEATURE_TRIAL_DAYS[feature as DayTrialableFeature] * DAY_MS,
+          ).toISOString(),
+        },
+      ];
+    }),
+  );
+};
+
+export const isFeatureTrialActive = ({
+  featureTrials,
+  feature,
+}: {
+  featureTrials: Entitlements['featureTrials'];
+  feature: Feature;
+}): boolean => {
+  const trial = featureTrials[feature];
+  return !!trial && new Date(trial.endsAt).getTime() > Date.now();
 };
 
 /**
