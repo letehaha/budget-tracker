@@ -310,6 +310,7 @@ export async function setupDashboardSettings({
         { widgetId: 'latest-records', colSpan: 1, rowSpan: 1 },
         { widgetId: 'cash-flow', colSpan: 1, rowSpan: 1 },
         { widgetId: 'spending-categories', colSpan: 1, rowSpan: 1 },
+        { widgetId: 'fire-progress', colSpan: 1, rowSpan: 1 },
         { widgetId: 'category-spending-tracker', colSpan: 1, rowSpan: 1, config: { selectedCategoryIds } },
         { widgetId: 'credit-utilization', colSpan: 1, rowSpan: 1 },
         { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1 },
