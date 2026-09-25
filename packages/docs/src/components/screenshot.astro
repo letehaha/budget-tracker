@@ -1,5 +1,5 @@
 ---
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 interface Props {
@@ -15,20 +15,54 @@ const inPublic = (path: string) => existsSync(join(process.cwd(), 'public', path
 const lightSrc = inPublic(src) ? src : undefined;
 const dark = src.replace(/\.png$/, '.dark.png');
 const darkSrc = lightSrc && inPublic(dark) ? dark : undefined;
+// PNG IHDR: width and height are the big-endian ints at bytes 16 and 20.
+const pngSize = (path: string) => {
+  const buf = readFileSync(join(process.cwd(), 'public', path));
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+};
+const size = lightSrc ? pngSize(lightSrc) : undefined;
+// Captures are 2x, so the natural display width is half the pixel width.
+const cssWidth = size ? Math.round(size.width / 2) : undefined;
+const tall = size ? size.height / size.width > 2 : false;
 // Missing screenshots are hidden in production builds so placeholders never reach readers.
 const render = lightSrc || import.meta.env.DEV;
 ---
 
 {
   render && (
-    <figure class="screenshot">
-      {darkSrc ? (
+    <figure class="screenshot" data-tall={tall || undefined}>
+      {lightSrc ? (
         <>
-          <img class="dark:sl-hidden" src={lightSrc} alt={alt} loading="lazy" />
-          <img class="light:sl-hidden" src={darkSrc} alt={alt} loading="lazy" />
+          <button
+            type="button"
+            class="screenshot-frame"
+            style={`max-width: ${cssWidth}px`}
+            aria-label="Open the full screenshot"
+          >
+            {darkSrc ? (
+              <>
+                <img class="dark:sl-hidden" src={lightSrc} alt={alt} loading="lazy" {...size} />
+                <img class="light:sl-hidden" src={darkSrc} alt={alt} loading="lazy" {...size} />
+              </>
+            ) : (
+              <img src={lightSrc} alt={alt} loading="lazy" {...size} />
+            )}
+          </button>
+          <dialog class="screenshot-dialog">
+            <form method="dialog">
+              <button type="submit" aria-label="Close">✕</button>
+            </form>
+            {darkSrc ? (
+              <>
+                <img class="dark:sl-hidden" src={lightSrc} alt={alt} loading="lazy" {...size} />
+                <img class="light:sl-hidden" src={darkSrc} alt={alt} loading="lazy" {...size} />
+              </>
+            ) : (
+              <img src={lightSrc} alt={alt} loading="lazy" {...size} />
+            )}
+          </dialog>
+          {tall && <p class="screenshot-note">Click to see the whole screenshot.</p>}
         </>
-      ) : lightSrc ? (
-        <img src={lightSrc} alt={alt} loading="lazy" />
       ) : (
         <div class="screenshot-placeholder">
           <strong>Screenshot needed: {src}</strong>
@@ -41,15 +75,97 @@ const render = lightSrc || import.meta.env.DEV;
   )
 }
 
+<script>
+  document.querySelectorAll<HTMLElement>('.screenshot').forEach((figure) => {
+    const dialog = figure.querySelector('dialog');
+    if (!dialog) return;
+    figure.querySelector('.screenshot-frame')?.addEventListener('click', () => dialog.showModal());
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+  });
+</script>
+
 <style>
   .screenshot img {
+    height: auto;
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.5rem;
   }
+  .screenshot-frame {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    line-height: 0;
+    cursor: zoom-in;
+  }
+  .screenshot-frame:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+  .screenshot[data-tall] .screenshot-frame {
+    max-height: min(70vh, 32rem);
+    overflow: hidden;
+  }
+  .screenshot[data-tall] .screenshot-frame::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 6rem;
+    background: linear-gradient(to bottom, transparent, var(--sl-color-bg));
+    pointer-events: none;
+  }
+  .screenshot-note,
   .screenshot figcaption {
     margin-top: 0.5rem;
     font-size: var(--sl-text-sm);
     color: var(--sl-color-gray-3);
+  }
+  .screenshot-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    background: var(--sl-color-bg);
+    line-height: 0;
+    overflow: hidden;
+  }
+  .screenshot-dialog::backdrop {
+    background: rgb(0 0 0 / 0.7);
+  }
+  .screenshot-dialog img {
+    width: auto;
+    height: auto;
+    max-width: 96vw;
+    max-height: 94vh;
+    border: 0;
+    border-radius: 0;
+  }
+  .screenshot-dialog form {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: flex-end;
+    height: 0;
+    margin: 0;
+  }
+  .screenshot-dialog form button {
+    margin: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-white);
+    cursor: pointer;
   }
   .screenshot-placeholder {
     display: flex;
