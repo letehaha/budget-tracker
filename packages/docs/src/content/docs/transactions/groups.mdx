@@ -1,0 +1,81 @@
+---
+title: Transaction groups
+description: Bundle related transactions under one name and see their combined net result, without creating a tag or category for it.
+sidebar:
+  order: 7
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import Screenshot from '~/components/screenshot.astro';
+
+A group bundles a handful of related transactions under one name and shows you what they add up to. It answers questions like "how much did that actually cost me?" when the answer is spread over several payments.
+
+## Why use a group
+
+Say your doctor puts you on a treatment plan. Over the next few weeks you buy the drugs in four trips to two different pharmacies. Each purchase lands in your list as a separate expense, mixed in with everything else you bought at the pharmacy that month.
+
+To see what the treatment cost you in drugs, select those four purchases and group them as "Treatment plan: drugs". The group shows the total right away.
+
+You could get the same number with a tag or a category, but for a one-off question that's more than you need:
+
+- A **category** changes how the purchases count in your stats. The drugs are still pharmacy spending, and you probably want them to stay that way.
+- A **tag** is meant to be reused. One made for a single treatment clutters your tag list and every tag picker from then on.
+- A **group** changes nothing. The transactions keep their category, tags and amounts, and your stats stay exactly as they were. The group only collects them and adds them up.
+
+Other things groups are good for:
+
+- The costs of a trip or an event, spread over several accounts.
+- A purchase you paid in instalments.
+- A salary and the transfer you made from it right after.
+- An expense and the money a friend or your insurer paid you back for it. The group's **Net** shows what you actually paid in the end.
+
+## Create a group
+
+<Steps>
+
+1. Go to **Transactions** → **All Transactions** and select the transactions you want to group. Use [filters](/transactions/search-and-filter/) to find them, for example a note search or a payee.
+2. Click **Group** → **Create new group**.
+3. Enter a **Name** and, if you like, a **Note (optional)**.
+4. Click **Create Group**.
+
+</Steps>
+
+<Screenshot
+  src="/screenshots/transactions/create-group-dialog.png"
+  alt="The Create Transaction Group dialog for 4 selected transactions, with the name Treatment plan: drugs and the note Dr. Smith, September filled in."
+  hint="Desktop width, /transactions in Table view. Select the four seeded pharmacy expenses, click Group → Create new group, fill Name 'Treatment plan: drugs' and Note 'Dr. Smith, September', then click the dialog title so no button shows a focus ring. Crop to the dialog."
+/>
+
+To add more transactions later, select them and click **Group** → **Add to existing group**, pick the group (use **Search groups...** if you have many) and click **Add to Group**.
+
+## See a group's total
+
+Open a group to see its summary: how many **Transactions** it holds and the **Net**, meaning money in minus money out. If the group has both income and expenses, you also see **Money in** and **Money out** separately.
+
+<Screenshot
+  src="/screenshots/transactions/group-dialog.png"
+  alt="The Treatment plan: drugs group open, showing its date range, the note, a summary of 4 transactions with a Net of -$114.45, and the four pharmacy purchases listed below."
+  hint="Desktop width. Open /transaction-groups and click the 'Treatment plan: drugs' group. Show the title, date range, note, the Transactions and Net tiles and the four transactions. Crop to the dialog."
+/>
+
+Amounts are added up in your [base currency](/settings/base-currency-and-currencies/), so a group can mix accounts in different currencies.
+
+You can open a group from two places:
+
+- **Transactions** → **Groups** in the sidebar lists all your groups with their transaction count and date range. Use **Search groups...** to find one by name or note.
+- In the list view of **All Transactions**, a group shows as a single row with its name, transaction count and date range. Click it to open the group. When a filter other than the date is active, the row expands into its transactions instead.
+
+## Change or delete a group
+
+In the open group:
+
+- To rename it or change its note, click the three-dot menu next to the name and choose **Edit**.
+- To take a transaction out, click the **×** next to it. A group needs at least 2 transactions, so removing one from a group of two deletes the group (the button then reads **Remove & Delete Group**).
+- To delete the group, click the three-dot menu and choose **Delete Group**. You can also delete it with the bin button on the **Groups** page.
+
+Deleting a group, or removing a transaction from it, never deletes the transactions themselves.
+
+## Limits
+
+- A group holds 2 to 50 transactions.
+- A transaction can be in only one group at a time.

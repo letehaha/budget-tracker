@@ -34,8 +34,7 @@ async function signIn() {
 async function signUp() {
   await page.goto(APP + '/sign-up');
   await page.locator('input[type="email"]').fill(EMAIL);
-  const name = page.locator('form input:not([type="email"]):not([type="password"])');
-  if (await name.count()) await name.first().fill('Alex');
+  await page.getByPlaceholder('ie. John Snow').fill('Alex');
   const passwords = page.locator('input[type="password"]');
   await passwords.nth(0).fill(PASSWORD);
   await passwords.nth(1).fill(PASSWORD);
