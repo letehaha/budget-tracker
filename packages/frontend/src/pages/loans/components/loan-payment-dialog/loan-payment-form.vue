@@ -7,6 +7,7 @@ import InputField from '@/components/fields/input-field.vue';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import FormRow from '@/components/dialogs/manage-transaction/components/form-row.vue';
 import { useDeleteTransaction, useSubmitTransaction } from '@/components/dialogs/manage-transaction/composables';
+import { useDefaultPaymentType } from '@/components/dialogs/manage-transaction/composables/use-default-payment-type';
 import { useLoans, useUnlinkLoanPayment } from '@/composable/data-queries/loans';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -22,7 +23,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
-import { AccountModel, PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
+import { AccountModel, type TransactionModel } from '@bt/shared/types';
 import { helpers, minValue, required } from '@vuelidate/validators';
 import { HandCoinsIcon, InfoIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
@@ -206,11 +207,12 @@ watch(exchangeRates, () => {
 });
 
 // Update params always forward `paymentType`, so in edit mode it must reflect the stored value — a
-// fixed default would silently rewrite it. `creditCard` is only the fallback for new payments.
-const paymentType = computed(
-  () =>
-    VERBOSE_PAYMENT_TYPES.find((item) => item.value === (props.transaction?.paymentType ?? PAYMENT_TYPES.creditCard)) ??
-    null,
+// fixed default would silently rewrite it. The user's default applies to new payments only.
+const { defaultPaymentType } = useDefaultPaymentType();
+const paymentType = computed(() =>
+  props.transaction
+    ? (VERBOSE_PAYMENT_TYPES.find((item) => item.value === props.transaction?.paymentType) ?? null)
+    : defaultPaymentType.value,
 );
 
 const buildFormStruct = ({ fallbackCategory }: { fallbackCategory: FormattedCategory }): UI_FORM_STRUCT => ({
