@@ -6,7 +6,7 @@ import { computed, ref, triggerRef, watch } from 'vue';
 import { useShiftMultiSelect } from './shift-multi-select';
 
 /** Why a row is locked out of bulk selection; rows render it as an explainer tooltip in place of the checkbox. */
-export type BulkUnselectableReason = 'split' | 'sharedAccount';
+export type BulkUnselectableReason = 'sharedAccount';
 
 /**
  * Per-row bulk-selection eligibility shared by the transactions list and table.
@@ -25,7 +25,6 @@ export function useBulkSelectability() {
   };
 
   const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
-    if (tx.splits && tx.splits.length > 0) return 'split';
     if (!isBulkSelectable(tx)) return 'sharedAccount';
     return null;
   };
@@ -36,10 +35,9 @@ export function useBulkSelectability() {
 interface UseTransactionSelectionOptions {
   getTransactions: () => TransactionModel[];
   /**
-   * Optional caller-supplied predicate layered on top of the built-in selectability
-   * rules (e.g., split parents are never selectable). Lets callers lock out rows the
-   * downstream bulk endpoint can't handle, so the toolbar never offers an action
-   * that silently no-ops on submit.
+   * Optional caller-supplied predicate that locks out rows the downstream bulk
+   * endpoint can't handle, so the toolbar never offers an action that silently
+   * no-ops on submit.
    */
   isExtraSelectable?: (tx: TransactionModel) => boolean;
   /**
@@ -133,16 +131,7 @@ export function useTransactionSelection({
 
   const selectedCount = computed(() => selectedIds.value.size);
 
-  const isTransactionSelectable = (tx: TransactionModel): boolean => {
-    // Split transactions are not selectable
-    if (tx.splits && tx.splits.length > 0) {
-      return false;
-    }
-    if (isExtraSelectable && !isExtraSelectable(tx)) {
-      return false;
-    }
-    return true;
-  };
+  const isTransactionSelectable = (tx: TransactionModel): boolean => !isExtraSelectable || isExtraSelectable(tx);
 
   const isAllSelected = computed(() => {
     const transactions = getTransactions();

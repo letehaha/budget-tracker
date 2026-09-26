@@ -19,7 +19,7 @@ const buildTx = (overrides: Partial<TransactionModel>): TransactionModel =>
   }) as TransactionModel;
 
 describe('useTransactionSelection', () => {
-  it('default selectability — split parents are not selectable', () => {
+  it('split parents are selectable', () => {
     const splitParent = buildTx({
       id: '00000000-0000-0000-0000-000000000001' as RecordId,
       splits: [
@@ -39,7 +39,7 @@ describe('useTransactionSelection', () => {
       getTransactions: () => [splitParent, regular],
     });
 
-    expect(isTransactionSelectable(splitParent)).toBe(false);
+    expect(isTransactionSelectable(splitParent)).toBe(true);
     expect(isTransactionSelectable(regular)).toBe(true);
   });
 
