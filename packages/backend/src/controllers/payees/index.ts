@@ -9,6 +9,7 @@ export { default as applyTagsToExisting } from './apply-tags-to-existing';
 export { default as createPayeeAlias } from './create-payee-alias';
 export { default as deletePayeeAlias } from './delete-payee-alias';
 export { default as bulkUpdateCategorizationMode } from './bulk-update-categorization-mode';
+export { default as bulkDeletePayees } from './bulk-delete-payees';
 export { default as listIgnoredNames } from './list-ignored-names';
 export { default as addIgnoredName } from './add-ignored-name';
 export { default as removeIgnoredName } from './remove-ignored-name';

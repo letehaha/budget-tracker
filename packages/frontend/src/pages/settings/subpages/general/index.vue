@@ -173,7 +173,7 @@
             <SelectField
               :model-value="defaultPaymentType"
               :values="VERBOSE_PAYMENT_TYPES"
-              :label-key="(item) => t(item.label)"
+              :label-key="(item) => $t(item.label)"
               :placeholder="$t('settings.general.defaultPaymentType.placeholder')"
               :disabled="isDefaultPaymentTypeUpdating || !userSettings"
               @update:model-value="handleDefaultPaymentTypeChange"
