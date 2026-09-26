@@ -240,6 +240,23 @@ export async function deletePayeeAndIgnore<R extends boolean | undefined = undef
   });
 }
 
+export async function bulkDeletePayees<R extends boolean | undefined = undefined>({
+  ids,
+  ignoreFuture,
+  raw,
+}: {
+  ids: string[];
+  ignoreFuture?: boolean;
+  raw?: R;
+}) {
+  return makeRequest<{ deletedCount: number; ignoredAddedCount: number }, R>({
+    method: 'post',
+    url: '/payees/bulk-delete',
+    payload: { ids, ignoreFuture },
+    raw,
+  });
+}
+
 export async function bulkUpdatePayeeCategorizationMode<R extends boolean | undefined = undefined>({
   mode,
   raw,

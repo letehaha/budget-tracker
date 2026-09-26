@@ -102,6 +102,16 @@ export const deletePayeeAndIgnore = async ({ id }: { id: string }): Promise<{ ig
   return api.delete(`/payees/${id}?ignoreFuture=true`, {});
 };
 
+export const bulkDeletePayees = async ({
+  ids,
+  ignoreFuture,
+}: {
+  ids: string[];
+  ignoreFuture: boolean;
+}): Promise<{ deletedCount: number; ignoredAddedCount: number }> => {
+  return api.post('/payees/bulk-delete', { ids, ignoreFuture });
+};
+
 export interface IgnoredName {
   id: string;
   normalizedName: string;

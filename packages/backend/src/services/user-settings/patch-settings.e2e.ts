@@ -1,3 +1,4 @@
+import { PAYMENT_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -123,6 +124,22 @@ describe('Patch user settings', () => {
     });
     expect(rejected.statusCode).toBe(ERROR_CODES.ValidationError);
     expect((await helpers.getUserSettings({ raw: true })).ui?.transactionForm?.mapPicker).toBe(true);
+  });
+
+  it('persists ui.transactionForm.defaultPaymentType and rejects an unknown type', async () => {
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { ui: { transactionForm: { defaultPaymentType: PAYMENT_TYPES.cash } } },
+    });
+    expect(patched.ui?.transactionForm?.defaultPaymentType).toBe(PAYMENT_TYPES.cash);
+
+    const rejected = await helpers.patchUserSettings({
+      patch: { ui: { transactionForm: { defaultPaymentType: 'barter' } } },
+    });
+    expect(rejected.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect((await helpers.getUserSettings({ raw: true })).ui?.transactionForm?.defaultPaymentType).toBe(
+      PAYMENT_TYPES.cash,
+    );
   });
 
   it('rejects a patch that would make settings invalid and keeps stored value intact', async () => {

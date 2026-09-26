@@ -50,7 +50,7 @@ interface AutomationBody {
   actions: AutomationAction[];
 }
 
-const collectAutomationRefs = ({ conditions, actions }: AutomationBody): AutomationRef[] => {
+export const collectAutomationRefs = ({ conditions, actions }: AutomationBody): AutomationRef[] => {
   const refs: AutomationRef[] = [];
 
   conditions.items.forEach((item, index) => {

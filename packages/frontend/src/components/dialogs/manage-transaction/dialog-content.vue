@@ -37,7 +37,6 @@ import {
   isTwoLegTransfer,
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
-  PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   type CurrencyModel,
@@ -99,6 +98,7 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { useDefaultPaymentType } from './composables/use-default-payment-type';
 import { useMapPickerSetting } from './composables/use-map-picker-setting';
 import { useOptionalFields } from './composables/use-optional-fields';
 import { useReverseGeocodedLabel } from './composables/use-reverse-geocoded-label';
@@ -187,6 +187,7 @@ tagsStore.loadTags();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
 const isFormCreation = computed(() => !props.transaction);
+const { defaultPaymentType } = useDefaultPaymentType();
 
 const form = ref<UI_FORM_STRUCT>({
   amount: null,
@@ -197,7 +198,7 @@ const form = ref<UI_FORM_STRUCT>({
   targetAmount: null,
   category: formattedCategories.value[0] ?? null,
   time: new Date(),
-  paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
+  paymentType: defaultPaymentType.value,
   note: undefined,
   externalUrl: undefined,
   externalReference: undefined,
@@ -1161,6 +1162,7 @@ const prepopulateIfReady = () => {
     const pageAccount =
       route.name === ROUTES_NAMES.account ? accounts.find((account) => account.id === route.params.id) : undefined;
     form.value.account = pageAccount ?? resolveDefaultAccount({ accounts });
+    form.value.paymentType = defaultPaymentType.value;
     Object.assign(form.value, props.prefill);
     hasPrepopulated.value = true;
     return;

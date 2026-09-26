@@ -1,6 +1,7 @@
 import {
   addIgnoredName,
   applyTagsToExisting,
+  bulkDeletePayees,
   bulkUpdateCategorizationMode,
   createPayee,
   createPayeeAlias,
@@ -38,6 +39,13 @@ router.patch(
   checkBaseCurrencyLock,
   validateEndpoint(bulkUpdateCategorizationMode.schema),
   bulkUpdateCategorizationMode.handler,
+);
+router.post(
+  '/bulk-delete',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(bulkDeletePayees.schema),
+  bulkDeletePayees.handler,
 );
 
 // Ignored-names sub-resource. Routes precede `/:id` patterns so Express's

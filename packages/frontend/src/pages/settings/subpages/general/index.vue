@@ -160,6 +160,29 @@
 
         <Separator />
 
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-48 flex-1">
+            <div class="text-sm font-medium">
+              {{ $t('settings.general.defaultPaymentType.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.defaultPaymentType.description') }}
+            </p>
+          </div>
+          <div class="w-64 shrink-0">
+            <SelectField
+              :model-value="defaultPaymentType"
+              :values="VERBOSE_PAYMENT_TYPES"
+              :label-key="(item) => $t(item.label)"
+              :placeholder="$t('settings.general.defaultPaymentType.placeholder')"
+              :disabled="isDefaultPaymentTypeUpdating || !userSettings"
+              @update:model-value="handleDefaultPaymentTypeChange"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
         <div class="flex flex-col gap-3">
           <div>
             <div class="text-sm font-medium">
@@ -216,12 +239,14 @@
 </template>
 
 <script setup lang="ts">
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS, type VerbosePaymentType } from '@/common/const';
 import DocsLink from '@/components/common/docs-link.vue';
+import { useDefaultPaymentType } from '@/components/dialogs/manage-transaction/composables/use-default-payment-type';
 import { useMapPickerSetting } from '@/components/dialogs/manage-transaction/composables/use-map-picker-setting';
 import { useOptionalFields } from '@/components/dialogs/manage-transaction/composables/use-optional-fields';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import CategoryMultiSelectField from '@/components/fields/category-multi-select-field.vue';
+import SelectField from '@/components/fields/select-field.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { Switch } from '@/components/lib/ui/switch';
@@ -256,6 +281,8 @@ const {
   setEnabled: setOptionalField,
   isUpdating: isOptionalFieldsUpdating,
 } = useOptionalFields();
+
+const { defaultPaymentType, setDefaultPaymentType, isUpdating: isDefaultPaymentTypeUpdating } = useDefaultPaymentType();
 
 const {
   enabled: isMapPickerEnabled,
@@ -377,6 +404,16 @@ const handleOptionalFieldToggle = async ({ field, value }: { field: TransactionO
     addSuccessNotification(t('settings.general.transactionFields.successNotification'));
   } catch {
     addErrorNotification(t('settings.general.transactionFields.errorNotification'));
+  }
+};
+
+const handleDefaultPaymentTypeChange = async (item: VerbosePaymentType | null) => {
+  if (!item) return;
+  try {
+    await setDefaultPaymentType({ value: item.value });
+    addSuccessNotification(t('settings.general.defaultPaymentType.successNotification'));
+  } catch {
+    addErrorNotification(t('settings.general.defaultPaymentType.errorNotification'));
   }
 };
 

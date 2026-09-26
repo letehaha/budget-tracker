@@ -10,6 +10,7 @@ import {
   MAX_AI_CONNECTIONS,
   MAX_CATEGORY_MAPPING_PRESETS,
   NOTIFICATION_TYPES,
+  PAYMENT_TYPES,
   RecordId,
   TRANSACTION_OPTIONAL_FIELDS,
   endpointsTypes,
@@ -175,6 +176,8 @@ const ZodTransactionFormSettingsSchema = z.object({
   optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
   /** Whether the transaction form may load map tiles and address search from OpenStreetMap. */
   mapPicker: z.boolean().optional(),
+  /** Payment type preselected on new transactions. Credit card when unset. */
+  defaultPaymentType: z.enum(PAYMENT_TYPES).optional(),
 });
 
 // UI-state preferences (table layouts, view modes). Functional settings keep
@@ -375,6 +378,7 @@ export const ZodSettingsPatchSchema = z.object({
         .object({
           optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
           mapPicker: z.boolean().optional(),
+          defaultPaymentType: z.enum(PAYMENT_TYPES).optional(),
         })
         .optional(),
       investmentTransactionsTable: z
